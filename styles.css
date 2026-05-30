@@ -164,3 +164,150 @@ button {
         font-size: 1.2rem;
     }
 }
+
+/* ============================= */
+/*        DASHBOARD STYLES       */
+/* ============================= */
+
+/* SIDEBAR */
+.sidebar {
+    width: 260px;
+    height: 100vh;
+    background: rgba(0,0,0,0.4);
+    border-right: 2px solid var(--neon1);
+    box-shadow: 0 0 20px var(--neon1);
+    animation: neonCycle 12s infinite linear;
+    position: fixed;
+    top: 0;
+    left: 0;
+    padding: 30px 20px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+
+.sidebar-logo {
+    text-align: center;
+}
+
+.sidebar-logo img {
+    width: 80px;
+    margin-bottom: 10px;
+}
+
+.sidebar-logo h3 {
+    color: white;
+    font-size: 1.4rem;
+}
+
+.sidebar-links {
+    list-style: none;
+    margin-top: 40px;
+}
+
+.sidebar-links li {
+    padding: 12px;
+    margin: 8px 0;
+    color: white;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: 0.2s;
+}
+
+.sidebar-links li:hover,
+.sidebar-links li.active {
+    background: linear-gradient(45deg, var(--neon1), var(--neon2));
+    color: black;
+    font-weight: bold;
+}
+
+/* LOGOUT BUTTON */
+.logout-btn {
+    width: 100%;
+    padding: 12px;
+    border-radius: 8px;
+    border: none;
+    background: linear-gradient(45deg, var(--neon1), var(--neon2));
+    color: black;
+    font-weight: bold;
+    cursor: pointer;
+    box-shadow: 0 0 20px var(--neon1);
+}
+
+/* MAIN CONTENT */
+.main-content {
+    margin-left: 260px;
+    padding: 40px;
+    color: white;
+}
+
+.page-title {
+    font-size: 2.4rem;
+}
+
+.subtitle {
+    opacity: 0.8;
+    margin-bottom: 30px;
+}
+
+/* WIDGET GRID */
+.widget-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 20px;
+}
+
+.widget {
+    background: rgba(0,0,0,0.4);
+    padding: 25px;
+    border-radius: 12px;
+    border: 2px solid var(--neon2);
+    box-shadow: 0 0 20px var(--neon2);
+    animation: neonCycle 12s infinite linear;
+}
+
+.widget-number {
+    font-size: 2.4rem;
+    margin-top: 10px;
+}
+
+.widget.wide {
+    grid-column: span 2;
+}
+
+.quest-text {
+    margin: 10px 0;
+    opacity: 0.9;
+}
+
+.quest-btn {
+    padding: 10px 20px;
+    border-radius: 8px;
+    border: none;
+    background: linear-gradient(45deg, var(--neon1), var(--neon2));
+    color: black;
+    font-weight: bold;
+    cursor: pointer;
+    box-shadow: 0 0 20px var(--neon1);
+}
+
+/* MOBILE DASHBOARD */
+@media (max-width: 900px) {
+    .sidebar {
+        width: 100%;
+        height: auto;
+        position: relative;
+        flex-direction: row;
+        align-items: center;
+        justify-content: space-between;
+    }
+
+    .sidebar-links {
+        display: none;
+    }
+
+    .main-content {
+        margin-left: 0;
+        margin-top: 20px;
+    }
+}
