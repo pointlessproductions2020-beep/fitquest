@@ -36,3 +36,12 @@ function registerUser() {
         })
         .catch(err => alert(err.message));
 }
+
+/* LOGOUT */
+function logoutUser() {
+    auth.signOut()
+        .then(() => {
+            window.location.href = "index.html";
+        })
+        .catch(err => alert(err.message));
+}
