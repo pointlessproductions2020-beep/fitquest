@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FitQuest — Profile</title>
+    <link rel="stylesheet" href="styles.css">
+
+    <!-- Firebase v8 -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
+
+    <script defer src="firebase.js"></script>
+</head>
+
+<body class="neon-bg">
+
+<div class="container profile-container">
+
+    <div class="left-panel">
+        <div class="logo-wrapper">
+            <div class="glow-ring"></div>
+            <img src="assets/neonlogo.png" class="logo">
+        </div>
+        <h2 class="tagline desktop-tagline">Tune Your Stats. Power Your Quest.</h2>
+    </div>
+
+    <div class="right-panel">
+        <div class="form-card">
+            <h2>Your Profile</h2>
+
+            <label>Full Name</label>
+            <input type="text" id="profileName" placeholder="Full Name">
+
+            <label>Age</label>
+            <input type="number" id="profileAge" placeholder="Age">
+
+            <label>Sex</label>
+            <select id="profileSex">
+                <option value="">Select</option>
+                <option value="male">Male</option>
+                <option value="female">Female</option>
+            </select>
+
+            <label>Height (cm)</label>
+            <input type="number" id="profileHeight" placeholder="Height in cm">
+
+            <label>Weight (kg)</label>
+            <input type="number" id="profileWeight" placeholder="Weight in kg">
+
+            <label>Activity Level</label>
+            <select id="profileActivity">
+                <option value="">Select</option>
+                <option value="sedentary">Sedentary (little or no exercise)</option>
+                <option value="light">Light (1–3 days/week)</option>
+                <option value="moderate">Moderate (3–5 days/week)</option>
+                <option value="active">Active (6–7 days/week)</option>
+                <option value="very_active">Very Active (hard exercise)</option>
+            </select>
+
+            <label>Goal</label>
+            <select id="profileGoal">
+                <option value="">Select</option>
+                <option value="lose">Lose weight</option>
+                <option value="maintain">Maintain weight</option>
+                <option value="gain">Gain weight</option>
+            </select>
+
+            <label>Goal Pace</label>
+            <select id="profileGoalPace">
+                <option value="">Select</option>
+                <option value="slow">Slow and steady</option>
+                <option value="medium">Moderate</option>
+                <option value="fast">Aggressive</option>
+            </select>
+
+            <button onclick="saveProfile()">Save Profile</button>
+
+            <p class="small-text" id="profileStatus"></p>
+
+            <hr style="margin: 20px 0; opacity: 0.2;">
+
+            <h3>Health Snapshot</h3>
+            <p><strong>BMI:</strong> <span id="bmiValue">–</span></p>
+            <p><strong>Maintenance Calories (TDEE):</strong> <span id="tdeeValue">–</span> kcal</p>
+            <p><strong>Daily Target Calories:</strong> <span id="targetCaloriesValue">–</span> kcal</p>
+
+            <button style="margin-top:15px;" onclick="window.location.href='dashboard.html'">
+                Back to Dashboard
+            </button>
+        </div>
+    </div>
+
+</div>
+
+<h2 class="tagline mobile-tagline">Tune Your Stats. Power Your Quest.</h2>
+
+<script>
+// Load profile when user is logged in
+auth.onAuthStateChanged(user => {
+    if (!user) {
+        window.location.href = "index.html";
+        return;
+    }
+
+    const userRef = db.collection("users").doc(user.uid);
+    userRef.get().then(doc => {
+        if (!doc.exists) return;
+        const data = doc.data();
+
+        if (data.name) document.getElementById("profileName").value = data.name;
+        if (data.age) document.getElementById("profileAge").value = data.age;
+        if (data.sex) document.getElementById("profileSex").value = data.sex;
+        if (data.heightCm) document.getElementById("profileHeight").value = data.heightCm;
+        if (data.weightKg) document.getElementById("profileWeight").value = data.weightKg;
+        if (data.activityLevel) document.getElementById("profileActivity").value = data.activityLevel;
+        if (data.goal) document.getElementById("profileGoal").value = data.goal;
+        if (data.goalPace) document.getElementById("profileGoalPace").value = data.goalPace;
+
+        if (data.bmi) document.getElementById("bmiValue").innerText = data.bmi.toFixed(1);
+        if (data.tdee) document.getElementById("tdeeValue").innerText = Math.round(data.tdee);
+        if (data.targetCalories) document.getElementById("targetCaloriesValue").innerText = Math.round(data.targetCalories);
+    });
+});
+</script>
+
+</body>
+</html>
