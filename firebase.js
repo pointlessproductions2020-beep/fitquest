@@ -12,6 +12,7 @@ const firebaseConfig = {
 // --- Initialize Firebase ---
 firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
+const db = firebase.firestore();
 
 /* LOGIN */
 function loginUser() {
@@ -27,10 +28,22 @@ function loginUser() {
 
 /* REGISTER */
 function registerUser() {
+    const name = document.getElementById("regName").value;
     const email = document.getElementById("regEmail").value;
     const pass = document.getElementById("regPassword").value;
 
     auth.createUserWithEmailAndPassword(email, pass)
+        .then((cred) => {
+            // Create Firestore user profile
+            return db.collection("users").doc(cred.user.uid).set({
+                name: name,
+                email: email,
+                createdAt: new Date(),
+                xp: 0,
+                level: 1,
+                streak: 0
+            });
+        })
         .then(() => {
             window.location.href = "dashboard.html";
         })
