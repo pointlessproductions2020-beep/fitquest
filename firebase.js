@@ -69,8 +69,10 @@ function addXP(amount) {
         const doc = await t.get(userRef);
         if (!doc.exists) return;
 
-        let xp = doc.data().xp + amount;
-        let level = doc.data().level;
+        let xp = doc.data().xp || 0;
+        let level = doc.data().level || 1;
+
+        xp += amount;
 
         // Level up every 100 XP
         while (xp >= 100) {
@@ -80,13 +82,134 @@ function addXP(amount) {
 
         t.update(userRef, { xp, level });
     }).then(() => {
-        // Refresh UI if on dashboard
         if (document.getElementById("userXP")) {
+            const user = auth.currentUser;
+            if (!user) return;
             db.collection("users").doc(user.uid).get().then(doc => {
                 const data = doc.data();
-                document.getElementById("userXP").innerText = data.xp + " XP";
-                document.getElementById("userLevel").innerText = data.level;
+                document.getElementById("userXP").innerText = (data.xp || 0) + " XP";
+                document.getElementById("userLevel").innerText = data.level || 1;
             });
         }
     });
+}
+
+/* PROFILE: BMI / BMR / TDEE / TARGET CALORIES */
+
+function getActivityMultiplier(activityLevel) {
+    switch (activityLevel) {
+        case "sedentary": return 1.2;
+        case "light": return 1.375;
+        case "moderate": return 1.55;
+        case "active": return 1.725;
+        case "very_active": return 1.9;
+        default: return 1.2;
+    }
+}
+
+function getGoalAdjustment(goal, pace) {
+    // kcal per day adjustment
+    if (goal === "maintain") return 0;
+
+    let base = 0;
+    if (pace === "slow") base = 250;
+    else if (pace === "medium") base = 500;
+    else if (pace === "fast") base = 750;
+    else base = 500;
+
+    return goal === "lose" ? -base : base;
+}
+
+function calculateProfileMetrics({ sex, age, heightCm, weightKg, activityLevel, goal, goalPace }) {
+    if (!sex || !age || !heightCm || !weightKg) return {};
+
+    const height = Number(heightCm);
+    const weight = Number(weightKg);
+    const ageNum = Number(age);
+
+    // BMI
+    const bmi = weight / Math.pow(height / 100, 2);
+
+    // Mifflin-St Jeor BMR
+    let bmr;
+    if (sex === "male") {
+        bmr = 10 * weight + 6.25 * height - 5 * ageNum + 5;
+    } else {
+        bmr = 10 * weight + 6.25 * height - 5 * ageNum - 161;
+    }
+
+    const activityMult = getActivityMultiplier(activityLevel);
+    const tdee = bmr * activityMult;
+
+    const adjustment = getGoalAdjustment(goal, goalPace);
+    const targetCalories = tdee + adjustment;
+
+    return { bmi, bmr, tdee, targetCalories };
+}
+
+function saveProfile() {
+    const user = auth.currentUser;
+    if (!user) {
+        alert("You must be logged in.");
+        return;
+    }
+
+    const name = document.getElementById("profileName").value;
+    const age = document.getElementById("profileAge").value;
+    const sex = document.getElementById("profileSex").value;
+    const heightCm = document.getElementById("profileHeight").value;
+    const weightKg = document.getElementById("profileWeight").value;
+    const activityLevel = document.getElementById("profileActivity").value;
+    const goal = document.getElementById("profileGoal").value;
+    const goalPace = document.getElementById("profileGoalPace").value;
+
+    const metrics = calculateProfileMetrics({
+        sex,
+        age,
+        heightCm,
+        weightKg,
+        activityLevel,
+        goal,
+        goalPace
+    });
+
+    const userRef = db.collection("users").doc(user.uid);
+
+    const payload = {
+        name,
+        age: age ? Number(age) : null,
+        sex,
+        heightCm: heightCm ? Number(heightCm) : null,
+        weightKg: weightKg ? Number(weightKg) : null,
+        activityLevel,
+        goal,
+        goalPace
+    };
+
+    if (metrics.bmi) payload.bmi = metrics.bmi;
+    if (metrics.tdee) payload.tdee = metrics.tdee;
+    if (metrics.targetCalories) payload.targetCalories = metrics.targetCalories;
+
+    userRef.set(payload, { merge: true })
+        .then(() => {
+            if (document.getElementById("profileStatus")) {
+                document.getElementById("profileStatus").innerText = "Profile saved successfully.";
+            }
+            if (metrics.bmi && document.getElementById("bmiValue")) {
+                document.getElementById("bmiValue").innerText = metrics.bmi.toFixed(1);
+            }
+            if (metrics.tdee && document.getElementById("tdeeValue")) {
+                document.getElementById("tdeeValue").innerText = Math.round(metrics.tdee);
+            }
+            if (metrics.targetCalories && document.getElementById("targetCaloriesValue")) {
+                document.getElementById("targetCaloriesValue").innerText = Math.round(metrics.targetCalories);
+            }
+        })
+        .catch(err => {
+            if (document.getElementById("profileStatus")) {
+                document.getElementById("profileStatus").innerText = "Error saving profile: " + err.message;
+            } else {
+                alert(err.message);
+            }
+        });
 }
