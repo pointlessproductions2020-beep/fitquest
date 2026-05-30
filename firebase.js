@@ -74,7 +74,6 @@ function addXP(amount) {
 
         xp += amount;
 
-        // Level up every 100 XP
         while (xp >= 100) {
             xp -= 100;
             level++;
@@ -108,7 +107,6 @@ function getActivityMultiplier(activityLevel) {
 }
 
 function getGoalAdjustment(goal, pace) {
-    // kcal per day adjustment
     if (goal === "maintain") return 0;
 
     let base = 0;
@@ -127,10 +125,8 @@ function calculateProfileMetrics({ sex, age, heightCm, weightKg, activityLevel, 
     const weight = Number(weightKg);
     const ageNum = Number(age);
 
-    // BMI
     const bmi = weight / Math.pow(height / 100, 2);
 
-    // Mifflin-St Jeor BMR
     let bmr;
     if (sex === "male") {
         bmr = 10 * weight + 6.25 * height - 5 * ageNum + 5;
@@ -212,4 +208,235 @@ function saveProfile() {
                 alert(err.message);
             }
         });
+}
+
+/* DAILY LOG / FITNESS BRAIN */
+
+// Build today's log doc ID
+function getTodayLogId(userId) {
+    const d = new Date();
+    const yyyy = d.getFullYear();
+    const mm = String(d.getMonth() + 1).padStart(2, "0");
+    const dd = String(d.getDate()).padStart(2, "0");
+    return `${userId}_${yyyy}-${mm}-${dd}`;
+}
+
+function updateDashboardFromLog(log, target) {
+    const eaten = log.caloriesEaten || 0;
+    const water = log.waterMl || 0;
+    const exercise = log.exerciseCalories || 0;
+
+    const net = eaten - exercise;
+    const remaining = Math.round(Math.max(0, target - net));
+
+    if (document.getElementById("calEaten")) {
+        document.getElementById("calEaten").innerText = Math.round(eaten);
+    }
+    if (document.getElementById("waterTotal")) {
+        document.getElementById("waterTotal").innerText = Math.round(water);
+    }
+    if (document.getElementById("exerciseCalories")) {
+        document.getElementById("exerciseCalories").innerText = Math.round(exercise);
+    }
+    if (document.getElementById("calRemaining")) {
+        document.getElementById("calRemaining").innerText = isNaN(remaining) ? "–" : remaining;
+    }
+
+    if (document.getElementById("brainMessage")) {
+        let msg = "";
+        if (!target || isNaN(target)) {
+            msg = "Set up your profile to unlock smart calorie guidance.";
+        } else if (remaining <= 0) {
+            msg = "You’ve hit your target for today. Anything extra is a bonus—or a treat.";
+        } else if (remaining < 300) {
+            msg = `You’re close to your target. Around ${remaining} kcal left to stay on track.`;
+        } else {
+            msg = `You’ve got about ${remaining} kcal left if you want to stay in your plan today.`;
+        }
+        document.getElementById("brainMessage").innerText = msg;
+    }
+}
+
+function loadDashboardBrain() {
+    const user = auth.currentUser;
+    if (!user) return;
+
+    const userRef = db.collection("users").doc(user.uid);
+
+    userRef.get().then(doc => {
+        if (!doc.exists) return;
+        const data = doc.data();
+
+        const name = data.name || "Adventurer";
+        const level = data.level || 1;
+        const xp = data.xp || 0;
+        const targetCalories = data.targetCalories ? Math.round(data.targetCalories) : null;
+
+        if (document.getElementById("userName")) {
+            document.getElementById("userName").innerText = name;
+        }
+        if (document.getElementById("userLevel")) {
+            document.getElementById("userLevel").innerText = level;
+        }
+        if (document.getElementById("userXP")) {
+            document.getElementById("userXP").innerText = xp + " XP";
+        }
+        if (document.getElementById("calTarget")) {
+            document.getElementById("calTarget").innerText = targetCalories ? targetCalories : "–";
+        }
+
+        const logId = getTodayLogId(user.uid);
+        const logRef = db.collection("dailyLogs").doc(logId);
+
+        logRef.get().then(ldoc => {
+            if (!ldoc.exists) {
+                const baseLog = {
+                    userId: user.uid,
+                    date: new Date().toISOString().substring(0, 10),
+                    caloriesEaten: 0,
+                    waterMl: 0,
+                    exerciseCalories: 0,
+                    targetCalories: targetCalories || null
+                };
+                logRef.set(baseLog).then(() => {
+                    updateDashboardFromLog(baseLog, targetCalories || 0);
+                });
+            } else {
+                const log = ldoc.data();
+                const effectiveTarget = targetCalories || log.targetCalories || 0;
+                updateDashboardFromLog(log, effectiveTarget);
+            }
+        });
+    });
+}
+
+/* MEAL / WATER / EXERCISE INPUTS */
+
+function promptAddMeal() {
+    const val = prompt("How many calories was this meal?");
+    if (!val) return;
+    const amount = parseInt(val, 10);
+    if (isNaN(amount) || amount <= 0) {
+        alert("Please enter a valid number.");
+        return;
+    }
+    addMealCalories(amount);
+}
+
+function addMealCalories(amount) {
+    const user = auth.currentUser;
+    if (!user) return;
+
+    const logId = getTodayLogId(user.uid);
+    const logRef = db.collection("dailyLogs").doc(logId);
+
+    db.runTransaction(async (t) => {
+        const doc = await t.get(logRef);
+        let data = doc.exists ? doc.data() : {
+            userId: user.uid,
+            date: new Date().toISOString().substring(0, 10),
+            caloriesEaten: 0,
+            waterMl: 0,
+            exerciseCalories: 0
+        };
+
+        data.caloriesEaten = (data.caloriesEaten || 0) + amount;
+        t.set(logRef, data);
+    }).then(() => {
+        logRef.get().then(doc => {
+            const log = doc.data();
+            const userRef = db.collection("users").doc(user.uid);
+            userRef.get().then(ud => {
+                const u = ud.data();
+                const target = u && u.targetCalories ? Math.round(u.targetCalories) : (log.targetCalories || 0);
+                updateDashboardFromLog(log, target);
+            });
+        });
+    });
+}
+
+function addWater(amount) {
+    const user = auth.currentUser;
+    if (!user) return;
+
+    const logId = getTodayLogId(user.uid);
+    const logRef = db.collection("dailyLogs").doc(logId);
+
+    db.runTransaction(async (t) => {
+        const doc = await t.get(logRef);
+        let data = doc.exists ? doc.data() : {
+            userId: user.uid,
+            date: new Date().toISOString().substring(0, 10),
+            caloriesEaten: 0,
+            waterMl: 0,
+            exerciseCalories: 0
+        };
+
+        data.waterMl = (data.waterMl || 0) + amount;
+        t.set(logRef, data);
+    }).then(() => {
+        logRef.get().then(doc => {
+            const log = doc.data();
+            const userRef = db.collection("users").doc(user.uid);
+            userRef.get().then(ud => {
+                const u = ud.data();
+                const target = u && u.targetCalories ? Math.round(u.targetCalories) : (log.targetCalories || 0);
+                updateDashboardFromLog(log, target);
+            });
+        });
+    });
+}
+
+function promptAddWater() {
+    const val = prompt("How many ml of water?");
+    if (!val) return;
+    const amount = parseInt(val, 10);
+    if (isNaN(amount) || amount <= 0) {
+        alert("Please enter a valid number.");
+        return;
+    }
+    addWater(amount);
+}
+
+function promptAddExercise() {
+    const val = prompt("How many calories did you burn?");
+    if (!val) return;
+    const amount = parseInt(val, 10);
+    if (isNaN(amount) || amount <= 0) {
+        alert("Please enter a valid number.");
+        return;
+    }
+    addExerciseCalories(amount);
+}
+
+function addExerciseCalories(amount) {
+    const user = auth.currentUser;
+    if (!user) return;
+
+    const logId = getTodayLogId(user.uid);
+    const logRef = db.collection("dailyLogs").doc(logId);
+
+    db.runTransaction(async (t) => {
+        const doc = await t.get(logRef);
+        let data = doc.exists ? doc.data() : {
+            userId: user.uid,
+            date: new Date().toISOString().substring(0, 10),
+            caloriesEaten: 0,
+            waterMl: 0,
+            exerciseCalories: 0
+        };
+
+        data.exerciseCalories = (data.exerciseCalories || 0) + amount;
+        t.set(logRef, data);
+    }).then(() => {
+        logRef.get().then(doc => {
+            const log = doc.data();
+            const userRef = db.collection("users").doc(user.uid);
+            userRef.get().then(ud => {
+                const u = ud.data();
+                const target = u && u.targetCalories ? Math.round(u.targetCalories) : (log.targetCalories || 0);
+                updateDashboardFromLog(log, target);
+            });
+        });
+    });
 }
