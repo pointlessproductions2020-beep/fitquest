@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FitQuest — Register</title>
+    <link rel="stylesheet" href="styles.css">
+    <script defer src="firebase.js"></script>
+</head>
+<body class="neon-bg">
+
+<div class="container">
+
+    <!-- LEFT SIDE (DESKTOP) -->
+    <div class="left-panel">
+        <div class="logo-wrapper">
+            <div class="glow-ring"></div>
+            <img src="assets/neonlogo.png" class="logo">
+        </div>
+        <h2 class="tagline desktop-tagline">Your Journey Starts Here.</h2>
+    </div>
+
+    <!-- RIGHT SIDE (FORM) -->
+    <div class="right-panel">
+        <div class="form-card">
+            <h2>Create Account</h2>
+
+            <input type="text" id="regName" placeholder="Full Name">
+            <input type="email" id="regEmail" placeholder="Email">
+            <input type="password" id="regPassword" placeholder="Password">
+
+            <button onclick="registerUser()">Register</button>
+
+            <p class="small-text">Already have an account? <a href="index.html">Login</a></p>
+        </div>
+    </div>
+
+</div>
+
+<!-- MOBILE TAGLINE -->
+<h2 class="tagline mobile-tagline">Your Journey Starts Here.</h2>
+
+</body>
+</html>
