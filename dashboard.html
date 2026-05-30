@@ -42,6 +42,14 @@
     <!-- GRID OF WIDGETS -->
     <div class="widget-grid">
 
+        <!-- XP + LEVEL -->
+        <div class="widget">
+            <h2>Level</h2>
+            <p class="widget-number" id="userLevel">1</p>
+            <h2 style="margin-top:15px;">XP</h2>
+            <p class="widget-number" id="userXP">0 XP</p>
+        </div>
+
         <!-- STEPS -->
         <div class="widget">
             <h2>Steps</h2>
@@ -64,29 +72,27 @@
         <div class="widget wide">
             <h2>Today's Quest</h2>
             <p class="quest-text">Complete a 20‑minute workout to earn 50 XP.</p>
-            <button class="quest-btn">Start Quest</button>
+            <button class="quest-btn" onclick="addXP(50)">Complete Quest (+50 XP)</button>
         </div>
 
     </div>
 
 </div>
 
-<!-- ⭐ NAME LOADER SCRIPT -->
+<!-- NAME + XP LOADER -->
 <script>
 auth.onAuthStateChanged(user => {
     if (!user) {
-        // Not logged in → send back to login page
         window.location.href = "index.html";
         return;
     }
 
-    // Logged in → load Firestore profile
     db.collection("users").doc(user.uid).get().then(doc => {
         if (doc.exists) {
             const data = doc.data();
             document.getElementById("userName").innerText = data.name;
-        } else {
-            document.getElementById("userName").innerText = "Adventurer";
+            document.getElementById("userLevel").innerText = data.level;
+            document.getElementById("userXP").innerText = data.xp + " XP";
         }
     });
 });
