@@ -1,43 +1,44 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <title>FitQuest – Find Your Next Challenge</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <link rel="stylesheet" href="styles.css" />
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FitQuest — Login</title>
+    <link rel="stylesheet" href="styles.css">
+    <script defer src="firebase.js"></script>
 </head>
-<body>
-  <header class="hero">
-    <div class="hero-inner">
-      <h1>FitQuest</h1>
-      <p class="tagline">Turn every workout into a quest.</p>
-      <p class="subtext">
-        FitQuest is a gamified fitness platform connecting you with trainers, challenges, and progress that actually feels fun.
-      </p>
-      <a href="#" class="cta">Coming soon – join the journey</a>
+<body class="neon-bg">
+
+<div class="container">
+
+    <!-- LEFT SIDE (DESKTOP) -->
+    <div class="left-panel">
+        <div class="logo-wrapper">
+            <div class="glow-ring"></div>
+            <img src="assets/neonlogo.png" class="logo">
+        </div>
+        <h2 class="tagline desktop-tagline">Your Journey Starts Here.</h2>
     </div>
-  </header>
 
-  <section class="section">
-    <h2>What is FitQuest?</h2>
-    <p>
-      FitQuest turns your fitness into missions, streaks, and rewards. Train with real coaches, track your progress, and level up your real life character.
-    </p>
-  </section>
+    <!-- RIGHT SIDE (FORM) -->
+    <div class="right-panel">
+        <div class="form-card">
+            <h2>Login</h2>
 
-  <section class="section">
-    <h2>For trainers</h2>
-    <p>
-      Soon, trainers will be able to log in, create quests, manage clients, and earn through a modern, global platform.
-    </p>
-  </section>
+            <input type="email" id="loginEmail" placeholder="Email">
+            <input type="password" id="loginPassword" placeholder="Password">
 
-  <footer class="footer">
-    <p>© <span id="year"></span> FitQuest. All rights reserved.</p>
-  </footer>
+            <button onclick="loginUser()">Login</button>
 
-  <script>
-    document.getElementById('year').textContent = new Date().getFullYear();
-  </script>
+            <p class="small-text"><a href="#">Forgot password</a></p>
+            <p class="small-text">Don't have an account? <a href="register.html">Register</a></p>
+        </div>
+    </div>
+
+</div>
+
+<!-- MOBILE TAGLINE -->
+<h2 class="tagline mobile-tagline">Your Journey Starts Here.</h2>
+
 </body>
 </html>
