@@ -34,7 +34,6 @@ function registerUser() {
 
     auth.createUserWithEmailAndPassword(email, pass)
         .then((cred) => {
-            // Create Firestore user profile
             return db.collection("users").doc(cred.user.uid).set({
                 name: name,
                 email: email,
@@ -57,4 +56,37 @@ function logoutUser() {
             window.location.href = "index.html";
         })
         .catch(err => alert(err.message));
+}
+
+/* XP + LEVEL SYSTEM */
+function addXP(amount) {
+    const user = auth.currentUser;
+    if (!user) return;
+
+    const userRef = db.collection("users").doc(user.uid);
+
+    return db.runTransaction(async (t) => {
+        const doc = await t.get(userRef);
+        if (!doc.exists) return;
+
+        let xp = doc.data().xp + amount;
+        let level = doc.data().level;
+
+        // Level up every 100 XP
+        while (xp >= 100) {
+            xp -= 100;
+            level++;
+        }
+
+        t.update(userRef, { xp, level });
+    }).then(() => {
+        // Refresh UI if on dashboard
+        if (document.getElementById("userXP")) {
+            db.collection("users").doc(user.uid).get().then(doc => {
+                const data = doc.data();
+                document.getElementById("userXP").innerText = data.xp + " XP";
+                document.getElementById("userLevel").innerText = data.level;
+            });
+        }
+    });
 }
