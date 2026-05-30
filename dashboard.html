@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FitQuest — Dashboard</title>
+    <link rel="stylesheet" href="styles.css">
+
+    <!-- Firebase v8 -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+
+    <script defer src="firebase.js"></script>
+</head>
+
+<body class="neon-bg">
+
+<!-- SIDEBAR -->
+<div class="sidebar">
+    <div class="sidebar-logo">
+        <img src="assets/neonlogo.png">
+        <h3>FitQuest</h3>
+    </div>
+
+    <ul class="sidebar-links">
+        <li class="active">🏠 Dashboard</li>
+        <li>🔥 Quests</li>
+        <li>📊 Progress</li>
+        <li>⚙️ Settings</li>
+    </ul>
+
+    <button class="logout-btn" onclick="logoutUser()">Logout</button>
+</div>
+
+<!-- MAIN CONTENT -->
+<div class="main-content">
+
+    <h1 class="page-title">Welcome Back, <span id="userName">Adventurer</span></h1>
+    <p class="subtitle">Your Journey Continues.</p>
+
+    <!-- GRID OF WIDGETS -->
+    <div class="widget-grid">
+
+        <!-- STEPS -->
+        <div class="widget">
+            <h2>Steps</h2>
+            <p class="widget-number">8,420</p>
+        </div>
+
+        <!-- CALORIES -->
+        <div class="widget">
+            <h2>Calories Burned</h2>
+            <p class="widget-number">612 kcal</p>
+        </div>
+
+        <!-- ACTIVE MINUTES -->
+        <div class="widget">
+            <h2>Active Minutes</h2>
+            <p class="widget-number">54 min</p>
+        </div>
+
+        <!-- QUESTS -->
+        <div class="widget wide">
+            <h2>Today's Quest</h2>
+            <p class="quest-text">Complete a 20‑minute workout to earn 50 XP.</p>
+            <button class="quest-btn">Start Quest</button>
+        </div>
+
+    </div>
+
+</div>
+
+</body>
+</html>
