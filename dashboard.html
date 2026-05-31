@@ -11,7 +11,7 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
 
-    <!-- Chart.js for analytics panels -->
+    <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
     <script defer src="firebase.js"></script>
@@ -43,7 +43,7 @@
     <h1 class="page-title">Welcome Back, <span id="userName">Adventurer</span></h1>
     <p class="subtitle" id="brainMessage">Calibrating your fitness brain...</p>
 
-    <!-- TOP ROW — DAILY SUMMARY -->
+    <!-- TOP SUMMARY ROW -->
     <div class="top-summary-row">
 
         <div class="summary-card" onclick="openAnalyticsPanel('panel-calories')">
@@ -115,7 +115,7 @@
 
 </div>
 
-<!-- RIGHT SIDEBAR (DESKTOP ONLY) -->
+<!-- RIGHT SIDEBAR -->
 <div class="right-panel">
     <h2>Upcoming Classes</h2>
 
@@ -167,53 +167,44 @@
     </div>
 </div>
 
-<!-- ANALYTICS PANELS (PRO ONLY) -->
-
-<!-- CALORIES INTAKE PANEL -->
+<!-- ANALYTICS PANELS -->
 <div id="panel-calories" class="analytics-panel">
     <div class="panel-header">
         <h2>Calories Intake</h2>
         <span class="panel-close" onclick="closePanel('panel-calories')">✕</span>
     </div>
-
     <canvas id="chartCaloriesWeekly"></canvas>
     <canvas id="chartCaloriesMonthly"></canvas>
 </div>
 
-<!-- CALORIES BURNED PANEL -->
 <div id="panel-burned" class="analytics-panel">
     <div class="panel-header">
         <h2>Calories Burned</h2>
         <span class="panel-close" onclick="closePanel('panel-burned')">✕</span>
     </div>
-
     <canvas id="chartBurnWeekly"></canvas>
     <canvas id="chartBurnMonthly"></canvas>
 </div>
 
-<!-- BMI PANEL -->
 <div id="panel-bmi" class="analytics-panel">
     <div class="panel-header">
         <h2>BMI History</h2>
         <span class="panel-close" onclick="closePanel('panel-bmi')">✕</span>
     </div>
-
     <canvas id="chartBMIHistory"></canvas>
 </div>
 
-<!-- STEPS PANEL -->
 <div id="panel-steps" class="analytics-panel">
     <div class="panel-header">
         <h2>Steps Trend</h2>
         <span class="panel-close" onclick="closePanel('panel-steps')">✕</span>
     </div>
-
     <canvas id="chartStepsWeekly"></canvas>
     <canvas id="chartStepsMonthly"></canvas>
 </div>
 
+<!-- DASHBOARD LOGIC -->
 <script>
-// Auth guard
 auth.onAuthStateChanged(user => {
     if (!user) {
         window.location.href = "index.html";
@@ -222,10 +213,8 @@ auth.onAuthStateChanged(user => {
     loadDashboardBrain();
 });
 
-// Membership (replace with Firestore value later)
-let membership = "free"; // "free" | "pro" | "lifetime"
+let membership = "free";
 
-// Analytics panels
 function openAnalyticsPanel(panelId) {
     if (membership === "free") {
         openUpgradeModal();
@@ -238,7 +227,6 @@ function closePanel(panelId) {
     document.getElementById(panelId).classList.remove("open");
 }
 
-// Mobile classes panel
 function openClassesMobile() {
     document.getElementById("mobileClassesPanel").classList.add("open");
 }
@@ -247,7 +235,6 @@ function closeClassesMobile() {
     document.getElementById("mobileClassesPanel").classList.remove("open");
 }
 
-// BMI calculator
 function calculateBMI() {
     const h = parseFloat(document.getElementById("height").value);
     const w = parseFloat(document.getElementById("weight").value);
@@ -259,124 +246,13 @@ function calculateBMI() {
     document.getElementById("bmiResult").innerText = "BMI: " + bmi.toFixed(1);
 }
 
-// Placeholder: upgrade modal hook
 function openUpgradeModal() {
     alert("FitQuest Pro required to view detailed analytics.");
 }
-
-// Chart.js setup (placeholder data)
-window.addEventListener("load", () => {
-    // Calories weekly
-    new Chart(document.getElementById("chartCaloriesWeekly"), {
-        type: "line",
-        data: {
-            labels: ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"],
-            datasets: [{
-                label: "Calories",
-                data: [1800, 1750, 1900, 2000, 1850, 1700, 2100],
-                borderColor: "#4da3ff",
-                backgroundColor: "rgba(77,163,255,0.2)",
-                borderWidth: 2,
-                tension: 0.3
-            }]
-        },
-        options: { plugins: { legend: { display: false } } }
-    });
-
-    // Calories monthly
-    new Chart(document.getElementById("chartCaloriesMonthly"), {
-        type: "bar",
-        data: {
-            labels: ["Week 1","Week 2","Week 3","Week 4"],
-            datasets: [{
-                label: "Avg Calories",
-                data: [1850, 1900, 1780, 1950],
-                backgroundColor: "rgba(77,163,255,0.6)"
-            }]
-        },
-        options: { plugins: { legend: { display: false } } }
-    });
-
-    // Burn weekly
-    new Chart(document.getElementById("chartBurnWeekly"), {
-        type: "line",
-        data: {
-            labels: ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"],
-            datasets: [{
-                label: "Burned",
-                data: [400, 520, 480, 600, 450, 500, 650],
-                borderColor: "#ff7b54",
-                backgroundColor: "rgba(255,123,84,0.2)",
-                borderWidth: 2,
-                tension: 0.3
-            }]
-        },
-        options: { plugins: { legend: { display: false } } }
-    });
-
-    // Burn monthly
-    new Chart(document.getElementById("chartBurnMonthly"), {
-        type: "bar",
-        data: {
-            labels: ["Week 1","Week 2","Week 3","Week 4"],
-            datasets: [{
-                label: "Avg Burn",
-                data: [450, 500, 520, 560],
-                backgroundColor: "rgba(255,123,84,0.6)"
-            }]
-        },
-        options: { plugins: { legend: { display: false } } }
-    });
-
-    // BMI history
-    new Chart(document.getElementById("chartBMIHistory"), {
-        type: "line",
-        data: {
-            labels: ["Jan","Feb","Mar","Apr","May"],
-            datasets: [{
-                label: "BMI",
-                data: [24.1, 23.9, 23.7, 23.5, 23.4],
-                borderColor: "#4da3ff",
-                backgroundColor: "rgba(77,163,255,0.2)",
-                borderWidth: 2,
-                tension: 0.3
-            }]
-        },
-        options: { plugins: { legend: { display: false } } }
-    });
-
-    // Steps weekly
-    new Chart(document.getElementById("chartStepsWeekly"), {
-        type: "bar",
-        data: {
-            labels: ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"],
-            datasets: [{
-                label: "Steps",
-                data: [7450, 8200, 9100, 10000, 6800, 12000, 9500],
-                backgroundColor: "rgba(76, 201, 91, 0.7)"
-            }]
-        },
-        options: { plugins: { legend: { display: false } } }
-    });
-
-    // Steps monthly
-    new Chart(document.getElementById("chartStepsMonthly"), {
-        type: "line",
-        data: {
-            labels: ["Week 1","Week 2","Week 3","Week 4"],
-            datasets: [{
-                label: "Avg Steps",
-                data: [8500, 9200, 9800, 10200],
-                borderColor: "#4cc95b",
-                backgroundColor: "rgba(76,201,91,0.2)",
-                borderWidth: 2,
-                tension: 0.3
-            }]
-        },
-        options: { plugins: { legend: { display: false } } }
-    });
-});
 </script>
+
+<!-- CHARTS -->
+<script src="chart.js"></script>
 
 </body>
 </html>
