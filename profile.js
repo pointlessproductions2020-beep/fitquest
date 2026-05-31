@@ -37,7 +37,7 @@ auth.onAuthStateChanged(user => {
         if (data.goalPace) document.getElementById("profileGoalPace").value = data.goalPace;
 
         if (data.avatarUrl) {
-            document.getElementById("profileAvatar").src = data.avatarUrl;
+            document.getElementById("profileAvatar").src = data.avatarUrl + "?t=" + Date.now();
         }
 
         // Stats
@@ -96,7 +96,7 @@ function saveProfile() {
 }
 
 /* -----------------------------------------------------------
-   AVATAR UPLOAD (Firebase Storage)
+   AVATAR UPLOAD (FIXED)
 ----------------------------------------------------------- */
 
 document.getElementById("avatarUpload").addEventListener("change", async (e) => {
@@ -110,11 +110,13 @@ document.getElementById("avatarUpload").addEventListener("change", async (e) => 
     await storageRef.put(file);
     const url = await storageRef.getDownloadURL();
 
-    document.getElementById("profileAvatar").src = url;
+    // Force refresh (fixes caching)
+    document.getElementById("profileAvatar").src = url + "?t=" + Date.now();
 
-    db.collection("users").doc(user.uid).update({
+    // Save URL using set() so it ALWAYS saves
+    db.collection("users").doc(user.uid).set({
         avatarUrl: url
-    });
+    }, { merge: true });
 });
 
 /* -----------------------------------------------------------
