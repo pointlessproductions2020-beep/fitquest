@@ -221,13 +221,166 @@
 
 <!-- DASHBOARD LOGIC -->
 <script>
-auth.onAuthStateChanged(user => {
+auth.onAuthStateChanged(async user => {
     if (!user) {
         window.location.href = "index.html";
         return;
     }
-    loadDashboardBrain();
+
+    const userRef = db.collection("users").doc(user.uid);
+    const doc = await userRef.get();
+    if (!doc.exists) return;
+
+    const data = doc.data();
+
+    /* -----------------------------------------------------------
+       1. BASIC DASHBOARD SETUP
+    ----------------------------------------------------------- */
+
+    document.getElementById("userName").innerText = data.name || "Adventurer";
+
+    // BMI card
+    if (data.bmi) {
+        document.getElementById("currentBMI").innerText = data.bmi.toFixed(1);
+    }
+
+    // Steps card
+    if (data.stepsToday) {
+        document.getElementById("stepsToday").innerText = data.stepsToday;
+        document.getElementById("stepTrackerLabel").innerText =
+            `${data.stepsToday} / 10,000 Steps`;
+    }
+
+    /* -----------------------------------------------------------
+       2. CALORIE BRAIN — BMR, TDEE, TARGET CALORIES
+    ----------------------------------------------------------- */
+
+    const profile = {
+        sex: data.sex,
+        weightKg: data.weightKg,
+        heightCm: data.heightCm,
+        age: data.age,
+        activityLevel: data.activityLevel,
+        goal: data.goal,
+        goalPace: data.goalPace
+    };
+
+    const targets = FitQuestBrain.calculateTargets(profile);
+
+    if (targets) {
+        document.getElementById("brainMessage").innerText =
+            `Your target today is ${Math.round(targets.targetCalories)} kcal`;
+
+        // Save updated values
+        userRef.set({
+            tdee: targets.tdee,
+            targetCalories: targets.targetCalories
+        }, { merge: true });
+    }
+
+    /* -----------------------------------------------------------
+       3. TREND ENGINE — WEIGHT + CALORIES
+    ----------------------------------------------------------- */
+
+    const weightTrend = FitQuestBrain.calculateTrend(data.weightHistory || []);
+    const calorieTrend = FitQuestBrain.calculateTrend(data.calorieHistory || []);
+
+    /* -----------------------------------------------------------
+       4. TONE ENGINE — AI-LIKE LANGUAGE
+    ----------------------------------------------------------- */
+
+    const tone = FitQuestBrain.toneEngine({
+        bmi: data.bmi,
+        trend: weightTrend,
+        goal: data.goal,
+        pace: data.goalPace
+    });
+
+    document.getElementById("brainMessage").innerText =
+        `${tone.headline} — ${tone.subline}`;
+
+    /* -----------------------------------------------------------
+       5. INSIGHTS ENGINE — DAILY SMART INSIGHTS
+    ----------------------------------------------------------- */
+
+    const hydration = data.waterToday || 0;
+
+    const insights = FitQuestBrain.generateInsights({
+        weightTrend,
+        calorieTrend,
+        hydration
+    });
+
+    // Create insights container if missing
+    let insightsBox = document.getElementById("insightsBox");
+    if (!insightsBox) {
+        insightsBox = document.createElement("div");
+        insightsBox.id = "insightsBox";
+        insightsBox.className = "card neon-card";
+        insightsBox.style.marginTop = "20px";
+        insightsBox.innerHTML = `<h2 class="neon-text">Daily Insights</h2><ul id="insightsList"></ul>`;
+        document.querySelector(".main-content").appendChild(insightsBox);
+    }
+
+    const list = document.getElementById("insightsList");
+    list.innerHTML = "";
+
+    insights.forEach(text => {
+        const li = document.createElement("li");
+        li.innerText = text;
+        li.style.marginBottom = "6px";
+        list.appendChild(li);
+    });
+
+    /* -----------------------------------------------------------
+       6. ADAPTIVE GOALS — SMART SUGGESTIONS
+    ----------------------------------------------------------- */
+
+    const adherence = data.adherence || 0.5;
+
+    const adaptive = FitQuestBrain.adaptiveGoalCheck({
+        weightTrend,
+        adherence,
+        targetCalories: targets?.targetCalories
+    });
+
+    if (adaptive) {
+        let box = document.getElementById("adaptiveBox");
+        if (!box) {
+            box = document.createElement("div");
+            box.id = "adaptiveBox";
+            box.className = "card neon-card";
+            box.style.marginTop = "20px";
+            box.innerHTML = `
+                <h2 class="neon-text">Smart Adjustment</h2>
+                <p id="adaptiveText"></p>
+                <button id="adaptiveYes" class="join-btn neon-interactive">Yes, adjust</button>
+                <button id="adaptiveNo" class="join-btn neon-interactive" style="background:#444;margin-left:10px;">Not now</button>
+            `;
+            document.querySelector(".main-content").appendChild(box);
+        }
+
+        document.getElementById("adaptiveText").innerText = adaptive.suggestion;
+
+        document.getElementById("adaptiveYes").onclick = () => {
+            userRef.set({
+                targetCalories: adaptive.newTarget
+            }, { merge: true });
+
+            document.getElementById("brainMessage").innerText =
+                `Target updated to ${adaptive.newTarget} kcal`;
+
+            box.remove();
+        };
+
+        document.getElementById("adaptiveNo").onclick = () => box.remove();
+    }
+
 });
+
+/* -----------------------------------------------------------
+   7. EXISTING FUNCTIONS (unchanged)
+----------------------------------------------------------- */
 
 let membership = "free";
 
@@ -266,6 +419,7 @@ function openUpgradeModal() {
     alert("FitQuest Pro required to view detailed analytics.");
 }
 </script>
+
 
 <!-- CHARTS + NEON INTERACTIONS -->
 <script src="chart.js"></script>
