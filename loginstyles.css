@@ -9,97 +9,66 @@ body {
     font-family: 'Inter', sans-serif;
     color: white;
     height: 100vh;
-    overflow: hidden;
-}
-
-.neon-bg {
-    background: radial-gradient(circle at center, #111 0%, #000 100%);
+    display: flex;
+    justify-content: center;
+    align-items: center;
 }
 
 /* ---------------------------------------------------
-   LAYOUT
+   CENTERED LAYOUT
 --------------------------------------------------- */
 
 .container {
-    display: flex;
     width: 100%;
-    height: 100vh;
+    max-width: 420px;
+    padding: 20px;
+    text-align: center;
 }
 
-/* LEFT PANEL */
-
-.left-panel {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    background: #0a0a0a;
-    position: relative;
-    overflow: hidden;
-}
-
-.logo-wrapper {
-    position: relative;
-    width: 220px;
-    height: 220px;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-}
+/* ---------------------------------------------------
+   LOGO — NEON 4-COLOR CYCLE
+--------------------------------------------------- */
 
 .logo {
     width: 160px;
-    filter: drop-shadow(0 0 12px rgba(0,255,255,0.6));
+    margin: 0 auto 20px auto;
+    display: block;
+
+    /* Neon glow cycle */
+    filter: drop-shadow(0 0 10px #00eaff);
+    animation: logoCycle 8s linear infinite;
 }
 
-/* Neon glow ring */
-.glow-ring {
-    position: absolute;
-    width: 220px;
-    height: 220px;
-    border-radius: 50%;
-    border: 6px solid white;
-    animation: neonCycle 6s infinite linear;
-    filter: drop-shadow(0 0 20px rgba(0,255,255,0.7));
+@keyframes logoCycle {
+    0%   { filter: drop-shadow(0 0 12px #00eaff); }
+    25%  { filter: drop-shadow(0 0 12px #7b2fff); }
+    50%  { filter: drop-shadow(0 0 12px #ff00ff); }
+    75%  { filter: drop-shadow(0 0 12px #ff8800); }
+    100% { filter: drop-shadow(0 0 12px #00eaff); }
 }
 
-@keyframes neonCycle {
-    0% { border-color: #00eaff; }
-    25% { border-color: #8fff00; }
-    50% { border-color: #ff00ff; }
-    75% { border-color: #ff8800; }
-    100% { border-color: #00eaff; }
+.tagline {
+    font-size: 20px;
+    opacity: 0.75;
+    margin-bottom: 30px;
 }
 
-.desktop-tagline {
-    margin-top: 20px;
-    font-size: 22px;
-    opacity: 0.8;
-}
-
-/* RIGHT PANEL */
-
-.right-panel {
-    width: 420px;
-    background: rgba(20,20,20,0.9);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    backdrop-filter: blur(6px);
-}
+/* ---------------------------------------------------
+   LOGIN CARD
+--------------------------------------------------- */
 
 .form-card {
-    width: 80%;
     background: #111;
     padding: 35px;
     border-radius: 16px;
     box-shadow: 0 0 25px rgba(0,255,255,0.15);
+    text-align: left;
 }
 
 .form-card h2 {
     margin-top: 0;
     margin-bottom: 20px;
+    text-align: center;
 }
 
 /* Inputs */
@@ -125,13 +94,20 @@ body {
 .form-card button {
     width: 100%;
     padding: 14px;
-    background: linear-gradient(90deg, #00eaff, #007bff);
+    background: linear-gradient(90deg, #00eaff, #7b2fff, #ff00ff, #ff8800);
+    background-size: 300% 100%;
     border: none;
     border-radius: 10px;
     color: white;
     font-size: 16px;
     cursor: pointer;
     transition: 0.25s ease;
+    animation: buttonCycle 8s linear infinite;
+}
+
+@keyframes buttonCycle {
+    0% { background-position: 0% 0; }
+    100% { background-position: 300% 0; }
 }
 
 .form-card button:hover {
@@ -149,23 +125,12 @@ body {
     color: #00c8ff;
 }
 
-/* MOBILE */
+/* ---------------------------------------------------
+   MOBILE
+--------------------------------------------------- */
 
-.mobile-tagline {
-    display: none;
-}
-
-@media (max-width: 900px) {
-    .left-panel {
-        display: none;
-    }
-    .right-panel {
-        width: 100%;
-    }
-    .mobile-tagline {
-        display: block;
-        text-align: center;
-        margin-top: 20px;
-        opacity: 0.7;
+@media (max-width: 600px) {
+    .container {
+        max-width: 90%;
     }
 }
