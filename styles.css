@@ -232,12 +232,27 @@ body.dashboard-body {
 /* ANALYTICS PANELS ---------------------------------------- */
 
 .analytics-panel {
-    max-width: 800px; /* compact */
-    padding: 14px;
+    position: fixed;
+    left: 50%;
+    bottom: 0;
+    transform: translate(-50%, 100%);
+    opacity: 0;
+    pointer-events: none;
+    width: 100%;
+    max-width: 900px;
+    background: #0f172a;
+    border-radius: 18px 18px 0 0;
+    border-top: 1px solid rgba(148,163,184,0.35);
+    padding: 16px 18px;
+    box-shadow: 0 -10px 30px rgba(0,0,0,0.6);
+    transition: transform 0.25s ease-out, opacity 0.25s ease-out;
+    z-index: 9999;
 }
 
-.analytics-panel canvas {
-    max-height: 150px;
+.analytics-panel.open {
+    transform: translate(-50%, 0);
+    opacity: 1;
+    pointer-events: auto;
 }
 
 /* RESPONSIVE ---------------------------------------------- */
