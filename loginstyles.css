@@ -1,55 +1,110 @@
 /* ---------------------------------------------------
-   GLOBAL LOGIN PAGE STYLES
+   GLOBAL
 --------------------------------------------------- */
 
 body {
     margin: 0;
     padding: 0;
-    background: #0a0a0a;
+    background: #050505;
     font-family: 'Inter', sans-serif;
     color: white;
-    display: flex;
-    justify-content: center;
-    align-items: center;
     height: 100vh;
     overflow: hidden;
 }
 
-/* Neon animated background */
 .neon-bg {
     background: radial-gradient(circle at center, #111 0%, #000 100%);
 }
 
 /* ---------------------------------------------------
-   AUTH CARD
+   LAYOUT
 --------------------------------------------------- */
 
-.auth-container {
-    width: 360px;
-    background: rgba(20, 20, 20, 0.9);
-    padding: 35px;
-    border-radius: 16px;
-    box-shadow: 0 0 25px rgba(0, 255, 255, 0.15);
-    text-align: center;
+.container {
+    display: flex;
+    width: 100%;
+    height: 100vh;
+}
+
+/* LEFT PANEL */
+
+.left-panel {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    background: #0a0a0a;
+    position: relative;
+    overflow: hidden;
+}
+
+.logo-wrapper {
+    position: relative;
+    width: 220px;
+    height: 220px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.logo {
+    width: 160px;
+    filter: drop-shadow(0 0 12px rgba(0,255,255,0.6));
+}
+
+/* Neon glow ring */
+.glow-ring {
+    position: absolute;
+    width: 220px;
+    height: 220px;
+    border-radius: 50%;
+    border: 6px solid white;
+    animation: neonCycle 6s infinite linear;
+    filter: drop-shadow(0 0 20px rgba(0,255,255,0.7));
+}
+
+@keyframes neonCycle {
+    0% { border-color: #00eaff; }
+    25% { border-color: #8fff00; }
+    50% { border-color: #ff00ff; }
+    75% { border-color: #ff8800; }
+    100% { border-color: #00eaff; }
+}
+
+.desktop-tagline {
+    margin-top: 20px;
+    font-size: 22px;
+    opacity: 0.8;
+}
+
+/* RIGHT PANEL */
+
+.right-panel {
+    width: 420px;
+    background: rgba(20,20,20,0.9);
+    display: flex;
+    justify-content: center;
+    align-items: center;
     backdrop-filter: blur(6px);
 }
 
-.auth-container h1 {
-    margin: 0 0 10px 0;
-    font-size: 28px;
-    font-weight: 600;
+.form-card {
+    width: 80%;
+    background: #111;
+    padding: 35px;
+    border-radius: 16px;
+    box-shadow: 0 0 25px rgba(0,255,255,0.15);
 }
 
-.auth-container p {
-    opacity: 0.7;
+.form-card h2 {
+    margin-top: 0;
     margin-bottom: 20px;
 }
 
-/* ---------------------------------------------------
-   INPUTS
---------------------------------------------------- */
+/* Inputs */
 
-.auth-container input {
+.form-card input {
     width: 100%;
     padding: 12px;
     margin: 10px 0 18px 0;
@@ -58,20 +113,16 @@ body {
     background: #1c1c1c;
     color: white;
     font-size: 15px;
-    outline: none;
-    transition: 0.2s ease;
 }
 
-.auth-container input:focus {
+.form-card input:focus {
     background: #222;
-    box-shadow: 0 0 8px rgba(0, 255, 255, 0.3);
+    box-shadow: 0 0 8px rgba(0,255,255,0.3);
 }
 
-/* ---------------------------------------------------
-   BUTTONS
---------------------------------------------------- */
+/* Buttons */
 
-.auth-btn {
+.form-card button {
     width: 100%;
     padding: 14px;
     background: linear-gradient(90deg, #00eaff, #007bff);
@@ -81,49 +132,40 @@ body {
     font-size: 16px;
     cursor: pointer;
     transition: 0.25s ease;
-    margin-top: 5px;
 }
 
-.auth-btn:hover {
+.form-card button:hover {
     transform: translateY(-2px);
-    box-shadow: 0 0 12px rgba(0, 200, 255, 0.5);
+    box-shadow: 0 0 12px rgba(0,200,255,0.5);
 }
 
-/* ---------------------------------------------------
-   LINKS
---------------------------------------------------- */
+.small-text {
+    text-align: center;
+    margin-top: 10px;
+    opacity: 0.7;
+}
 
-.auth-link {
-    display: block;
-    margin-top: 15px;
+.small-text a {
     color: #00c8ff;
-    text-decoration: none;
-    font-size: 14px;
-    transition: 0.2s ease;
 }
 
-.auth-link:hover {
-    color: #66e0ff;
+/* MOBILE */
+
+.mobile-tagline {
+    display: none;
 }
 
-/* ---------------------------------------------------
-   LOGO
---------------------------------------------------- */
-
-.auth-logo {
-    width: 80px;
-    height: 80px;
-    margin-bottom: 15px;
-    filter: drop-shadow(0 0 8px rgba(0, 255, 255, 0.4));
-}
-
-/* ---------------------------------------------------
-   MOBILE
---------------------------------------------------- */
-
-@media (max-width: 480px) {
-    .auth-container {
-        width: 90%;
-        padding: 25px;
+@media (max-width: 900px) {
+    .left-panel {
+        display: none;
+    }
+    .right-panel {
+        width: 100%;
+    }
+    .mobile-tagline {
+        display: block;
+        text-align: center;
+        margin-top: 20px;
+        opacity: 0.7;
     }
 }
