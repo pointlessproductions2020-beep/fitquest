@@ -1,13 +1,11 @@
 /* -----------------------------------------------------------
-   GLOBAL NEON THEME FOR CHART.JS
+   GLOBAL CHART.JS SETTINGS
 ----------------------------------------------------------- */
 
 Chart.defaults.color = "#cbd5e1";
-Chart.defaults.font.family = "Inter, sans-serif";
-
+Chart.defaults.font.family = "Inter, system-ui, sans-serif";
 Chart.defaults.borderColor = "rgba(148,163,184,0.25)";
 Chart.defaults.plugins.legend.labels.color = "#e2e8f0";
-
 Chart.defaults.scale.grid.color = "rgba(56,189,248,0.18)";
 Chart.defaults.scale.grid.borderColor = "rgba(56,189,248,0.4)";
 Chart.defaults.scale.ticks.color = "#38bdf8";
@@ -16,7 +14,7 @@ Chart.defaults.scale.ticks.font = {
     weight: "500"
 };
 
-// Neon glow plugin
+/* Neon glow plugin */
 const neonGlow = {
     id: "neonGlow",
     beforeDraw: (chart) => {
@@ -34,7 +32,7 @@ const neonGlow = {
 
 Chart.register(neonGlow);
 
-// Helper for gradients
+/* Gradient helper */
 function neonGradient(ctx, color1, color2) {
     const g = ctx.createLinearGradient(0, 0, 0, 260);
     g.addColorStop(0, color1);
@@ -52,13 +50,68 @@ let neonIndex = 0;
 setInterval(() => {
     neonIndex = (neonIndex + 1) % neonCycle.length;
     document.documentElement.style.setProperty("--neon", neonCycle[neonIndex]);
-}, 9000); // slow & elegant
+}, 9000);
+
+/* -----------------------------------------------------------
+   CLICK SPARK BURST — HYBRID COLOURS
+----------------------------------------------------------- */
+
+const sparkPalette = ["#00eaff", "#7b2fff", "#ff00ff", "#ff8800", "#22c55e"];
+
+function getCurrentNeon() {
+    const style = getComputedStyle(document.documentElement);
+    return style.getPropertyValue("--neon").trim() || "#38bdf8";
+}
+
+function sparkBurst(element) {
+    const rect = element.getBoundingClientRect();
+    const centerX = rect.width / 2;
+    const centerY = rect.height / 2;
+
+    for (let i = 0; i < 8; i++) {
+        const spark = document.createElement("span");
+        spark.className = "spark";
+
+        // Hybrid colour: mostly current neon, sometimes random palette
+        const usePalette = Math.random() < 0.3;
+        const color = usePalette
+            ? sparkPalette[Math.floor(Math.random() * sparkPalette.length)]
+            : getCurrentNeon();
+
+        spark.style.background = color;
+
+        const angle = (Math.PI * 2 * i) / 8;
+        const distance = 40 + Math.random() * 10;
+        const x = Math.cos(angle) * distance;
+        const y = Math.sin(angle) * distance;
+
+        spark.style.setProperty("--x", `${x}px`);
+        spark.style.setProperty("--y", `${y}px`);
+
+        spark.style.left = `${centerX - 3}px`;
+        spark.style.top = `${centerY - 3}px`;
+
+        element.appendChild(spark);
+
+        setTimeout(() => spark.remove(), 450);
+    }
+}
+
+function initNeonInteractions() {
+    const interactive = document.querySelectorAll(".neon-interactive");
+    interactive.forEach(el => {
+        el.addEventListener("click", () => sparkBurst(el));
+    });
+}
 
 /* -----------------------------------------------------------
    MAIN DASHBOARD CHARTS
 ----------------------------------------------------------- */
 
 window.addEventListener("load", () => {
+
+    /* Attach spark interactions */
+    initNeonInteractions();
 
     /* WORKOUT RING */
     const ringCanvas = document.getElementById("workoutRing");
