@@ -12,54 +12,79 @@ body.dashboard-body {
 }
 
 /* ---------------------------------------------------
-   SIDEBAR
+   SIDEBAR — NEON CYBER EDITION
 --------------------------------------------------- */
 
 .sidebar {
     width: 240px;
-    background: #111;
     height: 100vh;
     padding: 20px;
     box-sizing: border-box;
     position: fixed;
     left: 0;
     top: 0;
-    border-right: 1px solid #1f1f1f;
+
+    background: #0b0b0b;
+
+    border-right: 3px solid transparent;
+    background-image:
+        linear-gradient(#0b0b0b, #0b0b0b),
+        linear-gradient(180deg,
+            #00eaff,
+            #7b2fff,
+            #ff00ff,
+            #ff8800,
+            #00eaff
+        );
+    background-origin: border-box;
+    background-clip: padding-box, border-box;
+
+    animation: neonPulse 8s linear infinite;
 }
 
-.sidebar-logo {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    margin-bottom: 30px;
+@keyframes neonPulse {
+    0%   { filter: drop-shadow(0 0 6px #00eaff); }
+    25%  { filter: drop-shadow(0 0 6px #7b2fff); }
+    50%  { filter: drop-shadow(0 0 6px #ff00ff); }
+    75%  { filter: drop-shadow(0 0 6px #ff8800); }
+    100% { filter: drop-shadow(0 0 6px #00eaff); }
 }
 
 .sidebar-logo img {
-    width: 40px;
-    height: 40px;
+    width: 42px;
+    height: 42px;
+    filter: drop-shadow(0 0 6px #00eaff);
+    animation: logoGlow 8s linear infinite;
 }
 
-.sidebar-links {
-    list-style: none;
-    padding: 0;
-    margin: 0;
+@keyframes logoGlow {
+    0%   { filter: drop-shadow(0 0 6px #00eaff); }
+    25%  { filter: drop-shadow(0 0 6px #7b2fff); }
+    50%  { filter: drop-shadow(0 0 6px #ff00ff); }
+    75%  { filter: drop-shadow(0 0 6px #ff8800); }
+    100% { filter: drop-shadow(0 0 6px #00eaff); }
 }
 
 .sidebar-links li {
     padding: 12px 10px;
-    margin-bottom: 8px;
-    background: #1a1a1a;
-    border-radius: 8px;
+    margin-bottom: 10px;
+    background: #141414;
+    border-radius: 10px;
     cursor: pointer;
-    transition: 0.2s ease;
+    transition: 0.25s ease;
+    border: 1px solid #1f1f1f;
 }
 
 .sidebar-links li:hover {
-    background: #222;
+    background: #1c1c1c;
+    border-color: #00eaff;
+    box-shadow: 0 0 10px rgba(0, 234, 255, 0.4);
 }
 
 .sidebar-links .active {
-    background: #2a2a2a;
+    background: #1f1f1f;
+    border-color: #7b2fff;
+    box-shadow: 0 0 12px rgba(123, 47, 255, 0.5);
 }
 
 .logout-btn {
@@ -72,11 +97,12 @@ body.dashboard-body {
     color: white;
     cursor: pointer;
     font-size: 15px;
-    transition: 0.2s ease;
+    transition: 0.25s ease;
 }
 
 .logout-btn:hover {
     background: #c64541;
+    box-shadow: 0 0 10px rgba(255, 80, 80, 0.4);
 }
 
 /* ---------------------------------------------------
@@ -101,7 +127,7 @@ body.dashboard-body {
 }
 
 /* ---------------------------------------------------
-   TOP SUMMARY ROW
+   TOP SUMMARY ROW — NEON CARDS
 --------------------------------------------------- */
 
 .top-summary-row {
@@ -112,37 +138,50 @@ body.dashboard-body {
 }
 
 .summary-card {
-    background: #1a1a1a;
-    padding: 20px;
-    border-radius: 14px;
-    box-shadow: 0 0 20px rgba(0,0,0,0.35);
+    background: linear-gradient(145deg, #111, #1a1a1a);
+    padding: 22px;
+    border-radius: 16px;
+
+    border: 1px solid rgba(0, 234, 255, 0.25);
+
+    box-shadow:
+        0 0 12px rgba(0, 234, 255, 0.25),
+        inset 0 0 12px rgba(0, 234, 255, 0.15);
+
+    transition: 0.3s ease;
     cursor: pointer;
-    transition: 0.2s ease;
 }
 
 .summary-card:hover {
-    transform: translateY(-2px);
-    background: #202020;
+    transform: translateY(-4px);
+    border-color: #00eaff;
+    box-shadow:
+        0 0 18px rgba(0, 234, 255, 0.45),
+        inset 0 0 18px rgba(0, 234, 255, 0.25);
 }
 
 .summary-card h3 {
     margin: 0;
-    font-size: 16px;
-    opacity: 0.8;
+    font-size: 15px;
+    opacity: 0.85;
+    letter-spacing: 0.5px;
 }
 
 .summary-number {
-    font-size: 32px;
-    margin: 10px 0 5px 0;
+    font-size: 34px;
+    margin: 12px 0 6px 0;
+    font-weight: 600;
+    color: #00eaff;
+    text-shadow: 0 0 8px rgba(0, 234, 255, 0.6);
 }
 
 .summary-sub {
-    opacity: 0.6;
+    opacity: 0.65;
     font-size: 14px;
 }
 
 /* ---------------------------------------------------
-   ROW 2 — LARGE CARDS
+   ROW 2 — LARGE CARDS (NEON)
 --------------------------------------------------- */
 
 .row-2 {
@@ -153,10 +192,24 @@ body.dashboard-body {
 }
 
 .card {
-    background: #1a1a1a;
-    padding: 20px;
-    border-radius: 14px;
-    box-shadow: 0 0 20px rgba(0,0,0,0.35);
+    background: linear-gradient(145deg, #111, #1a1a1a);
+    padding: 22px;
+    border-radius: 16px;
+
+    border: 1px solid rgba(123, 47, 255, 0.25);
+
+    box-shadow:
+        0 0 14px rgba(123, 47, 255, 0.25),
+        inset 0 0 14px rgba(123, 47, 255, 0.15);
+
+    transition: 0.3s ease;
+}
+
+.card:hover {
+    border-color: #7b2fff;
+    box-shadow:
+        0 0 20px rgba(123, 47, 255, 0.45),
+        inset 0 0 20px rgba(123, 47, 255, 0.25);
 }
 
 .large-card {
@@ -169,7 +222,7 @@ body.dashboard-body {
 }
 
 /* ---------------------------------------------------
-   ROW 3
+   ROW 3 — BMI + STEPS (NEON)
 --------------------------------------------------- */
 
 .row-3 {
@@ -192,33 +245,36 @@ body.dashboard-body {
 .calc-btn {
     width: 100%;
     padding: 12px;
-    background: #4da3ff;
+    background: linear-gradient(90deg, #00eaff, #7b2fff);
     border: none;
     border-radius: 8px;
     cursor: pointer;
     color: white;
     font-size: 15px;
-    transition: 0.2s ease;
+    transition: 0.25s ease;
 }
 
 .calc-btn:hover {
-    background: #3b8bd6;
+    background: linear-gradient(90deg, #7b2fff, #00eaff);
+    box-shadow: 0 0 12px rgba(0, 234, 255, 0.4);
 }
 
 /* ---------------------------------------------------
-   RIGHT PANEL (DESKTOP)
+   RIGHT PANEL — NEON
 --------------------------------------------------- */
 
 .right-panel {
     width: 280px;
-    background: #111;
+    background: #0b0b0b;
     padding: 20px;
     box-sizing: border-box;
     position: fixed;
     right: 0;
     top: 0;
     height: 100vh;
-    border-left: 1px solid #1f1f1f;
+
+    border-left: 2px solid rgba(255, 0, 255, 0.3);
+    box-shadow: -4px 0 20px rgba(255, 0, 255, 0.2);
 }
 
 .right-panel h2 {
@@ -226,25 +282,32 @@ body.dashboard-body {
 }
 
 .class-card {
-    background: #1a1a1a;
+    background: linear-gradient(145deg, #111, #1a1a1a);
     padding: 15px;
     border-radius: 12px;
     margin-bottom: 15px;
+
+    border: 1px solid rgba(255, 0, 255, 0.25);
+    box-shadow:
+        0 0 12px rgba(255, 0, 255, 0.25),
+        inset 0 0 12px rgba(255, 0, 255, 0.15);
 }
 
 .join-btn {
     width: 100%;
     padding: 10px;
-    background: #4da3ff;
+    background: linear-gradient(90deg, #ff00ff, #ff8800);
     border: none;
     border-radius: 8px;
     cursor: pointer;
     color: white;
     margin-top: 10px;
+    transition: 0.25s ease;
 }
 
 .join-btn:hover {
-    background: #3b8bd6;
+    background: linear-gradient(90deg, #ff8800, #ff00ff);
+    box-shadow: 0 0 12px rgba(255, 0, 255, 0.4);
 }
 
 /* ---------------------------------------------------
@@ -256,7 +319,7 @@ body.dashboard-body {
     position: fixed;
     bottom: 20px;
     right: 20px;
-    background: #4da3ff;
+    background: linear-gradient(90deg, #00eaff, #ff00ff);
     border: none;
     padding: 16px 22px;
     border-radius: 50px;
@@ -264,6 +327,7 @@ body.dashboard-body {
     font-size: 16px;
     cursor: pointer;
     z-index: 999;
+    box-shadow: 0 0 12px rgba(0, 234, 255, 0.4);
 }
 
 /* ---------------------------------------------------
@@ -303,7 +367,7 @@ body.dashboard-body {
 }
 
 /* ---------------------------------------------------
-   ANALYTICS PANELS (SLIDE-UP)
+   ANALYTICS PANELS — NEON
 --------------------------------------------------- */
 
 .analytics-panel {
@@ -320,7 +384,9 @@ body.dashboard-body {
     z-index: 99999;
     max-height: 85vh;
     overflow-y: auto;
-    box-shadow: 0 -5px 25px rgba(0,0,0,0.5);
+
+    border-top: 2px solid rgba(0, 234, 255, 0.3);
+    box-shadow: 0 -5px 25px rgba(0, 234, 255, 0.25);
 }
 
 .analytics-panel.open {
