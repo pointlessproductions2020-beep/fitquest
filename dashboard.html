@@ -20,7 +20,7 @@
 <body class="dashboard-body">
 
 <!-- SIDEBAR -->
-<aside class="sidebar neon-border">
+<aside class="sidebar">
     <div class="sidebar-logo">
         <img src="assets/logo.png" alt="FitQuest Logo">
         <h3 class="neon-text">FitQuest</h3>
@@ -34,7 +34,7 @@
         <li class="neon-hover">⚙️ Settings</li>
     </ul>
 
-    <button class="logout-btn neon-pulse">Logout</button>
+    <button class="logout-btn neon-interactive" onclick="logoutUser()">Logout</button>
 </aside>
 
 <!-- MAIN CONTENT -->
@@ -46,25 +46,25 @@
     <!-- TOP SUMMARY ROW -->
     <section class="top-summary-row">
 
-        <div class="summary-card neon-card" onclick="openAnalyticsPanel('panel-calories')">
+        <div class="summary-card neon-card neon-interactive" onclick="openAnalyticsPanel('panel-calories')">
             <h3>Calories Intake</h3>
             <p class="summary-number" id="calEaten">1,800 kcal</p>
             <span class="summary-sub">Today</span>
         </div>
 
-        <div class="summary-card neon-card" onclick="openAnalyticsPanel('panel-burned')">
+        <div class="summary-card neon-card neon-interactive" onclick="openAnalyticsPanel('panel-burned')">
             <h3>Calories Burned</h3>
             <p class="summary-number" id="calBurned">520 kcal</p>
             <span class="summary-sub">Today</span>
         </div>
 
-        <div class="summary-card neon-card" onclick="openAnalyticsPanel('panel-bmi')">
+        <div class="summary-card neon-card neon-interactive" onclick="openAnalyticsPanel('panel-bmi')">
             <h3>Current BMI</h3>
             <p class="summary-number" id="currentBMI">23.4</p>
             <span class="summary-sub">Healthy</span>
         </div>
 
-        <div class="summary-card neon-card" onclick="openAnalyticsPanel('panel-steps')">
+        <div class="summary-card neon-card neon-interactive" onclick="openAnalyticsPanel('panel-steps')">
             <h3>Steps Today</h3>
             <p class="summary-number" id="stepsToday">7,450</p>
             <span class="summary-sub">Steps</span>
@@ -76,7 +76,7 @@
     <section class="row-2">
 
         <!-- WORKOUT RING -->
-        <div class="card large-card neon-card">
+        <div class="card large-card neon-card neon-interactive">
             <div class="card-header">
                 <h2 class="neon-text">Workout Progress</h2>
             </div>
@@ -87,7 +87,7 @@
         </div>
 
         <!-- WEIGHT TREND -->
-        <div class="card large-card neon-card">
+        <div class="card large-card neon-card neon-interactive">
             <div class="card-header">
                 <h2 class="neon-text">Weight Trend</h2>
             </div>
@@ -102,7 +102,7 @@
     <section class="row-3">
 
         <!-- BMI CALCULATOR -->
-        <div class="card neon-card">
+        <div class="card neon-card neon-interactive">
             <div class="card-header">
                 <h2 class="neon-text">BMI Calculator</h2>
             </div>
@@ -111,13 +111,13 @@
                 <input type="number" id="height">
                 <label>Weight (kg)</label>
                 <input type="number" id="weight">
-                <button class="calc-btn neon-pulse" onclick="calculateBMI()">Calculate</button>
+                <button class="calc-btn neon-interactive" onclick="calculateBMI()">Calculate</button>
                 <p id="bmiResult"></p>
             </div>
         </div>
 
         <!-- STEP TRACKER -->
-        <div class="card neon-card">
+        <div class="card neon-card neon-interactive">
             <div class="card-header">
                 <h2 class="neon-text">Daily Step Tracker</h2>
             </div>
@@ -132,59 +132,59 @@
 </main>
 
 <!-- RIGHT SIDEBAR -->
-<aside class="right-panel neon-border">
+<aside class="right-panel">
     <h2 class="neon-text">Upcoming Classes</h2>
 
-    <div class="class-card neon-card">
+    <div class="class-card neon-card neon-interactive">
         <h4>HIIT Cardio Blast</h4>
         <p>Today • 6:00 PM</p>
-        <button class="join-btn neon-pulse">Join</button>
+        <button class="join-btn neon-interactive">Join</button>
     </div>
 
-    <div class="class-card neon-card">
+    <div class="class-card neon-card neon-interactive">
         <h4>Mobility Flex Flow</h4>
         <p>Tomorrow • 9:00 AM</p>
-        <button class="join-btn neon-pulse">Join</button>
+        <button class="join-btn neon-interactive">Join</button>
     </div>
 
-    <div class="class-card neon-card">
+    <div class="class-card neon-card neon-interactive">
         <h4>Core Strength Session</h4>
         <p>Apr 25 • 5:30 PM</p>
-        <button class="join-btn neon-pulse">Join</button>
+        <button class="join-btn neon-interactive">Join</button>
     </div>
 </aside>
 
 <!-- MOBILE FLOATING BUTTON -->
-<button class="mobile-classes-btn neon-pulse" onclick="openClassesMobile()">Classes</button>
+<button class="mobile-classes-btn neon-interactive" onclick="openClassesMobile()">Classes</button>
 
 <!-- MOBILE SLIDE-UP PANEL -->
-<div id="mobileClassesPanel" class="mobile-panel neon-border">
+<div id="mobileClassesPanel" class="mobile-panel">
     <div class="mobile-panel-header">
         <h3 class="neon-text">Upcoming Classes</h3>
         <span class="close-mobile" onclick="closeClassesMobile()">✕</span>
     </div>
 
-    <div class="class-card neon-card">
+    <div class="class-card neon-card neon-interactive">
         <h4>HIIT Cardio Blast</h4>
         <p>Today • 6:00 PM</p>
-        <button class="join-btn neon-pulse">Join</button>
+        <button class="join-btn neon-interactive">Join</button>
     </div>
 
-    <div class="class-card neon-card">
+    <div class="class-card neon-card neon-interactive">
         <h4>Mobility Flex Flow</h4>
         <p>Tomorrow • 9:00 AM</p>
-        <button class="join-btn neon-pulse">Join</button>
+        <button class="join-btn neon-interactive">Join</button>
     </div>
 
-    <div class="class-card neon-card">
+    <div class="class-card neon-card neon-interactive">
         <h4>Core Strength Session</h4>
         <p>Apr 25 • 5:30 PM</p>
-        <button class="join-btn neon-pulse">Join</button>
+        <button class="join-btn neon-interactive">Join</button>
     </div>
 </div>
 
 <!-- ANALYTICS PANELS -->
-<div id="panel-calories" class="analytics-panel neon-border">
+<div id="panel-calories" class="analytics-panel">
     <div class="panel-header">
         <h2 class="neon-text">Calories Intake</h2>
         <span class="panel-close" onclick="closePanel('panel-calories')">✕</span>
@@ -193,7 +193,7 @@
     <canvas id="chartCaloriesMonthly"></canvas>
 </div>
 
-<div id="panel-burned" class="analytics-panel neon-border">
+<div id="panel-burned" class="analytics-panel">
     <div class="panel-header">
         <h2 class="neon-text">Calories Burned</h2>
         <span class="panel-close" onclick="closePanel('panel-burned')">✕</span>
@@ -202,7 +202,7 @@
     <canvas id="chartBurnMonthly"></canvas>
 </div>
 
-<div id="panel-bmi" class="analytics-panel neon-border">
+<div id="panel-bmi" class="analytics-panel">
     <div class="panel-header">
         <h2 class="neon-text">BMI History</h2>
         <span class="panel-close" onclick="closePanel('panel-bmi')">✕</span>
@@ -210,7 +210,7 @@
     <canvas id="chartBMIHistory"></canvas>
 </div>
 
-<div id="panel-steps" class="analytics-panel neon-border">
+<div id="panel-steps" class="analytics-panel">
     <div class="panel-header">
         <h2 class="neon-text">Steps Trend</h2>
         <span class="panel-close" onclick="closePanel('panel-steps')">✕</span>
@@ -267,7 +267,7 @@ function openUpgradeModal() {
 }
 </script>
 
-<!-- CHARTS -->
+<!-- CHARTS + NEON INTERACTIONS -->
 <script src="chart.js"></script>
 
 </body>
