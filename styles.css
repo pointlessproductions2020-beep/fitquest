@@ -1,451 +1,468 @@
-/* ---------------------------------------------------
-   GLOBAL
---------------------------------------------------- */
+/* GLOBAL -------------------------------------------------- */
 
-body.dashboard-body {
+* {
+    box-sizing: border-box;
     margin: 0;
     padding: 0;
-    background: #0d0d0d;
-    color: #fff;
-    font-family: 'Inter', sans-serif;
-    display: flex;
 }
 
-/* ---------------------------------------------------
-   SIDEBAR — NEON CYBER EDITION
---------------------------------------------------- */
+body.dashboard-body {
+    font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+    background: radial-gradient(circle at top left, #111827 0, #020617 45%, #000 100%);
+    color: #f9fafb;
+    display: flex;
+    min-height: 100vh;
+}
+
+/* LAYOUT -------------------------------------------------- */
 
 .sidebar {
-    width: 240px;
-    height: 100vh;
-    padding: 20px;
-    box-sizing: border-box;
-    position: fixed;
-    left: 0;
-    top: 0;
-
-    background: #0b0b0b;
-
-    border-right: 3px solid transparent;
-    background-image:
-        linear-gradient(#0b0b0b, #0b0b0b),
-        linear-gradient(180deg,
-            #00eaff,
-            #7b2fff,
-            #ff00ff,
-            #ff8800,
-            #00eaff
-        );
-    background-origin: border-box;
-    background-clip: padding-box, border-box;
-
-    animation: neonPulse 8s linear infinite;
+    width: 260px; /* A */
+    background: linear-gradient(180deg, #020617 0%, #020617 60%, #050816 100%);
+    border-right: 1px solid rgba(148, 163, 184, 0.2);
+    padding: 24px 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
 }
 
-@keyframes neonPulse {
-    0%   { filter: drop-shadow(0 0 6px #00eaff); }
-    25%  { filter: drop-shadow(0 0 6px #7b2fff); }
-    50%  { filter: drop-shadow(0 0 6px #ff00ff); }
-    75%  { filter: drop-shadow(0 0 6px #ff8800); }
-    100% { filter: drop-shadow(0 0 6px #00eaff); }
+.main-content {
+    flex: 1;
+    padding: 24px 28px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.right-panel {
+    width: 320px;
+    padding: 24px 20px;
+    border-left: 1px solid rgba(148, 163, 184, 0.2);
+    background: radial-gradient(circle at top, #020617 0, #020617 55%, #000 100%);
+}
+
+/* SIDEBAR ------------------------------------------------- */
+
+.sidebar-logo {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-bottom: 32px;
 }
 
 .sidebar-logo img {
-    width: 42px;
-    height: 42px;
-    filter: drop-shadow(0 0 6px #00eaff);
-    animation: logoGlow 8s linear infinite;
+    width: 80px;
+    height: auto;
+    margin-bottom: 8px;
+    filter: drop-shadow(0 0 12px #00eaff);
 }
 
-@keyframes logoGlow {
-    0%   { filter: drop-shadow(0 0 6px #00eaff); }
-    25%  { filter: drop-shadow(0 0 6px #7b2fff); }
-    50%  { filter: drop-shadow(0 0 6px #ff00ff); }
-    75%  { filter: drop-shadow(0 0 6px #ff8800); }
-    100% { filter: drop-shadow(0 0 6px #00eaff); }
+.sidebar-logo h3 {
+    font-size: 20px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #e5e7eb;
+}
+
+.sidebar-links {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: auto;
 }
 
 .sidebar-links li {
-    padding: 12px 10px;
-    margin-bottom: 10px;
-    background: #141414;
+    padding: 10px 12px;
     border-radius: 10px;
     cursor: pointer;
-    transition: 0.25s ease;
-    border: 1px solid #1f1f1f;
+    font-size: 15px;
+    color: #9ca3af;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: background 0.2s, color 0.2s, transform 0.15s;
 }
 
+.sidebar-links li.active,
 .sidebar-links li:hover {
-    background: #1c1c1c;
-    border-color: #00eaff;
-    box-shadow: 0 0 10px rgba(0, 234, 255, 0.4);
-}
-
-.sidebar-links .active {
-    background: #1f1f1f;
-    border-color: #7b2fff;
-    box-shadow: 0 0 12px rgba(123, 47, 255, 0.5);
+    background: linear-gradient(90deg, rgba(56,189,248,0.18), rgba(129,140,248,0.18));
+    color: #e5e7eb;
+    transform: translateX(2px);
 }
 
 .logout-btn {
-    margin-top: 40px;
-    width: 100%;
-    padding: 12px;
-    background: #d9534f;
+    margin-top: 24px;
+    padding: 10px 12px;
+    border-radius: 10px;
     border: none;
-    border-radius: 8px;
-    color: white;
+    background: rgba(239, 68, 68, 0.12);
+    color: #fecaca;
     cursor: pointer;
-    font-size: 15px;
-    transition: 0.25s ease;
+    font-size: 14px;
+    transition: background 0.2s, transform 0.15s;
 }
 
 .logout-btn:hover {
-    background: #c64541;
-    box-shadow: 0 0 10px rgba(255, 80, 80, 0.4);
+    background: rgba(239, 68, 68, 0.25);
+    transform: translateY(-1px);
 }
 
-/* ---------------------------------------------------
-   MAIN CONTENT
---------------------------------------------------- */
-
-.main-content {
-    margin-left: 260px;
-    padding: 40px;
-    width: calc(100% - 260px - 280px);
-    box-sizing: border-box;
-}
+/* HEADER -------------------------------------------------- */
 
 .page-title {
-    margin: 0;
-    font-size: 32px;
+    font-size: 26px;
+    font-weight: 600;
+    color: #f9fafb;
+}
+
+.page-title span {
+    color: #38bdf8;
 }
 
 .subtitle {
-    margin-top: 5px;
-    opacity: 0.7;
+    font-size: 14px;
+    color: #9ca3af;
+    margin-top: 4px;
 }
 
-/* ---------------------------------------------------
-   TOP SUMMARY ROW — NEON CARDS
---------------------------------------------------- */
+/* TOP SUMMARY ROW ---------------------------------------- */
 
 .top-summary-row {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 20px;
-    margin-top: 30px;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 16px;
+    margin-top: 12px;
 }
 
 .summary-card {
-    background: linear-gradient(145deg, #111, #1a1a1a);
-    padding: 22px;
+    background: radial-gradient(circle at top left, rgba(56,189,248,0.18), rgba(15,23,42,0.95));
     border-radius: 16px;
-
-    border: 1px solid rgba(0, 234, 255, 0.25);
-
-    box-shadow:
-        0 0 12px rgba(0, 234, 255, 0.25),
-        inset 0 0 12px rgba(0, 234, 255, 0.15);
-
-    transition: 0.3s ease;
+    padding: 14px 16px;
+    box-shadow: 0 0 18px rgba(15, 23, 42, 0.9);
+    border: 1px solid rgba(148, 163, 184, 0.35);
     cursor: pointer;
+    transition: transform 0.15s, box-shadow 0.15s, border-color 0.15s;
 }
 
-.summary-card:hover {
-    transform: translateY(-4px);
-    border-color: #00eaff;
-    box-shadow:
-        0 0 18px rgba(0, 234, 255, 0.45),
-        inset 0 0 18px rgba(0, 234, 255, 0.25);
+.summary-card:nth-child(2) {
+    background: radial-gradient(circle at top left, rgba(248,113,113,0.18), rgba(15,23,42,0.95));
+}
+
+.summary-card:nth-child(3) {
+    background: radial-gradient(circle at top left, rgba(129,140,248,0.18), rgba(15,23,42,0.95));
+}
+
+.summary-card:nth-child(4) {
+    background: radial-gradient(circle at top left, rgba(52,211,153,0.18), rgba(15,23,42,0.95));
 }
 
 .summary-card h3 {
-    margin: 0;
-    font-size: 15px;
-    opacity: 0.85;
-    letter-spacing: 0.5px;
+    font-size: 14px;
+    color: #e5e7eb;
+    margin-bottom: 6px;
 }
 
 .summary-number {
-    font-size: 34px;
-    margin: 12px 0 6px 0;
+    font-size: 22px;
     font-weight: 600;
-    color: #00eaff;
-    text-shadow: 0 0 8px rgba(0, 234, 255, 0.6);
+    color: #f9fafb;
 }
 
 .summary-sub {
-    opacity: 0.65;
-    font-size: 14px;
+    font-size: 12px;
+    color: #9ca3af;
 }
 
-/* ---------------------------------------------------
-   ROW 2 — LARGE CARDS (NEON)
---------------------------------------------------- */
+.summary-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 0 22px rgba(56,189,248,0.35);
+    border-color: rgba(56,189,248,0.6);
+}
+
+/* ROW 2 --------------------------------------------------- */
 
 .row-2 {
     display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 20px;
-    margin-top: 30px;
+    grid-template-columns: 1.1fr 1.4fr;
+    gap: 18px;
 }
 
 .card {
-    background: linear-gradient(145deg, #111, #1a1a1a);
-    padding: 22px;
-    border-radius: 16px;
-
-    border: 1px solid rgba(123, 47, 255, 0.25);
-
-    box-shadow:
-        0 0 14px rgba(123, 47, 255, 0.25),
-        inset 0 0 14px rgba(123, 47, 255, 0.15);
-
-    transition: 0.3s ease;
-}
-
-.card:hover {
-    border-color: #7b2fff;
-    box-shadow:
-        0 0 20px rgba(123, 47, 255, 0.45),
-        inset 0 0 20px rgba(123, 47, 255, 0.25);
+    background: rgba(15,23,42,0.96);
+    border-radius: 18px;
+    padding: 18px 18px 16px;
+    border: 1px solid rgba(148, 163, 184, 0.35);
+    box-shadow: 0 0 22px rgba(15, 23, 42, 0.9);
 }
 
 .large-card {
-    height: 320px;
+    min-height: 230px;
+}
+
+.card h2 {
+    font-size: 16px;
+    margin-bottom: 10px;
+    color: #e5e7eb;
+}
+
+/* Workout ring canvas */
+#workoutRing {
+    width: 100% !important;
+    height: 150px !important;
 }
 
 .ring-label {
     margin-top: 10px;
-    opacity: 0.7;
+    font-size: 13px;
+    color: #9ca3af;
 }
 
-/* ---------------------------------------------------
-   ROW 3 — BMI + STEPS (NEON)
---------------------------------------------------- */
+/* Weight trend canvas */
+#weightTrend {
+    width: 100% !important;
+    height: 170px !important;
+}
+
+/* ROW 3 --------------------------------------------------- */
 
 .row-3 {
     display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 20px;
-    margin-top: 30px;
+    grid-template-columns: 1.1fr 1.4fr;
+    gap: 18px;
 }
 
-.card input {
+/* BMI card */
+.card label {
+    display: block;
+    font-size: 13px;
+    color: #9ca3af;
+    margin-top: 6px;
+}
+
+.card input[type="number"] {
     width: 100%;
-    padding: 10px;
-    margin: 6px 0 12px 0;
-    border-radius: 8px;
-    border: none;
-    background: #2a2a2a;
-    color: white;
+    margin-top: 4px;
+    padding: 8px 10px;
+    border-radius: 10px;
+    border: 1px solid rgba(55, 65, 81, 0.9);
+    background: #020617;
+    color: #e5e7eb;
+    font-size: 13px;
+}
+
+.card input[type="number"]:focus {
+    outline: none;
+    border-color: #38bdf8;
+    box-shadow: 0 0 0 1px rgba(56,189,248,0.5);
 }
 
 .calc-btn {
-    width: 100%;
-    padding: 12px;
-    background: linear-gradient(90deg, #00eaff, #7b2fff);
+    margin-top: 10px;
+    padding: 8px 12px;
+    border-radius: 10px;
     border: none;
-    border-radius: 8px;
-    cursor: pointer;
+    background: linear-gradient(90deg, #38bdf8, #6366f1);
     color: white;
-    font-size: 15px;
-    transition: 0.25s ease;
+    font-size: 13px;
+    cursor: pointer;
+    transition: transform 0.15s, box-shadow 0.15s;
 }
 
 .calc-btn:hover {
-    background: linear-gradient(90deg, #7b2fff, #00eaff);
-    box-shadow: 0 0 12px rgba(0, 234, 255, 0.4);
+    transform: translateY(-1px);
+    box-shadow: 0 0 14px rgba(56,189,248,0.5);
 }
 
-/* ---------------------------------------------------
-   RIGHT PANEL — NEON
---------------------------------------------------- */
-
-.right-panel {
-    width: 280px;
-    background: #0b0b0b;
-    padding: 20px;
-    box-sizing: border-box;
-    position: fixed;
-    right: 0;
-    top: 0;
-    height: 100vh;
-
-    border-left: 2px solid rgba(255, 0, 255, 0.3);
-    box-shadow: -4px 0 20px rgba(255, 0, 255, 0.2);
+#bmiResult {
+    margin-top: 8px;
+    font-size: 13px;
+    color: #e5e7eb;
 }
+
+/* Steps card */
+#stepTrackerLabel {
+    font-size: 13px;
+    color: #9ca3af;
+    margin-bottom: 8px;
+}
+
+#stepTracker {
+    width: 100% !important;
+    height: 160px !important;
+}
+
+/* RIGHT PANEL -------------------------------------------- */
 
 .right-panel h2 {
-    margin-top: 0;
+    font-size: 18px;
+    margin-bottom: 14px;
+    color: #e5e7eb;
 }
 
 .class-card {
-    background: linear-gradient(145deg, #111, #1a1a1a);
-    padding: 15px;
-    border-radius: 12px;
-    margin-bottom: 15px;
+    background: rgba(15,23,42,0.96);
+    border-radius: 14px;
+    padding: 12px 14px;
+    border: 1px solid rgba(148, 163, 184, 0.35);
+    box-shadow: 0 0 18px rgba(15, 23, 42, 0.9);
+    margin-bottom: 12px;
+}
 
-    border: 1px solid rgba(255, 0, 255, 0.25);
-    box-shadow:
-        0 0 12px rgba(255, 0, 255, 0.25),
-        inset 0 0 12px rgba(255, 0, 255, 0.15);
+.class-card h4 {
+    font-size: 14px;
+    color: #e5e7eb;
+    margin-bottom: 4px;
+}
+
+.class-card p {
+    font-size: 12px;
+    color: #9ca3af;
+    margin-bottom: 8px;
 }
 
 .join-btn {
-    width: 100%;
-    padding: 10px;
-    background: linear-gradient(90deg, #ff00ff, #ff8800);
+    padding: 6px 10px;
+    border-radius: 999px;
     border: none;
-    border-radius: 8px;
+    background: linear-gradient(90deg, #22c55e, #4ade80);
+    color: #022c22;
+    font-size: 12px;
     cursor: pointer;
-    color: white;
-    margin-top: 10px;
-    transition: 0.25s ease;
+    transition: transform 0.15s, box-shadow 0.15s;
 }
 
 .join-btn:hover {
-    background: linear-gradient(90deg, #ff8800, #ff00ff);
-    box-shadow: 0 0 12px rgba(255, 0, 255, 0.4);
+    transform: translateY(-1px);
+    box-shadow: 0 0 12px rgba(34,197,94,0.6);
 }
 
-/* ---------------------------------------------------
-   MOBILE FLOATING BUTTON
---------------------------------------------------- */
+/* MOBILE CLASSES BUTTON & PANEL -------------------------- */
 
 .mobile-classes-btn {
     display: none;
-    position: fixed;
-    bottom: 20px;
-    right: 20px;
-    background: linear-gradient(90deg, #00eaff, #ff00ff);
-    border: none;
-    padding: 16px 22px;
-    border-radius: 50px;
-    color: white;
-    font-size: 16px;
-    cursor: pointer;
-    z-index: 999;
-    box-shadow: 0 0 12px rgba(0, 234, 255, 0.4);
 }
 
-/* ---------------------------------------------------
-   MOBILE SLIDE-UP PANEL
---------------------------------------------------- */
-
-.mobile-panel {
-    position: fixed;
-    bottom: -100%;
-    left: 0;
-    width: 100%;
-    background: #111;
-    padding: 20px;
-    box-sizing: border-box;
-    border-top-left-radius: 20px;
-    border-top-right-radius: 20px;
-    transition: 0.35s ease;
-    z-index: 9999;
-    max-height: 80vh;
-    overflow-y: auto;
-    box-shadow: 0 -5px 25px rgba(0,0,0,0.5);
-}
-
-.mobile-panel.open {
-    bottom: 0;
-}
-
-.mobile-panel-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-
-.close-mobile {
-    font-size: 22px;
-    cursor: pointer;
-}
-
-/* ---------------------------------------------------
-   ANALYTICS PANELS — NEON
---------------------------------------------------- */
+/* Analytics panels (Pro) --------------------------------- */
 
 .analytics-panel {
     position: fixed;
-    bottom: -100%;
-    left: 0;
-    width: 100%;
-    background: #111;
-    padding: 25px;
-    box-sizing: border-box;
-    border-top-left-radius: 20px;
-    border-top-right-radius: 20px;
-    transition: 0.35s ease;
-    z-index: 99999;
-    max-height: 85vh;
-    overflow-y: auto;
-
-    border-top: 2px solid rgba(0, 234, 255, 0.3);
-    box-shadow: 0 -5px 25px rgba(0, 234, 255, 0.25);
+    inset: auto 0 0 0;
+    max-width: 960px;
+    margin: 0 auto;
+    background: rgba(15,23,42,0.98);
+    border-radius: 18px 18px 0 0;
+    border-top: 1px solid rgba(148,163,184,0.4);
+    box-shadow: 0 -10px 30px rgba(15,23,42,0.9);
+    padding: 16px 18px 18px;
+    transform: translateY(100%);
+    opacity: 0;
+    pointer-events: none;
+    transition: transform 0.25s ease-out, opacity 0.25s ease-out;
+    z-index: 40;
 }
 
 .analytics-panel.open {
-    bottom: 0;
+    transform: translateY(0);
+    opacity: 1;
+    pointer-events: auto;
 }
 
 .panel-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 20px;
+    margin-bottom: 10px;
 }
 
 .panel-header h2 {
-    margin: 0;
+    font-size: 16px;
+    color: #e5e7eb;
 }
 
 .panel-close {
-    font-size: 24px;
     cursor: pointer;
-    opacity: 0.7;
+    font-size: 18px;
+    color: #9ca3af;
 }
 
-.panel-close:hover {
-    opacity: 1;
+/* Charts inside panels */
+.analytics-panel canvas {
+    width: 100% !important;
+    max-height: 180px;
+    margin-top: 8px;
 }
 
-/* ---------------------------------------------------
-   RESPONSIVE BEHAVIOUR
---------------------------------------------------- */
+/* RESPONSIVE --------------------------------------------- */
 
-@media (max-width: 1300px) {
-    .main-content {
-        width: calc(100% - 260px);
-    }
+@media (max-width: 1100px) {
     .right-panel {
         display: none;
     }
-    .mobile-classes-btn {
-        display: block;
-    }
-}
 
-@media (max-width: 900px) {
-    .top-summary-row {
-        grid-template-columns: repeat(2, 1fr);
+    .mobile-classes-btn {
+        display: inline-flex;
+        position: fixed;
+        right: 18px;
+        bottom: 18px;
+        padding: 10px 14px;
+        border-radius: 999px;
+        border: none;
+        background: linear-gradient(90deg, #38bdf8, #6366f1);
+        color: white;
+        font-size: 13px;
+        cursor: pointer;
+        box-shadow: 0 0 16px rgba(56,189,248,0.6);
+        z-index: 30;
     }
-    .row-2, .row-3 {
+
+    .mobile-panel {
+        position: fixed;
+        inset: auto 0 0 0;
+        background: rgba(15,23,42,0.98);
+        border-radius: 18px 18px 0 0;
+        border-top: 1px solid rgba(148,163,184,0.4);
+        box-shadow: 0 -10px 30px rgba(15,23,42,0.9);
+        padding: 16px 18px 18px;
+        transform: translateY(100%);
+        opacity: 0;
+        pointer-events: none;
+        transition: transform 0.25s ease-out, opacity 0.25s ease-out;
+        z-index: 40;
+    }
+
+    .mobile-panel.open {
+        transform: translateY(0);
+        opacity: 1;
+        pointer-events: auto;
+    }
+
+    .mobile-panel-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 10px;
+    }
+
+    .close-mobile {
+        cursor: pointer;
+        font-size: 18px;
+        color: #9ca3af;
+    }
+
+    .row-2,
+    .row-3,
+    .top-summary-row {
         grid-template-columns: 1fr;
     }
 }
 
-@media (max-width: 600px) {
-    .main-content {
-        margin-left: 0;
-        width: 100%;
-        padding: 20px;
-    }
+@media (max-width: 800px) {
     .sidebar {
-        display: none;
+        display: none; /* later we can turn this into slide-out */
+    }
+
+    .main-content {
+        padding: 18px 16px 80px;
     }
 }
