@@ -54,7 +54,7 @@ auth.onAuthStateChanged(user => {
 });
 
 /* -----------------------------------------------------------
-   SAVE PROFILE
+   SAVE PROFILE (FIXED)
 ----------------------------------------------------------- */
 
 function saveProfile() {
@@ -79,8 +79,8 @@ function saveProfile() {
         document.getElementById("bmiValue").innerText = bmi.toFixed(1);
     }
 
-    // Save
-    userRef.update({
+    // Save using set() with merge so fields ALWAYS save
+    userRef.set({
         name,
         age,
         sex,
@@ -90,7 +90,7 @@ function saveProfile() {
         goal,
         goalPace: pace,
         bmi
-    });
+    }, { merge: true });
 
     document.getElementById("profileStatus").innerText = "Profile saved!";
 }
