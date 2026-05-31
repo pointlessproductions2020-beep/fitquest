@@ -5,19 +5,19 @@
 Chart.defaults.color = "#cbd5e1";
 Chart.defaults.font.family = "Inter, sans-serif";
 
-Chart.defaults.borderColor = "rgba(148,163,184,0.15)";
-Chart.defaults.backgroundColor = "rgba(255,255,255,0.03)";
-
+Chart.defaults.borderColor = "rgba(148,163,184,0.25)";
 Chart.defaults.plugins.legend.labels.color = "#e2e8f0";
 
-// GRIDLINES
-Chart.defaults.scale.grid.color = "rgba(148,163,184,0.12)";
-Chart.defaults.scale.grid.borderColor = "rgba(148,163,184,0.25)";
+// Neon grid + ticks
+Chart.defaults.scale.grid.color = "rgba(56,189,248,0.18)";
+Chart.defaults.scale.grid.borderColor = "rgba(56,189,248,0.4)";
+Chart.defaults.scale.ticks.color = "#38bdf8";
+Chart.defaults.scale.ticks.font = {
+    size: 11,
+    weight: "500"
+};
 
-// TICKS
-Chart.defaults.scale.ticks.color = "#94a3b8";
-
-// NEON GLOW PLUGIN
+// Neon glow plugin
 const neonGlow = {
     id: "neonGlow",
     beforeDraw: (chart) => {
@@ -35,26 +35,31 @@ const neonGlow = {
 
 Chart.register(neonGlow);
 
+// Helper for gradients
+function neonGradient(ctx, color1, color2) {
+    const g = ctx.createLinearGradient(0, 0, 0, 260);
+    g.addColorStop(0, color1);
+    g.addColorStop(1, color2);
+    return g;
+}
 
 /* -----------------------------------------------------------
-   MAIN DASHBOARD CHARTS (Workout Ring, Weight Trend, Steps)
+   MAIN DASHBOARD CHARTS
 ----------------------------------------------------------- */
 
 window.addEventListener("load", () => {
 
-    /* -------------------------
-       WORKOUT RING (DOUGHNUT)
-    ------------------------- */
-    const ring = document.getElementById("workoutRing");
-    if (ring) {
-        new Chart(ring, {
+    /* WORKOUT RING */
+    const ringCanvas = document.getElementById("workoutRing");
+    if (ringCanvas) {
+        new Chart(ringCanvas, {
             type: "doughnut",
             data: {
                 datasets: [{
                     data: [75, 25],
                     backgroundColor: [
                         "rgba(56,189,248,1)",
-                        "rgba(30,41,59,0.4)"
+                        "rgba(15,23,42,0.6)"
                     ],
                     borderWidth: 0,
                     cutout: "70%"
@@ -66,18 +71,12 @@ window.addEventListener("load", () => {
         });
     }
 
-
-    /* -------------------------
-       WEIGHT TREND (LINE)
-    ------------------------- */
-    const weight = document.getElementById("weightTrend");
-    if (weight) {
-        const ctx = weight.getContext("2d");
-        const gradient = ctx.createLinearGradient(0, 0, 0, 200);
-        gradient.addColorStop(0, "rgba(56,189,248,0.35)");
-        gradient.addColorStop(1, "rgba(56,189,248,0)");
-
-        new Chart(weight, {
+    /* WEIGHT TREND */
+    const weightCanvas = document.getElementById("weightTrend");
+    if (weightCanvas) {
+        const ctx = weightCanvas.getContext("2d");
+        const fillGrad = neonGradient(ctx, "rgba(56,189,248,0.4)", "rgba(56,189,248,0)");
+        new Chart(weightCanvas, {
             type: "line",
             data: {
                 labels: ["Mon","Tue","Wed","Thu","Fri"],
@@ -89,7 +88,7 @@ window.addEventListener("load", () => {
                     pointRadius: 4,
                     pointBackgroundColor: "#38bdf8",
                     fill: true,
-                    backgroundColor: gradient,
+                    backgroundColor: fillGrad,
                     tension: 0.35
                 }]
             },
@@ -99,20 +98,20 @@ window.addEventListener("load", () => {
         });
     }
 
-
-    /* -------------------------
-       STEP TRACKER (BAR)
-    ------------------------- */
-    const steps = document.getElementById("stepTracker");
-    if (steps) {
-        new Chart(steps, {
+    /* STEP TRACKER (MAIN CARD) */
+    const stepCanvas = document.getElementById("stepTracker");
+    if (stepCanvas) {
+        const ctx = stepCanvas.getContext("2d");
+        new Chart(stepCanvas, {
             type: "bar",
             data: {
                 labels: ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"],
                 datasets: [{
                     label: "Steps",
                     data: [7450, 8200, 9100, 10000, 6800, 12000, 9500],
-                    backgroundColor: "rgba(129,140,248,0.9)",
+                    backgroundColor: neonGradient(ctx, "rgba(129,140,248,0.95)", "rgba(129,140,248,0.15)"),
+                    borderColor: "#818cf8",
+                    borderWidth: 2,
                     borderRadius: 6
                 }]
             },
@@ -122,16 +121,15 @@ window.addEventListener("load", () => {
         });
     }
 
-
     /* -----------------------------------------------------------
        ANALYTICS PANELS (PRO)
     ----------------------------------------------------------- */
 
-    /* -------------------------
-       CALORIES WEEKLY (LINE)
-    ------------------------- */
+    /* CALORIES WEEKLY */
     const calW = document.getElementById("chartCaloriesWeekly");
     if (calW) {
+        const ctx = calW.getContext("2d");
+        const fill = neonGradient(ctx, "rgba(77,163,255,0.4)", "rgba(77,163,255,0)");
         new Chart(calW, {
             type: "line",
             data: {
@@ -140,21 +138,21 @@ window.addEventListener("load", () => {
                     label: "Calories",
                     data: [1800, 1750, 1900, 2000, 1850, 1700, 2100],
                     borderColor: "#4da3ff",
-                    backgroundColor: "rgba(77,163,255,0.2)",
-                    borderWidth: 2,
-                    tension: 0.3
+                    backgroundColor: fill,
+                    borderWidth: 2.5,
+                    tension: 0.35,
+                    pointRadius: 3,
+                    pointBackgroundColor: "#4da3ff"
                 }]
             },
             options: { plugins: { legend: { display: false } } }
         });
     }
 
-
-    /* -------------------------
-       CALORIES MONTHLY (BAR)
-    ------------------------- */
+    /* CALORIES MONTHLY */
     const calM = document.getElementById("chartCaloriesMonthly");
     if (calM) {
+        const ctx = calM.getContext("2d");
         new Chart(calM, {
             type: "bar",
             data: {
@@ -162,19 +160,21 @@ window.addEventListener("load", () => {
                 datasets: [{
                     label: "Avg Calories",
                     data: [1850, 1900, 1780, 1950],
-                    backgroundColor: "rgba(77,163,255,0.6)"
+                    backgroundColor: neonGradient(ctx, "rgba(77,163,255,0.9)", "rgba(77,163,255,0.15)"),
+                    borderColor: "#4da3ff",
+                    borderWidth: 2,
+                    borderRadius: 6
                 }]
             },
             options: { plugins: { legend: { display: false } } }
         });
     }
 
-
-    /* -------------------------
-       BURN WEEKLY (LINE)
-    ------------------------- */
+    /* BURN WEEKLY */
     const burnW = document.getElementById("chartBurnWeekly");
     if (burnW) {
+        const ctx = burnW.getContext("2d");
+        const fill = neonGradient(ctx, "rgba(255,123,84,0.4)", "rgba(255,123,84,0)");
         new Chart(burnW, {
             type: "line",
             data: {
@@ -183,21 +183,21 @@ window.addEventListener("load", () => {
                     label: "Burned",
                     data: [400, 520, 480, 600, 450, 500, 650],
                     borderColor: "#ff7b54",
-                    backgroundColor: "rgba(255,123,84,0.2)",
-                    borderWidth: 2,
-                    tension: 0.3
+                    backgroundColor: fill,
+                    borderWidth: 2.5,
+                    tension: 0.35,
+                    pointRadius: 3,
+                    pointBackgroundColor: "#ff7b54"
                 }]
             },
             options: { plugins: { legend: { display: false } } }
         });
     }
 
-
-    /* -------------------------
-       BURN MONTHLY (BAR)
-    ------------------------- */
+    /* BURN MONTHLY */
     const burnM = document.getElementById("chartBurnMonthly");
     if (burnM) {
+        const ctx = burnM.getContext("2d");
         new Chart(burnM, {
             type: "bar",
             data: {
@@ -205,50 +205,9 @@ window.addEventListener("load", () => {
                 datasets: [{
                     label: "Avg Burn",
                     data: [450, 500, 520, 560],
-                    backgroundColor: "rgba(255,123,84,0.6)"
-                }]
-            },
-            options: { plugins: { legend: { display: false } } }
-        });
-    }
-
-
-    /* -------------------------
-       BMI HISTORY (LINE)
-    ------------------------- */
-    const bmi = document.getElementById("chartBMIHistory");
-    if (bmi) {
-        new Chart(bmi, {
-            type: "line",
-            data: {
-                labels: ["Jan","Feb","Mar","Apr","May"],
-                datasets: [{
-                    label: "BMI",
-                    data: [24.1, 23.9, 23.7, 23.5, 23.4],
-                    borderColor: "#4da3ff",
-                    backgroundColor: "rgba(77,163,255,0.2)",
+                    backgroundColor: neonGradient(ctx, "rgba(255,123,84,0.9)", "rgba(255,123,84,0.15)"),
+                    borderColor: "#ff7b54",
                     borderWidth: 2,
-                    tension: 0.3
-                }]
-            },
-            options: { plugins: { legend: { display: false } } }
-        });
-    }
-
-
-    /* -------------------------
-       STEPS WEEKLY (BAR)
-    ------------------------- */
-    const stepsW = document.getElementById("chartStepsWeekly");
-    if (stepsW) {
-        new Chart(stepsW, {
-            type: "bar",
-            data: {
-                labels: ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"],
-                datasets: [{
-                    label: "Steps",
-                    data: [7450, 8200, 9100, 10000, 6800, 12000, 9500],
-                    backgroundColor: "rgba(76, 201, 91, 0.7)",
                     borderRadius: 6
                 }]
             },
@@ -256,12 +215,56 @@ window.addEventListener("load", () => {
         });
     }
 
+    /* BMI HISTORY */
+    const bmiCanvas = document.getElementById("chartBMIHistory");
+    if (bmiCanvas) {
+        const ctx = bmiCanvas.getContext("2d");
+        const fill = neonGradient(ctx, "rgba(77,163,255,0.4)", "rgba(77,163,255,0)");
+        new Chart(bmiCanvas, {
+            type: "line",
+            data: {
+                labels: ["Jan","Feb","Mar","Apr","May"],
+                datasets: [{
+                    label: "BMI",
+                    data: [24.1, 23.9, 23.7, 23.5, 23.4],
+                    borderColor: "#4da3ff",
+                    backgroundColor: fill,
+                    borderWidth: 2.5,
+                    tension: 0.35,
+                    pointRadius: 3,
+                    pointBackgroundColor: "#4da3ff"
+                }]
+            },
+            options: { plugins: { legend: { display: false } } }
+        });
+    }
 
-    /* -------------------------
-       STEPS MONTHLY (LINE)
-    ------------------------- */
+    /* STEPS WEEKLY (PANEL) */
+    const stepsW = document.getElementById("chartStepsWeekly");
+    if (stepsW) {
+        const ctx = stepsW.getContext("2d");
+        new Chart(stepsW, {
+            type: "bar",
+            data: {
+                labels: ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"],
+                datasets: [{
+                    label: "Steps",
+                    data: [7450, 8200, 9100, 10000, 6800, 12000, 9500],
+                    backgroundColor: neonGradient(ctx, "rgba(76,201,91,0.9)", "rgba(76,201,91,0.15)"),
+                    borderColor: "#4cc95b",
+                    borderWidth: 2,
+                    borderRadius: 6
+                }]
+            },
+            options: { plugins: { legend: { display: false } } }
+        });
+    }
+
+    /* STEPS MONTHLY (PANEL) */
     const stepsM = document.getElementById("chartStepsMonthly");
     if (stepsM) {
+        const ctx = stepsM.getContext("2d");
+        const fill = neonGradient(ctx, "rgba(76,201,91,0.4)", "rgba(76,201,91,0)");
         new Chart(stepsM, {
             type: "line",
             data: {
@@ -270,9 +273,11 @@ window.addEventListener("load", () => {
                     label: "Avg Steps",
                     data: [8500, 9200, 9800, 10200],
                     borderColor: "#4cc95b",
-                    backgroundColor: "rgba(76,201,91,0.2)",
-                    borderWidth: 2,
-                    tension: 0.3
+                    backgroundColor: fill,
+                    borderWidth: 2.5,
+                    tension: 0.35,
+                    pointRadius: 3,
+                    pointBackgroundColor: "#4cc95b"
                 }]
             },
             options: { plugins: { legend: { display: false } } }
