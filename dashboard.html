@@ -77,15 +77,23 @@
 
         <!-- WORKOUT RING -->
         <div class="card large-card">
-            <h2>Workout Progress</h2>
-            <canvas id="workoutRing"></canvas>
+            <div class="card-header">
+                <h2>Workout Progress</h2>
+            </div>
+            <div class="card-body center-flex">
+                <canvas id="workoutRing"></canvas>
+            </div>
             <p class="ring-label">4 / 5 Workouts Completed</p>
         </div>
 
         <!-- WEIGHT TREND -->
         <div class="card large-card">
-            <h2>Weight Trend</h2>
-            <canvas id="weightTrend"></canvas>
+            <div class="card-header">
+                <h2>Weight Trend</h2>
+            </div>
+            <div class="card-body">
+                <canvas id="weightTrend"></canvas>
+            </div>
         </div>
 
     </div>
@@ -95,27 +103,35 @@
 
         <!-- BMI CALCULATOR -->
         <div class="card">
-            <h2>BMI Calculator</h2>
-            <label>Height (cm)</label>
-            <input type="number" id="height">
-            <label>Weight (kg)</label>
-            <input type="number" id="weight">
-            <button class="calc-btn" onclick="calculateBMI()">Calculate</button>
-            <p id="bmiResult"></p>
+            <div class="card-header">
+                <h2>BMI Calculator</h2>
+            </div>
+            <div class="card-body">
+                <label>Height (cm)</label>
+                <input type="number" id="height">
+                <label>Weight (kg)</label>
+                <input type="number" id="weight">
+                <button class="calc-btn" onclick="calculateBMI()">Calculate</button>
+                <p id="bmiResult"></p>
+            </div>
         </div>
 
         <!-- STEP TRACKER -->
         <div class="card">
-            <h2>Daily Step Tracker</h2>
-            <p id="stepTrackerLabel">7,450 / 10,000 Steps</p>
-            <canvas id="stepTracker"></canvas>
+            <div class="card-header">
+                <h2>Daily Step Tracker</h2>
+            </div>
+            <p id="stepTrackerLabel" class="step-label">7,450 / 10,000 Steps</p>
+            <div class="card-body">
+                <canvas id="stepTracker"></canvas>
+            </div>
         </div>
 
     </div>
 
 </div>
 
-<!-- RIGHT SIDEBAR -->
+<!-- RIGHT SIDEBAR (DESKTOP) -->
 <div class="right-panel">
     <h2>Upcoming Classes</h2>
 
@@ -167,7 +183,7 @@
     </div>
 </div>
 
-<!-- ANALYTICS PANELS -->
+<!-- ANALYTICS PANELS (PRO) -->
 <div id="panel-calories" class="analytics-panel">
     <div class="panel-header">
         <h2>Calories Intake</h2>
@@ -213,7 +229,7 @@ auth.onAuthStateChanged(user => {
     loadDashboardBrain();
 });
 
-let membership = "free";
+let membership = "free"; // later from Firestore
 
 function openAnalyticsPanel(panelId) {
     if (membership === "free") {
