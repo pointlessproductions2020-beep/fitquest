@@ -8,7 +8,6 @@ Chart.defaults.font.family = "Inter, sans-serif";
 Chart.defaults.borderColor = "rgba(148,163,184,0.25)";
 Chart.defaults.plugins.legend.labels.color = "#e2e8f0";
 
-// Neon grid + ticks
 Chart.defaults.scale.grid.color = "rgba(56,189,248,0.18)";
 Chart.defaults.scale.grid.borderColor = "rgba(56,189,248,0.4)";
 Chart.defaults.scale.ticks.color = "#38bdf8";
@@ -42,6 +41,18 @@ function neonGradient(ctx, color1, color2) {
     g.addColorStop(1, color2);
     return g;
 }
+
+/* -----------------------------------------------------------
+   NEON ENGINE — SLOW AMBIENT ROTATION
+----------------------------------------------------------- */
+
+const neonCycle = ["#00eaff", "#7b2fff", "#ff00ff", "#ff8800"];
+let neonIndex = 0;
+
+setInterval(() => {
+    neonIndex = (neonIndex + 1) % neonCycle.length;
+    document.documentElement.style.setProperty("--neon", neonCycle[neonIndex]);
+}, 9000); // slow & elegant
 
 /* -----------------------------------------------------------
    MAIN DASHBOARD CHARTS
