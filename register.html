@@ -6,47 +6,37 @@
     <title>FitQuest — Register</title>
     <link rel="stylesheet" href="loginstyles.css">
 
-    <!-- ✅ Firebase v8 CDN scripts (REQUIRED) -->
+    <!-- Firebase v8 -->
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
 
-    <!-- Your firebase.js must load AFTER the Firebase SDKs -->
     <script defer src="firebase.js"></script>
 </head>
 
-<body class="neon-bg">
+<body>
 
 <div class="container">
 
-    <!-- LEFT SIDE (DESKTOP) -->
-    <div class="left-panel">
-        <div class="logo-wrapper">
-            <div class="glow-ring"></div>
-            <img src="assets/neonlogo.png" class="logo">
-        </div>
-        <h2 class="tagline desktop-tagline">Your Journey Starts Here.</h2>
-    </div>
+    <!-- LOGO -->
+    <img src="assets/logo.png" class="logo">
 
-    <!-- RIGHT SIDE (FORM) -->
-    <div class="right-panel">
-        <div class="form-card">
-            <h2>Create Account</h2>
+    <h2 class="tagline">Your Journey Starts Here.</h2>
 
-            <input type="text" id="regName" placeholder="Full Name">
-            <input type="email" id="regEmail" placeholder="Email">
-            <input type="password" id="regPassword" placeholder="Password">
+    <!-- REGISTER CARD -->
+    <div class="form-card">
+        <h2>Create Account</h2>
 
-            <button onclick="registerUser()">Register</button>
+        <input type="text" id="regName" placeholder="Full Name">
+        <input type="email" id="regEmail" placeholder="Email">
+        <input type="password" id="regPassword" placeholder="Password">
 
-            <p class="small-text">Already have an account? <a href="index.html">Login</a></p>
-        </div>
+        <button onclick="registerUser()">Register</button>
+
+        <p class="small-text">Already have an account? <a href="index.html">Login</a></p>
     </div>
 
 </div>
-
-<!-- MOBILE TAGLINE -->
-<h2 class="tagline mobile-tagline">Your Journey Starts Here.</h2>
 
 </body>
 </html>
