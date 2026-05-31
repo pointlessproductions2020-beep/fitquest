@@ -86,7 +86,7 @@ body.dashboard-body {
 .main-content {
     margin-left: 260px;
     padding: 40px;
-    width: calc(100% - 260px);
+    width: calc(100% - 260px - 280px);
     box-sizing: border-box;
 }
 
@@ -116,6 +116,13 @@ body.dashboard-body {
     padding: 20px;
     border-radius: 14px;
     box-shadow: 0 0 20px rgba(0,0,0,0.35);
+    cursor: pointer;
+    transition: 0.2s ease;
+}
+
+.summary-card:hover {
+    transform: translateY(-2px);
+    background: #202020;
 }
 
 .summary-card h3 {
@@ -277,6 +284,7 @@ body.dashboard-body {
     z-index: 9999;
     max-height: 80vh;
     overflow-y: auto;
+    box-shadow: 0 -5px 25px rgba(0,0,0,0.5);
 }
 
 .mobile-panel.open {
@@ -295,10 +303,59 @@ body.dashboard-body {
 }
 
 /* ---------------------------------------------------
+   ANALYTICS PANELS (SLIDE-UP)
+--------------------------------------------------- */
+
+.analytics-panel {
+    position: fixed;
+    bottom: -100%;
+    left: 0;
+    width: 100%;
+    background: #111;
+    padding: 25px;
+    box-sizing: border-box;
+    border-top-left-radius: 20px;
+    border-top-right-radius: 20px;
+    transition: 0.35s ease;
+    z-index: 99999;
+    max-height: 85vh;
+    overflow-y: auto;
+    box-shadow: 0 -5px 25px rgba(0,0,0,0.5);
+}
+
+.analytics-panel.open {
+    bottom: 0;
+}
+
+.panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.panel-header h2 {
+    margin: 0;
+}
+
+.panel-close {
+    font-size: 24px;
+    cursor: pointer;
+    opacity: 0.7;
+}
+
+.panel-close:hover {
+    opacity: 1;
+}
+
+/* ---------------------------------------------------
    RESPONSIVE BEHAVIOUR
 --------------------------------------------------- */
 
-@media (max-width: 1100px) {
+@media (max-width: 1300px) {
+    .main-content {
+        width: calc(100% - 260px);
+    }
     .right-panel {
         display: none;
     }
