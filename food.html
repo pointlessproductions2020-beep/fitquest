@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FitQuest — Food Intake</title>
+    <link rel="stylesheet" href="styles.css">
+
+    <!-- Firebase -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
+
+    <script src="firebase.js"></script>
+    <script src="fitquestbrain.js"></script>
+
+    <style>
+        .food-layout {
+            display: grid;
+            grid-template-columns: 260px 1fr;
+            gap: 20px;
+        }
+
+        .food-card {
+            padding: 16px;
+        }
+
+        .food-list button {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 10px;
+            border-radius: 12px;
+            border: 1px solid var(--neon);
+            background: rgba(15,23,42,0.9);
+            color: var(--neon);
+            cursor: pointer;
+            font-size: 14px;
+            box-shadow: 0 0 12px var(--neon);
+        }
+
+        .food-list button:hover {
+            background: rgba(15,23,42,1);
+            box-shadow: 0 0 18px var(--neon);
+        }
+
+        .food-form label {
+            font-size: 12px;
+            opacity: 0.8;
+        }
+
+        .food-form input {
+            width: 100%;
+            padding: 8px;
+            margin-top: 4px;
+            border-radius: 10px;
+            border: 1px solid rgba(148,163,184,0.4);
+            background: #020617;
+            color: #e5e7eb;
+        }
+
+        .food-form button {
+            margin-top: 14px;
+            padding: 10px;
+            border-radius: 999px;
+            border: none;
+            background: var(--neon);
+            color: #020617;
+            font-weight: 600;
+            cursor: pointer;
+            box-shadow: 0 0 18px var(--neon);
+        }
+
+        .food-result {
+            margin-top: 12px;
+            font-size: 14px;
+            color: #a5b4fc;
+        }
+    </style>
+</head>
+
+<body class="dashboard-body">
+
+<!-- SIDEBAR -->
+<aside class="sidebar">
+    <div class="sidebar-logo">
+        <img src="assets/logo.png" alt="FitQuest Logo">
+    </div>
+
+    <ul class="sidebar-links">
+        <li class="neon-hover" onclick="window.location.href='dashboard.html'">🏠 Dashboard</li>
+        <li class="active neon-hover">🍽️ Food Intake</li>
+        <li class="neon-hover" onclick="window.location.href='exercise.html'">💪 Workout</li>
+        <li class="neon-hover" onclick="window.location.href='profile.html'">👤 Profile</li>
+        <li class="neon-hover">📊 Progress</li>
+        <li class="neon-hover">⚙️ Settings</li>
+    </ul>
+
+    <button class="logout-btn neon-interactive" onclick="logoutUser()">Logout</button>
+</aside>
+
+<!-- MAIN -->
+<main class="main-content">
+    <h1 class="page-title">Food Intake</h1>
+
+    <section class="food-layout">
+
+        <!-- LEFT: Quick Add -->
+        <div class="card neon-card food-card">
+            <h2 class="neon-text" style="margin-bottom:10px;">Quick Add</h2>
+
+            <div class="food-list">
+                <button onclick="quickAdd('Apple', 95)">🍎 Apple — 95 kcal</button>
+                <button onclick="quickAdd('Banana', 105)">🍌 Banana — 105 kcal</button>
+                <button onclick="quickAdd('Chicken Breast 100g', 165)">🍗 Chicken Breast — 165 kcal</button>
+                <button onclick="quickAdd('Rice 1 cup', 205)">🍚 Rice (1 cup) — 205 kcal</button>
+                <button onclick="quickAdd('Protein Shake', 180)">🥤 Protein Shake — 180 kcal</button>
+                <button onclick="quickAdd('Water 500ml', 0)">💧 Water — 0 kcal</button>
+            </div>
+        </div>
+
+        <!-- RIGHT: Manual Entry -->
+        <div class="card neon-card food-card">
+            <h2 class="neon-text">Manual Entry</h2>
+
+            <div class="food-form">
+                <label>Food / Drink Name</label>
+                <input type="text" id="foodName">
+
+                <label>Calories</label>
+                <input type="number" id="foodCalories" min="0">
+
+                <button onclick="saveManual()">Add Entry</button>
+
+                <p class="food-result" id="foodResult"></p>
+            </div>
+        </div>
+
+    </section>
+</main>
+
+<script>
+auth.onAuthStateChanged(async user => {
+    if (!user) return window.location.href = "index.html";
+});
+
+// QUICK ADD
+async function quickAdd(name, calories) {
+    const user = auth.currentUser;
+    if (!user) return;
+
+    await db.collection("users").doc(user.uid).collection("food").add({
+        name,
+        calories,
+        timestamp: Date.now()
+    });
+
+    FitQuestBrain.awardXp(db.collection("users").doc(user.uid), 10, "food_logged");
+
+    alert(`${name} added!`);
+}
+
+// MANUAL ENTRY
+async function saveManual() {
+    const name = document.getElementById("foodName").value.trim();
+    const calories = parseInt(document.getElementById("foodCalories").value);
+
+    if (!name || isNaN(calories)) {
+        alert("Enter food name and calories");
+        return;
+    }
+
+    const user = auth.currentUser;
+    if (!user) return;
+
+    await db.collection("users").doc(user.uid).collection("food").add({
+        name,
+        calories,
+        timestamp: Date.now()
+    });
+
+    FitQuestBrain.awardXp(db.collection("users").doc(user.uid), 10, "food_logged");
+
+    document.getElementById("foodResult").innerText =
+        `${name} logged: ${calories} kcal`;
+
+    document.getElementById("foodName").value = "";
+    document.getElementById("foodCalories").value = "";
+}
+</script>
+
+</body>
+</html>
