@@ -1,8 +1,15 @@
-// PROFILE LOGIC FOR BOTH profile-edit.html AND profile.html
+/* ---------------------------------------------------------
+   PROFILE LOGIC FOR BOTH profile-edit.html AND profile.html
+   Firebase v8 — Corrected for new bucket domain
+--------------------------------------------------------- */
 
 let currentUser = null;
 let userRef = null;
-let storageRef = null;
+
+// ⭐ FORCE Firebase Storage to use the correct bucket
+// Your project uses the new domain: fitquest-1b9f1.firebasestorage.app
+const storage = firebase.storage();
+const storageRef = storage.refFromURL("gs://fitquest-1b9f1.firebasestorage.app");
 
 auth.onAuthStateChanged(async user => {
     if (!user) {
@@ -12,7 +19,6 @@ auth.onAuthStateChanged(async user => {
 
     currentUser = user;
     userRef = db.collection("users").doc(user.uid);
-    storageRef = storage.ref(); // FIXED: use global storage from firebase.js
 
     const doc = await userRef.get();
     const data = doc.exists ? doc.data() : {};
@@ -26,7 +32,9 @@ auth.onAuthStateChanged(async user => {
     }
 });
 
-// ---------- SHARED HELPERS ----------
+/* ---------------------------------------------------------
+   SHARED HELPERS
+--------------------------------------------------------- */
 
 function computeTargetsFromData(data) {
     const profile = {
@@ -49,7 +57,9 @@ function computeBMI(weightKg, heightCm) {
     return weightKg / (hM * hM);
 }
 
-// ---------- EDIT PAGE ----------
+/* ---------------------------------------------------------
+   EDIT PAGE
+--------------------------------------------------------- */
 
 function initProfileEdit(data) {
     const fullName = document.getElementById("fullName");
@@ -120,7 +130,7 @@ function initProfileEdit(data) {
     });
     profileTone.innerText = `${tone.headline} — ${tone.subline}`;
 
-    // Live update snapshot when fields change
+    // Live update snapshot
     [age, sex, heightCm, weightKg, activityLevel, goal, goalPace].forEach(el => {
         el.addEventListener("input", () => {
             const tempData = {
@@ -142,7 +152,9 @@ function initProfileEdit(data) {
         });
     });
 
-    // Photo upload
+    /* ---------------------------------------------------------
+       ⭐ FIXED AVATAR UPLOAD — correct bucket + CORS safe
+    --------------------------------------------------------- */
     changePhotoBtn.addEventListener("click", () => photoInput.click());
 
     photoInput.addEventListener("change", async e => {
@@ -150,6 +162,7 @@ function initProfileEdit(data) {
         if (!file || !currentUser) return;
 
         const avatarRef = storageRef.child(`avatars/${currentUser.uid}.jpg`);
+
         await avatarRef.put(file);
         const url = await avatarRef.getDownloadURL();
 
@@ -210,10 +223,8 @@ function initProfileEdit(data) {
 
         await userRef.set(payload, { merge: true });
 
-        // XP reward for completing/updating profile
         FitQuestBrain.awardXp(userRef, 30, "profile_update");
 
-        // UI refresh
         profileNameDisplay.innerText = newName || "Your Name";
         profileMeta.innerText = `Age: ${newAge || "–"} • Sex: ${newSex || "–"}`;
         snapshotBMI.innerText = newBMI ? newBMI.toFixed(1) : "–";
@@ -224,7 +235,9 @@ function initProfileEdit(data) {
     });
 }
 
-// ---------- VIEW PAGE ----------
+/* ---------------------------------------------------------
+   VIEW PAGE
+--------------------------------------------------------- */
 
 function initProfileView(data) {
     const viewProfileAvatar = document.getElementById("viewProfileAvatar");
@@ -247,22 +260,18 @@ function initProfileView(data) {
     const viewTDEE = document.getElementById("viewTDEE");
     const viewTarget = document.getElementById("viewTarget");
 
-    // Avatar
     if (data.avatarUrl) {
         viewProfileAvatar.src = data.avatarUrl + "?t=" + Date.now();
     }
 
-    // Name + meta
     viewProfileName.innerText = data.name || "Your Name";
     viewProfileMeta.innerText = `Age: ${data.age || "–"} • Sex: ${data.sex || "–"}`;
 
-    // XP + level
     const xp = data.xp || 0;
     const level = data.level || (Math.floor(xp / 100) + 1);
     viewProfileLevelBadge.innerText = "Lv " + level;
     xpFillView.style.width = (xp % 100) + "%";
 
-    // Fields
     viewFullName.innerText = data.name || "–";
     viewAge.innerText = data.age || "–";
     viewSex.innerText = data.sex || "–";
@@ -272,7 +281,6 @@ function initProfileView(data) {
     viewGoal.innerText = data.goal || "–";
     viewGoalPace.innerText = data.goalPace || "–";
 
-    // BMI + targets
     const bmi = data.bmi || computeBMI(data.weightKg, data.heightCm);
     const targets = computeTargetsFromData(data);
 
@@ -280,7 +288,6 @@ function initProfileView(data) {
     viewTDEE.innerText = targets ? Math.round(targets.tdee) + " kcal" : "– kcal";
     viewTarget.innerText = targets ? Math.round(targets.targetCalories) + " kcal" : "– kcal";
 
-    // Tone
     const tone = FitQuestBrain.toneEngine({
         bmi: bmi,
         trend: null,
@@ -289,7 +296,6 @@ function initProfileView(data) {
     });
     viewProfileTone.innerText = `${tone.headline} — ${tone.subline}`;
 
-    // ⭐ Add TDEE explanation
     const tdeeExplain = document.createElement("p");
     tdeeExplain.style.marginTop = "10px";
     tdeeExplain.style.opacity = "0.85";
