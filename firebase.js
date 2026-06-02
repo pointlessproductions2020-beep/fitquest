@@ -8,7 +8,7 @@ const firebaseConfig = {
   projectId: "fitquest-1b9f1",
 
   // ⭐ FIXED — use the REAL bucket, not the legacy one
-  storageBucket: "fitquest-1b9f1.firebasestorage.app",
+  storageBucket: "fitquest-1b9f1.appspot.com",
 
   messagingSenderId: "958554033321",
   appId: "1:958554033321:web:07b2fa75d1e4c9243e2db8",
