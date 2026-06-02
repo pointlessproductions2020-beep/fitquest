@@ -12,7 +12,7 @@ auth.onAuthStateChanged(async user => {
 
     currentUser = user;
     userRef = db.collection("users").doc(user.uid);
-    storageRef = firebase.storage().ref();
+    storageRef = storage.ref(); // FIXED: use global storage from firebase.js
 
     const doc = await userRef.get();
     const data = doc.exists ? doc.data() : {};
@@ -80,7 +80,7 @@ function initProfileEdit(data) {
     fullName.value = data.name || "";
     age.value = data.age || "";
     sex.value = data.sex || "";
-    heightCm.value = data.heightKg ? "" : (data.heightCm || "");
+    heightCm.value = data.heightCm || "";
     weightKg.value = data.weightKg || "";
     activityLevel.value = data.activityLevel || "";
     goal.value = data.goal || "";
@@ -288,4 +288,13 @@ function initProfileView(data) {
         pace: data.goalPace
     });
     viewProfileTone.innerText = `${tone.headline} — ${tone.subline}`;
+
+    // ⭐ Add TDEE explanation
+    const tdeeExplain = document.createElement("p");
+    tdeeExplain.style.marginTop = "10px";
+    tdeeExplain.style.opacity = "0.85";
+    tdeeExplain.style.fontSize = "0.85rem";
+    tdeeExplain.innerText =
+        "TDEE = Total Daily Energy Expenditure — the number of calories your body burns each day including movement, exercise, and basic functions.";
+    viewProfileTone.insertAdjacentElement("afterend", tdeeExplain);
 }
