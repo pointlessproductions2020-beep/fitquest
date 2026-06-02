@@ -140,7 +140,6 @@
 <aside class="sidebar">
     <div class="sidebar-logo">
         <img src="assets/logo.png" alt="FitQuest Logo">
-        <h3 class="neon-text">FitQuest</h3>
     </div>
 
     <ul class="sidebar-links">
@@ -161,7 +160,6 @@
 
         <!-- LEFT: Avatar + basic info -->
         <div class="card neon-card profile-sidebar-card">
-            <!-- ⭐ FIXED: removed neon-interactive so it stops spinning -->
             <div class="avatar-ring" id="avatarRing">
                 <img id="profileAvatar" src="assets/avatar-placeholder.svg" alt="Avatar">
                 <span class="level-badge" id="profileLevelBadge">Lv 1</span>
@@ -180,19 +178,28 @@
             <p id="profileTone" class="tone-message">Let’s set up your stats so the AI can guide you properly.</p>
         </div>
 
-        <!-- RIGHT: Form + health snapshot -->
+        <!-- RIGHT: Form -->
         <div class="card neon-card profile-main-card">
             <h2 class="neon-text" style="margin-bottom:10px;">Edit Your Details</h2>
 
             <div class="profile-field-grid">
+
                 <div>
                     <label for="fullName">Full Name</label>
                     <input type="text" id="fullName" placeholder="Your name">
                 </div>
+
+                <!-- ⭐ NEW: Nickname -->
+                <div>
+                    <label for="nickname">Nickname (optional)</label>
+                    <input type="text" id="nickname" placeholder="What should we call you?">
+                </div>
+
                 <div>
                     <label for="age">Age</label>
                     <input type="number" id="age" min="10" max="120">
                 </div>
+
                 <div>
                     <label for="sex">Sex</label>
                     <select id="sex">
@@ -202,14 +209,17 @@
                         <option value="other">Other</option>
                     </select>
                 </div>
+
                 <div>
                     <label for="heightCm">Height (cm)</label>
                     <input type="number" id="heightCm" min="100" max="250">
                 </div>
+
                 <div>
                     <label for="weightKg">Weight (kg)</label>
                     <input type="number" id="weightKg" min="30" max="300">
                 </div>
+
                 <div>
                     <label for="activityLevel">Activity Level</label>
                     <select id="activityLevel">
@@ -221,6 +231,7 @@
                         <option value="athlete">Athlete</option>
                     </select>
                 </div>
+
                 <div>
                     <label for="goal">Goal</label>
                     <select id="goal">
@@ -230,6 +241,7 @@
                         <option value="recomp">Recomp / Maintain</option>
                     </select>
                 </div>
+
                 <div>
                     <label for="goalPace">Goal Pace</label>
                     <select id="goalPace">
@@ -239,6 +251,7 @@
                         <option value="aggressive">Aggressive</option>
                     </select>
                 </div>
+
             </div>
 
             <div class="health-snapshot">
@@ -270,8 +283,8 @@
     </section>
 </main>
 
-<!-- ⭐ IMPORTANT: version bump forces GitHub Pages to load the NEW JS -->
-<script src="profile.js?v=2"></script>
+<!-- ⭐ Updated JS with nickname support -->
+<script src="profile.js?v=3"></script>
 
 </body>
 </html>
