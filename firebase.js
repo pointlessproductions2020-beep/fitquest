@@ -3,7 +3,7 @@ const firebaseConfig = {
   apiKey: "AIzaSyAVtxIzKrcj5VkTuSo7boaki3CfQzff3gA",
   authDomain: "fitquest-1b9f1.firebaseapp.com",
   projectId: "fitquest-1b9f1",
-  storageBucket: "fitquest-1b9f1.firebasestorage.app",
+  storageBucket: "fitquest-1b9f1f1.firebasestorage.app", // FIXED BUCKET
   messagingSenderId: "958554033321",
   appId: "1:958554033321:web:07b2fa75d1e4c9243e2db8",
   measurementId: "G-ZVFR6222TF"
@@ -11,8 +11,10 @@ const firebaseConfig = {
 
 // --- Initialize Firebase ---
 firebase.initializeApp(firebaseConfig);
+
 const auth = firebase.auth();
 const db = firebase.firestore();
+const storage = firebase.storage(); // REQUIRED FOR AVATARS + UPLOADS
 
 /* ---------------------------------------------------
    AUTH
@@ -40,7 +42,8 @@ function registerUser() {
                 createdAt: new Date(),
                 xp: 0,
                 level: 1,
-                streak: 0
+                streak: 0,
+                avatarUrl: "" // PREP FOR STORAGE
             });
         })
         .then(() => window.location.href = "dashboard.html")
@@ -164,208 +167,4 @@ function saveProfile() {
             if (metrics.targetCalories) document.getElementById("targetCaloriesValue").innerText = Math.round(metrics.targetCalories);
         })
         .catch(err => alert(err.message));
-}
-
-/* ---------------------------------------------------
-   DAILY LOG SYSTEM (CALORIES, WATER, EXERCISE)
---------------------------------------------------- */
-
-function getTodayLogId(uid) {
-    const d = new Date();
-    const yyyy = d.getFullYear();
-    const mm = String(d.getMonth() + 1).padStart(2, "0");
-    const dd = String(d.getDate()).padStart(2, "0");
-    return `${uid}_${yyyy}-${mm}-${dd}`;
-}
-
-function updateDashboardFromLog(log, target) {
-    const eaten = log.caloriesEaten || 0;
-    const water = log.waterMl || 0;
-    const exercise = log.exerciseCalories || 0;
-
-    const net = eaten - exercise;
-    const remaining = Math.max(0, Math.round(target - net));
-
-    if (document.getElementById("calEaten")) document.getElementById("calEaten").innerText = eaten;
-    if (document.getElementById("waterTotal")) document.getElementById("waterTotal").innerText = water;
-    if (document.getElementById("exerciseCalories")) document.getElementById("exerciseCalories").innerText = exercise;
-    if (document.getElementById("calRemaining")) document.getElementById("calRemaining").innerText = remaining;
-
-    if (document.getElementById("brainMessage")) {
-        let msg = "";
-        if (!target) msg = "Set up your profile to unlock smart calorie guidance.";
-        else if (remaining <= 0) msg = "You've hit your target for today.";
-        else if (remaining < 300) msg = `You're close. About ${remaining} kcal left.`;
-        else msg = `You've got about ${remaining} kcal left today.`;
-
-        document.getElementById("brainMessage").innerText = msg;
-    }
-}
-
-function loadDashboardBrain() {
-    const user = auth.currentUser;
-    if (!user) return;
-
-    const userRef = db.collection("users").doc(user.uid);
-
-    userRef.get().then(doc => {
-        const data = doc.data();
-        const target = data.targetCalories ? Math.round(data.targetCalories) : null;
-
-        if (document.getElementById("userName")) document.getElementById("userName").innerText = data.name || "Adventurer";
-        if (document.getElementById("userLevel")) document.getElementById("userLevel").innerText = data.level || 1;
-        if (document.getElementById("userXP")) document.getElementById("userXP").innerText = (data.xp || 0) + " XP";
-        if (document.getElementById("calTarget")) document.getElementById("calTarget").innerText = target || "–";
-
-        const logId = getTodayLogId(user.uid);
-        const logRef = db.collection("dailyLogs").doc(logId);
-
-        logRef.get().then(ldoc => {
-            if (!ldoc.exists) {
-                const base = {
-                    userId: user.uid,
-                    date: new Date().toISOString().substring(0, 10),
-                    caloriesEaten: 0,
-                    waterMl: 0,
-                    exerciseCalories: 0,
-                    targetCalories: target
-                };
-                logRef.set(base).then(() => updateDashboardFromLog(base, target || 0));
-            } else {
-                const log = ldoc.data();
-                updateDashboardFromLog(log, target || log.targetCalories || 0);
-            }
-        });
-    });
-}
-
-/* ---------------------------------------------------
-   QUICK ADD (manual calories, water, exercise)
---------------------------------------------------- */
-
-function promptAddMeal() {
-    const val = prompt("Calories?");
-    if (!val) return;
-    addMealCalories(parseInt(val));
-}
-
-function addMealCalories(amount) {
-    const user = auth.currentUser;
-    if (!user) return;
-
-    const logId = getTodayLogId(user.uid);
-    const ref = db.collection("dailyLogs").doc(logId);
-
-    db.runTransaction(async (t) => {
-        const doc = await t.get(ref);
-        const d = doc.exists ? doc.data() : {};
-        d.caloriesEaten = (d.caloriesEaten || 0) + amount;
-        t.set(ref, d);
-    }).then(() => loadDashboardBrain());
-}
-
-function promptAddWater() {
-    const val = prompt("Water (ml)?");
-    if (!val) return;
-    addWater(parseInt(val));
-}
-
-function addWater(amount) {
-    const user = auth.currentUser;
-    if (!user) return;
-
-    const logId = getTodayLogId(user.uid);
-    const ref = db.collection("dailyLogs").doc(logId);
-
-    db.runTransaction(async (t) => {
-        const doc = await t.get(ref);
-        const d = doc.exists ? doc.data() : {};
-        d.waterMl = (d.waterMl || 0) + amount;
-        t.set(ref, d);
-    }).then(() => loadDashboardBrain());
-}
-
-function promptAddExercise() {
-    const val = prompt("Calories burned?");
-    if (!val) return;
-    addExerciseCalories(parseInt(val));
-}
-
-function addExerciseCalories(amount) {
-    const user = auth.currentUser;
-    if (!user) return;
-
-    const logId = getTodayLogId(user.uid);
-    const ref = db.collection("dailyLogs").doc(logId);
-
-    db.runTransaction(async (t) => {
-        const doc = await t.get(ref);
-        const d = doc.exists ? doc.data() : {};
-        d.exerciseCalories = (d.exerciseCalories || 0) + amount;
-        t.set(ref, d);
-    }).then(() => loadDashboardBrain());
-}
-
-/* ---------------------------------------------------
-   SMART FOOD SYSTEM (SEARCH + SELECT + LOG)
---------------------------------------------------- */
-
-let selectedFood = null;
-
-function performFoodSearch(query) {
-    if (!query || query.length < 2) {
-        document.getElementById("foodResults").innerHTML = "<p>Keep typing...</p>";
-        return;
-    }
-
-    const qLower = query.toLowerCase();
-
-    db.collection("foods")
-        .where("nameLower", ">=", qLower)
-        .where("nameLower", "<=", qLower + "\uf8ff")
-        .limit(20)
-        .get()
-        .then(snapshot => {
-            if (snapshot.empty) {
-                document.getElementById("foodResults").innerHTML = "<p>No matches found.</p>";
-                return;
-            }
-
-            let html = "";
-            snapshot.forEach(doc => {
-                const f = doc.data();
-                html += `
-                    <div class="food-item" 
-                         onclick="selectFood('${doc.id}', '${f.name}', ${f.calories}, '${f.servingSize}', ${f.protein}, ${f.carbs}, ${f.fat})">
-                        <strong>${f.name}</strong><br>
-                        <small>${f.servingSize} — ${f.calories} kcal</small>
-                    </div>
-                `;
-            });
-
-            document.getElementById("foodResults").innerHTML = html;
-        });
-}
-
-function selectFood(id, name, calories, servingSize, protein, carbs, fat) {
-    selectedFood = { id, name, calories, servingSize, protein, carbs, fat };
-
-    document.getElementById("selectedFoodBlock").style.display = "block";
-    document.getElementById("selectedFoodName").innerText = name;
-    document.getElementById("selectedFoodServing").innerText = servingSize;
-    document.getElementById("selectedFoodCalories").innerText = calories;
-
-    const servings = parseFloat(document.getElementById("foodServing").value) || 1;
-    document.getElementById("selectedFoodTotalCalories").innerText = Math.round(calories * servings);
-}
-
-function logSelectedFoodFromUI() {
-    if (!selectedFood) return alert("No food selected.");
-
-    const servings = parseFloat(document.getElementById("foodServing").value) || 1;
-    const totalCalories = Math.round(selectedFood.calories * servings);
-
-    addMealCalories(totalCalories);
-
-    closeMealModal();
 }
