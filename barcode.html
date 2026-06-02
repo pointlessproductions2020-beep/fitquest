@@ -1,0 +1,610 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FitQuest — Barcode Scanner</title>
+    <link rel="stylesheet" href="styles.css">
+
+    <!-- Firebase -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
+
+    <script src="firebase.js"></script>
+    <script src="fitquestbrain.js"></script>
+
+    <!-- QuaggaJS (barcode scanner) -->
+    <script src="https://unpkg.com/quagga@0.12.1/dist/quagga.min.js"></script>
+
+    <style>
+        .scanner-layout {
+            display: grid;
+            grid-template-columns: 1.2fr 1fr;
+            gap: 20px;
+            align-items: flex-start;
+        }
+
+        .scanner-card {
+            padding: 16px;
+        }
+
+        #scannerViewport {
+            position: relative;
+            width: 100%;
+            aspect-ratio: 4 / 3;
+            background: #020617;
+            border-radius: 16px;
+            overflow: hidden;
+            border: 1px solid var(--neon);
+            box-shadow: 0 0 18px var(--neon);
+        }
+
+        #scannerViewport video,
+        #scannerViewport canvas {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .scanner-frame {
+            position: absolute;
+            inset: 12%;
+            border-radius: 16px;
+            border: 2px dashed rgba(148,163,184,0.8);
+            box-shadow: 0 0 18px rgba(56,189,248,0.5);
+            pointer-events: none;
+        }
+
+        .scanner-status {
+            margin-top: 10px;
+            font-size: 13px;
+            color: #a5b4fc;
+        }
+
+        .manual-btn {
+            margin-top: 12px;
+            padding: 8px 14px;
+            border-radius: 999px;
+            border: 1px solid var(--neon);
+            background: rgba(15,23,42,0.95);
+            color: var(--neon);
+            cursor: pointer;
+            font-size: 12px;
+            box-shadow: 0 0 14px var(--neon);
+        }
+
+        .manual-btn:hover {
+            box-shadow: 0 0 18px var(--neon);
+        }
+
+        .food-detail-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 10px 16px;
+            margin-top: 10px;
+        }
+
+        .food-detail-grid label {
+            font-size: 12px;
+            opacity: 0.85;
+        }
+
+        .food-detail-grid input,
+        .food-detail-grid select {
+            width: 100%;
+            padding: 7px 9px;
+            border-radius: 10px;
+            border: 1px solid rgba(148,163,184,0.4);
+            background: #020617;
+            color: #e5e7eb;
+            font-size: 12px;
+        }
+
+        .section-label {
+            margin-top: 14px;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            opacity: 0.7;
+        }
+
+        .drink-row {
+            display: grid;
+            grid-template-columns: 1.2fr 0.8fr;
+            gap: 10px;
+            margin-top: 6px;
+        }
+
+        .primary-btn {
+            margin-top: 16px;
+            padding: 10px 16px;
+            border-radius: 999px;
+            border: none;
+            background: var(--neon);
+            color: #020617;
+            font-weight: 600;
+            cursor: pointer;
+            box-shadow: 0 0 18px var(--neon);
+            font-size: 13px;
+        }
+
+        .primary-btn:disabled {
+            opacity: 0.4;
+            cursor: default;
+            box-shadow: none;
+        }
+
+        .info-line {
+            margin-top: 8px;
+            font-size: 12px;
+            color: #a5b4fc;
+        }
+
+        .manual-search-panel {
+            margin-top: 12px;
+            padding-top: 10px;
+            border-top: 1px solid rgba(148,163,184,0.4);
+        }
+
+        .manual-search-panel input {
+            width: 100%;
+            padding: 7px 9px;
+            border-radius: 10px;
+            border: 1px solid rgba(148,163,184,0.4);
+            background: #020617;
+            color: #e5e7eb;
+            font-size: 12px;
+        }
+
+        .manual-search-results {
+            margin-top: 8px;
+            max-height: 160px;
+            overflow-y: auto;
+            font-size: 12px;
+        }
+
+        .manual-item {
+            padding: 6px 8px;
+            border-radius: 8px;
+            border: 1px solid rgba(148,163,184,0.3);
+            margin-bottom: 6px;
+            cursor: pointer;
+        }
+
+        .manual-item:hover {
+            border-color: var(--neon);
+            box-shadow: 0 0 10px rgba(56,189,248,0.5);
+        }
+    </style>
+</head>
+<body class="dashboard-body">
+
+<!-- SIDEBAR -->
+<aside class="sidebar">
+    <div class="sidebar-logo">
+        <img src="assets/logo.png" alt="FitQuest Logo">
+    </div>
+
+    <ul class="sidebar-links">
+        <li class="neon-hover" onclick="window.location.href='dashboard.html'">🏠 Dashboard</li>
+        <li class="active neon-hover">📷 Barcode Scanner</li>
+        <li class="neon-hover" onclick="window.location.href='food.html'">🍽️ Food Intake</li>
+        <li class="neon-hover" onclick="window.location.href='exercise.html'">💪 Workout</li>
+        <li class="neon-hover" onclick="window.location.href='profile.html'">👤 Profile</li>
+        <li class="neon-hover">📊 Progress</li>
+        <li class="neon-hover">⚙️ Settings</li>
+    </ul>
+
+    <button class="logout-btn neon-interactive" onclick="logoutUser()">Logout</button>
+</aside>
+
+<!-- MAIN -->
+<main class="main-content">
+    <h1 class="page-title">Scan a Barcode</h1>
+    <p class="subtitle">Hold the barcode inside the frame. We’ll fetch nutrition data and let you confirm serving size + drink.</p>
+
+    <section class="scanner-layout">
+
+        <!-- LEFT: Scanner -->
+        <div class="card neon-card scanner-card">
+            <h2 class="neon-text" style="margin-bottom:10px;">Live Scanner</h2>
+
+            <div id="scannerViewport">
+                <div class="scanner-frame"></div>
+            </div>
+
+            <p class="scanner-status" id="scannerStatus">Initialising camera…</p>
+
+            <button class="manual-btn" onclick="toggleManualSearch()">
+                No barcode? Search manually
+            </button>
+
+            <div class="manual-search-panel" id="manualPanel" style="display:none;">
+                <label style="font-size:12px; opacity:0.8;">Search food</label>
+                <input type="text" id="manualQuery" placeholder="e.g. Banana, Coke 330ml, Chicken Breast" oninput="manualSearchChange()">
+                <div class="manual-search-results" id="manualResults"></div>
+            </div>
+        </div>
+
+        <!-- RIGHT: Details + Serving + Drink -->
+        <div class="card neon-card scanner-card">
+            <h2 class="neon-text" id="foodTitle">Waiting for scan…</h2>
+            <p class="info-line" id="foodSource">No food selected yet.</p>
+
+            <div class="food-detail-grid" style="margin-top:12px;">
+                <div>
+                    <label>Food name</label>
+                    <input type="text" id="foodName" placeholder="Detected or manual">
+                </div>
+                <div>
+                    <label>Barcode</label>
+                    <input type="text" id="foodBarcode" placeholder="–" readonly>
+                </div>
+                <div>
+                    <label>Calories per serving</label>
+                    <input type="number" id="calPerServing" placeholder="kcal" min="0">
+                </div>
+                <div>
+                    <label>Calories per 100g</label>
+                    <input type="number" id="calPer100g" placeholder="kcal" min="0">
+                </div>
+            </div>
+
+            <div class="section-label">Serving size</div>
+            <div class="food-detail-grid">
+                <div>
+                    <label>Serving option</label>
+                    <select id="servingOption" onchange="updateCaloriesPreview()">
+                        <option value="none">Select…</option>
+                        <option value="serving_1">1 serving</option>
+                        <option value="serving_half">½ serving</option>
+                        <option value="serving_2">2 servings</option>
+                        <option value="grams">Custom grams</option>
+                    </select>
+                </div>
+                <div>
+                    <label>Grams (if using 100g)</label>
+                    <input type="number" id="gramsInput" placeholder="e.g. 150" min="0" oninput="updateCaloriesPreview()">
+                </div>
+            </div>
+
+            <div class="section-label">Drink with this?</div>
+            <div class="drink-row">
+                <select id="drinkType" onchange="updateDrinkDefaults()">
+                    <option value="none">No drink</option>
+                    <option value="water">Water (0 kcal)</option>
+                    <option value="juice">Juice</option>
+                    <option value="fizzy">Fizzy drink</option>
+                    <option value="coffee">Coffee</option>
+                    <option value="tea">Tea</option>
+                    <option value="protein">Protein shake</option>
+                    <option value="custom">Custom drink</option>
+                </select>
+                <input type="number" id="drinkCalories" placeholder="Drink kcal" min="0">
+            </div>
+
+            <p class="info-line" id="calPreview">Total calories: –</p>
+
+            <button class="primary-btn" id="saveBtn" onclick="saveScan()" disabled>
+                Save to diary
+            </button>
+        </div>
+
+    </section>
+</main>
+
+<script>
+let lastBarcode = null;
+let scanning = false;
+let manualMode = false;
+let currentUserRef = null;
+
+auth.onAuthStateChanged(async user => {
+    if (!user) return window.location.href = "index.html";
+    currentUserRef = db.collection("users").doc(user.uid);
+    startScanner();
+});
+
+function startScanner() {
+    if (scanning) return;
+    scanning = true;
+
+    const statusEl = document.getElementById("scannerStatus");
+    statusEl.innerText = "Requesting camera access…";
+
+    Quagga.init({
+        inputStream: {
+            type: "LiveStream",
+            target: document.querySelector("#scannerViewport"),
+            constraints: {
+                facingMode: "environment"
+            }
+        },
+        decoder: {
+            readers: [
+                "ean_reader",
+                "ean_8_reader",
+                "upc_reader",
+                "upc_e_reader",
+                "code_128_reader"
+            ]
+        },
+        locate: true
+    }, err => {
+        if (err) {
+            console.error(err);
+            statusEl.innerText = "Could not start camera. Check permissions.";
+            scanning = false;
+            return;
+        }
+        Quagga.start();
+        statusEl.innerText = "Scanning… hold the barcode inside the frame.";
+    });
+
+    Quagga.onDetected(onBarcodeDetected);
+}
+
+function onBarcodeDetected(result) {
+    const code = result.codeResult.code;
+    if (!code || code === lastBarcode) return;
+    lastBarcode = code;
+
+    document.getElementById("scannerStatus").innerText = `Detected barcode: ${code}. Looking up…`;
+    fetchFoodByBarcode(code);
+}
+
+async function fetchFoodByBarcode(barcode) {
+    try {
+        const res = await fetch(`https://world.openfoodfacts.org/api/v0/product/${barcode}.json`);
+        const data = await res.json();
+
+        if (!data || data.status !== 1) {
+            document.getElementById("scannerStatus").innerText =
+                `No product found for ${barcode}. You can edit manually.`;
+            fillFoodFields({
+                name: "",
+                barcode,
+                calPerServing: "",
+                calPer100g: ""
+            }, "Not found — manual entry");
+            return;
+        }
+
+        const p = data.product;
+        const name = p.product_name || p.generic_name || "Unknown product";
+
+        let calPer100g = null;
+        let calPerServing = null;
+
+        if (p.nutriments) {
+            if (p.nutriments["energy-kcal_100g"]) {
+                calPer100g = p.nutriments["energy-kcal_100g"];
+            } else if (p.nutriments["energy_100g"]) {
+                calPer100g = p.nutriments["energy_100g"] / 4.184;
+            }
+
+            if (p.nutriments["energy-kcal_serving"]) {
+                calPerServing = p.nutriments["energy-kcal_serving"];
+            } else if (p.nutriments["energy_serving"]) {
+                calPerServing = p.nutriments["energy_serving"] / 4.184;
+            }
+        }
+
+        fillFoodFields({
+            name,
+            barcode,
+            calPerServing: calPerServing ? Math.round(calPerServing) : "",
+            calPer100g: calPer100g ? Math.round(calPer100g) : ""
+        }, "Data from OpenFoodFacts");
+        document.getElementById("scannerStatus").innerText =
+            `Found: ${name}. Adjust serving + drink, then save.`;
+    } catch (e) {
+        console.error(e);
+        document.getElementById("scannerStatus").innerText =
+            "Error contacting food database. You can fill details manually.";
+        fillFoodFields({
+            name: "",
+            barcode,
+            calPerServing: "",
+            calPer100g: ""
+        }, "Lookup error — manual entry");
+    }
+}
+
+function fillFoodFields(info, sourceText) {
+    document.getElementById("foodTitle").innerText = info.name || "Unknown product";
+    document.getElementById("foodSource").innerText = sourceText;
+
+    document.getElementById("foodName").value = info.name || "";
+    document.getElementById("foodBarcode").value = info.barcode || "";
+    document.getElementById("calPerServing").value = info.calPerServing || "";
+    document.getElementById("calPer100g").value = info.calPer100g || "";
+
+    document.getElementById("servingOption").value = "none";
+    document.getElementById("gramsInput").value = "";
+    document.getElementById("drinkType").value = "none";
+    document.getElementById("drinkCalories").value = "";
+
+    updateDrinkDefaults();
+    updateCaloriesPreview();
+}
+
+function updateCaloriesPreview() {
+    const calPerServing = parseFloat(document.getElementById("calPerServing").value) || 0;
+    const calPer100g = parseFloat(document.getElementById("calPer100g").value) || 0;
+    const servingOption = document.getElementById("servingOption").value;
+    const grams = parseFloat(document.getElementById("gramsInput").value) || 0;
+    const drinkKcal = parseFloat(document.getElementById("drinkCalories").value) || 0;
+
+    let foodKcal = 0;
+    let gramsUsed = null;
+    let servingLabel = null;
+
+    if (servingOption === "serving_1" && calPerServing > 0) {
+        foodKcal = calPerServing;
+        servingLabel = "1 serving";
+    } else if (servingOption === "serving_half" && calPerServing > 0) {
+        foodKcal = calPerServing * 0.5;
+        servingLabel = "½ serving";
+    } else if (servingOption === "serving_2" && calPerServing > 0) {
+        foodKcal = calPerServing * 2;
+        servingLabel = "2 servings";
+    } else if (servingOption === "grams" && calPer100g > 0 && grams > 0) {
+        foodKcal = calPer100g * (grams / 100);
+        gramsUsed = grams;
+        servingLabel = `${grams} g`;
+    }
+
+    const total = Math.round(foodKcal + drinkKcal);
+    const previewEl = document.getElementById("calPreview");
+
+    if (!servingLabel) {
+        previewEl.innerText = "Total calories: – (choose serving size)";
+        document.getElementById("saveBtn").disabled = true;
+        return;
+    }
+
+    previewEl.innerText =
+        `Food: ${Math.round(foodKcal)} kcal • Drink: ${Math.round(drinkKcal)} kcal • Total: ${total} kcal (${servingLabel})`;
+
+    document.getElementById("saveBtn").disabled = false;
+}
+
+function updateDrinkDefaults() {
+    const type = document.getElementById("drinkType").value;
+    const drinkInput = document.getElementById("drinkCalories");
+
+    if (type === "none" || type === "water") {
+        drinkInput.value = type === "water" ? 0 : "";
+        drinkInput.readOnly = type === "water";
+    } else if (type === "juice") {
+        drinkInput.value = 110; // typical 250ml orange juice
+        drinkInput.readOnly = false;
+    } else if (type === "fizzy") {
+        drinkInput.value = 140; // typical 330ml regular cola
+        drinkInput.readOnly = false;
+    } else if (type === "coffee") {
+        drinkInput.value = 30; // latte-ish
+        drinkInput.readOnly = false;
+    } else if (type === "tea") {
+        drinkInput.value = 5;
+        drinkInput.readOnly = false;
+    } else if (type === "protein") {
+        drinkInput.value = 180;
+        drinkInput.readOnly = false;
+    } else if (type === "custom") {
+        drinkInput.value = "";
+        drinkInput.readOnly = false;
+    }
+
+    updateCaloriesPreview();
+}
+
+async function saveScan() {
+    if (!currentUserRef) return;
+
+    const name = document.getElementById("foodName").value.trim();
+    const barcode = document.getElementById("foodBarcode").value.trim() || null;
+    const calPerServing = parseFloat(document.getElementById("calPerServing").value) || null;
+    const calPer100g = parseFloat(document.getElementById("calPer100g").value) || null;
+    const servingOption = document.getElementById("servingOption").value;
+    const grams = parseFloat(document.getElementById("gramsInput").value) || null;
+    const drinkType = document.getElementById("drinkType").value;
+    const drinkCalories = parseFloat(document.getElementById("drinkCalories").value) || 0;
+
+    if (!name) {
+        alert("Please enter a food name.");
+        return;
+    }
+
+    let foodKcal = 0;
+    let servingLabel = null;
+    let gramsUsed = null;
+
+    if (servingOption === "serving_1" && calPerServing) {
+        foodKcal = calPerServing;
+        servingLabel = "1 serving";
+    } else if (servingOption === "serving_half" && calPerServing) {
+        foodKcal = calPerServing * 0.5;
+        servingLabel = "½ serving";
+    } else if (servingOption === "serving_2" && calPerServing) {
+        foodKcal = calPerServing * 2;
+        servingLabel = "2 servings";
+    } else if (servingOption === "grams" && calPer100g && grams) {
+        foodKcal = calPer100g * (grams / 100);
+        gramsUsed = grams;
+        servingLabel = `${grams} g`;
+    } else {
+        alert("Please choose a valid serving size.");
+        return;
+    }
+
+    const totalKcal = Math.round(foodKcal + drinkCalories);
+
+    const payload = {
+        name,
+        barcode,
+        caloriesPerServing: calPerServing,
+        caloriesPer100g: calPer100g,
+        servingOption,
+        servingLabel,
+        grams: gramsUsed,
+        foodCalories: Math.round(foodKcal),
+        drinkType: drinkType === "none" ? null : drinkType,
+        drinkCalories: Math.round(drinkCalories),
+        totalCalories: totalKcal,
+        timestamp: Date.now(),
+        source: "barcode"
+    };
+
+    await currentUserRef.collection("food").add(payload);
+    FitQuestBrain.awardXp(currentUserRef, 15, "food_scanned");
+
+    alert(`Logged: ${name} • ${totalKcal} kcal`);
+    document.getElementById("saveBtn").disabled = true;
+}
+
+function toggleManualSearch() {
+    manualMode = !manualMode;
+    document.getElementById("manualPanel").style.display = manualMode ? "block" : "none";
+}
+
+function manualSearchChange() {
+    const q = document.getElementById("manualQuery").value.trim().toLowerCase();
+    const container = document.getElementById("manualResults");
+    container.innerHTML = "";
+
+    if (!q) return;
+
+    const presets = [
+        { name: "Banana (medium)", calPer100g: 89, calPerServing: 105 },
+        { name: "Apple (medium)", calPer100g: 52, calPerServing: 95 },
+        { name: "Coca-Cola 330ml can", calPer100g: 42, calPerServing: 140 },
+        { name: "Coca-Cola Zero 330ml can", calPer100g: 1, calPerServing: 2 },
+        { name: "Chicken Breast 100g", calPer100g: 165, calPerServing: 165 },
+        { name: "White Rice cooked 1 cup", calPer100g: 130, calPerServing: 205 },
+        { name: "Protein Shake (scoop + milk)", calPer100g: 120, calPerServing: 180 }
+    ];
+
+    presets
+        .filter(p => p.name.toLowerCase().includes(q))
+        .forEach(p => {
+            const div = document.createElement("div");
+            div.className = "manual-item";
+            div.innerText = `${p.name} — ${p.calPerServing} kcal (per serving)`;
+            div.onclick = () => {
+                fillFoodFields({
+                    name: p.name,
+                    barcode: "",
+                    calPerServing: p.calPerServing,
+                    calPer100g: p.calPer100g
+                }, "Manual preset");
+            };
+            container.appendChild(div);
+        });
+}
+</script>
+
+</body>
+</html>
