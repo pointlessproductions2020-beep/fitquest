@@ -1,0 +1,8 @@
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <!-- Black circular background -->
+  <circle cx="256" cy="256" r="256" fill="#000000"/>
+
+  <!-- White silhouette (head + shoulders) -->
+  <circle cx="256" cy="190" r="90" fill="#ffffff"/>
+  <path d="M128 400c0-70 58-120 128-120s128 50 128 120v40H128v-40z" fill="#ffffff"/>
+</svg>
