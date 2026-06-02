@@ -28,12 +28,12 @@ body.dashboard-body {
     display: flex;
     flex-direction: column;
     gap: 16px;
-    align-items: center; /* ⭐ Center everything */
+    align-items: center;
 }
 
-/* FIXED LOGO */
+/* ⭐ Bigger logo */
 .sidebar-logo img {
-    width: 120px; /* ⭐ Bigger */
+    width: 160px;
     display: block;
     margin: 0 auto;
     filter: drop-shadow(0 0 12px var(--neon));
@@ -105,17 +105,17 @@ body.dashboard-body {
     gap: 18px;
 }
 
-/* ⭐ AVATAR COMPONENT — FIXED */
+/* PROFILE AVATAR (profile page only) */
 .avatar-wrapper {
     position: relative;
-    width: 170px;   /* ⭐ Bigger */
+    width: 170px;
     height: 170px;
-    cursor: pointer; /* ⭐ Clickable */
+    cursor: pointer;
     transition: transform 0.25s ease-out;
 }
 
 .avatar-wrapper:hover {
-    transform: scale(1.05); /* ⭐ Grow on hover */
+    transform: scale(1.05);
 }
 
 .avatar-img {
@@ -127,7 +127,6 @@ body.dashboard-body {
     position: relative;
 }
 
-/* ⭐ STATIC NEON RING — NO ROTATION */
 .avatar-ring {
     position: absolute;
     inset: -8px;
@@ -138,10 +137,9 @@ body.dashboard-body {
 }
 
 .avatar-wrapper:hover .avatar-ring {
-    transform: scale(1.12); /* ⭐ Subtle hover bloom */
+    transform: scale(1.12);
 }
 
-/* CAMERA ICON */
 .avatar-camera {
     position: absolute;
     bottom: 0;
@@ -546,7 +544,7 @@ canvas:hover {
     filter: drop-shadow(0 0 22px var(--neon));
 }
 
-/* SPARKS (CLICK BURST) */
+/* SPARKS */
 .spark {
     position: absolute;
     width: 6px;
@@ -561,6 +559,32 @@ canvas:hover {
         transform: translate(var(--x), var(--y));
         opacity: 0;
     }
+}
+
+/* ⭐ DASHBOARD AVATAR (Hero section) */
+.hero-right .avatar-ring {
+    width: 110px;
+    height: 110px;
+    border-radius: 50%;
+    border: 3px solid var(--neon);
+    box-shadow: 0 0 14px var(--neon);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    transition: transform 0.25s ease-out;
+    cursor: pointer;
+}
+
+.hero-right .avatar-ring:hover {
+    transform: scale(1.06);
+}
+
+.hero-right .avatar-ring img {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    object-fit: cover;
 }
 
 /* RESPONSIVE */
