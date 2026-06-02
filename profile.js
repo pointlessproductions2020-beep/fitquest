@@ -6,8 +6,7 @@
 let currentUser = null;
 let userRef = null;
 
-// ⭐ DO NOT redeclare "storage" — it already exists in firebase.js
-// We ONLY override the bucket using refFromURL:
+// ⭐ Correct: use the default bucket from firebase.js
 const storageRef = storage.ref();
 
 auth.onAuthStateChanged(async user => {
