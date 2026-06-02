@@ -6,9 +6,8 @@
 let currentUser = null;
 let userRef = null;
 
-// ⭐ FORCE Firebase Storage to use the correct bucket
-// Your project uses the new domain: fitquest-1b9f1.firebasestorage.app
-const storage = firebase.storage();
+// ⭐ DO NOT redeclare "storage" — it already exists in firebase.js
+// We ONLY override the bucket using refFromURL:
 const storageRef = storage.refFromURL("gs://fitquest-1b9f1.firebasestorage.app");
 
 auth.onAuthStateChanged(async user => {
