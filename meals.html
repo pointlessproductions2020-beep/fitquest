@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FitQuest — Meals</title>
+    <link rel="stylesheet" href="styles.css">
+
+    <!-- Firebase -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
+
+    <script src="firebase.js"></script>
+    <script src="fitquestbrain.js"></script>
+
+    <style>
+        .meals-layout {
+            display: grid;
+            grid-template-columns: 320px 1fr;
+            gap: 20px;
+        }
+
+        .meals-card {
+            padding: 16px;
+        }
+
+        .meal-item {
+            position: relative;
+            padding: 10px;
+            margin-bottom: 10px;
+            border-radius: 12px;
+            border: 1px solid var(--neon);
+            background: rgba(15,23,42,0.9);
+            color: var(--neon);
+            cursor: pointer;
+            font-size: 14px;
+            box-shadow: 0 0 12px var(--neon);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .meal-item:hover {
+            background: rgba(15,23,42,1);
+            box-shadow: 0 0 18px var(--neon);
+        }
+
+        .meal-controls {
+            display: flex;
+            gap: 8px;
+            opacity: 0;
+            transition: opacity 0.2s ease;
+        }
+
+        .meal-item:hover .meal-controls {
+            opacity: 1;
+        }
+
+        @media (hover: none) {
+            .meal-controls {
+                opacity: 1 !important;
+            }
+        }
+
+        .pill-btn {
+            padding: 4px 10px;
+            border-radius: 999px;
+            background: var(--neon);
+            color: #020617;
+            font-size: 12px;
+            cursor: pointer;
+            border: none;
+        }
+
+        .pill-btn.delete {
+            background: #ef4444;
+            color: white;
+        }
+
+        .meal-form label {
+            font-size: 12px;
+            opacity: 0.8;
+        }
+
+        .meal-form input {
+            width: 100%;
+            padding: 8px;
+            margin-top: 4px;
+            border-radius: 10px;
+            border: 1px solid rgba(148,163,184,0.4);
+            background: #020617;
+            color: #e5e7eb;
+        }
+
+        .meal-form button {
+            margin-top: 14px;
+            padding: 10px;
+            border-radius: 999px;
+            border: none;
+            background: var(--neon);
+            color: #020617;
+            font-weight: 600;
+            cursor: pointer;
+            box-shadow: 0 0 18px var(--neon);
+        }
+
+        .items-table {
+            margin-top: 10px;
+            border-radius: 10px;
+            border: 1px solid rgba(148,163,184,0.4);
+            padding: 8px;
+            max-height: 260px;
+            overflow-y: auto;
+            font-size: 13px;
+        }
+
+        .item-row {
+            display: grid;
+            grid-template-columns: 1.6fr 0.7fr 0.4fr;
+            gap: 6px;
+            align-items: center;
+            margin-bottom: 6px;
+        }
+
+        .item-row input {
+            width: 100%;
+            padding: 6px;
+            border-radius: 8px;
+            border: 1px solid rgba(148,163,184,0.4);
+            background: #020617;
+            color: #e5e7eb;
+            font-size: 12px;
+        }
+
+        .item-row button {
+            padding: 6px 8px;
+            border-radius: 999px;
+            border: none;
+            background: #ef4444;
+            color: white;
+            font-size: 11px;
+            cursor: pointer;
+        }
+
+        .section-label {
+            margin-top: 10px;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            opacity: 0.7;
+        }
+
+        .info-line {
+            margin-top: 8px;
+            font-size: 12px;
+            color: #a5b4fc;
+        }
+    </style>
+</head>
+
+<body class="dashboard-body">
+
+<!-- SIDEBAR -->
+<aside class="sidebar">
+    <div class="sidebar-logo">
+        <img src="assets/logo.png" alt="FitQuest Logo">
+    </div>
+
+    <ul class="sidebar-links">
+        <li class="neon-hover" onclick="window.location.href='dashboard.html'">🏠 Dashboard</li>
+        <li class="neon-hover" onclick="window.location.href='food.html'">🍽️ Food Intake</li>
+        <li class="neon-hover" onclick="window.location.href='exercise.html'">💪 Workout</li>
+        <li class="neon-hover" onclick="window.location.href='barcode.html'">📷 Barcode Scanner</li>
+        <li class="active neon-hover">🍱 Meals</li>
+        <li class="neon-hover" onclick="window.location.href='profile.html'">👤 Profile</li>
+        <li class="neon-hover">📊 Progress</li>
+        <li class="neon-hover">⚙️ Settings</li>
+    </ul>
+
+    <button class="logout-btn neon-interactive" onclick="logoutUser()">Logout</button>
+</aside>
+
+<!-- MAIN -->
+<main class="main-content">
+    <h1 class="page-title">Meals</h1>
+    <p class="subtitle">Save full meals as presets and log them in one tap.</p>
+
+    <section class="meals-layout">
+
+        <!-- LEFT: Saved Meals -->
+        <div class="card neon-card meals-card">
+            <h2 class="neon-text" style="margin-bottom:10px;">Saved Meals</h2>
+            <div id="mealsList"></div>
+        </div>
+
+        <!-- RIGHT: Create / Edit Meal -->
+        <div class="card neon-card meals-card">
+            <h2 class="neon-text" id="mealFormTitle">Create New Meal</h2>
+
+            <div class="meal-form">
+                <label>Meal name</label>
+                <input type="text" id="mealName" placeholder="e.g. Breakfast — Weetabix & Eggs">
+
+                <div class="section-label">Meal items</div>
+                <div class="items-table" id="itemsContainer">
+                    <!-- rows injected here -->
+                </div>
+
+                <button type="button" onclick="addItemRow()">+ Add item</button>
+
+                <p class="info-line" id="mealTotal">Total calories: 0 kcal</p>
+
+                <button type="button" onclick="saveMeal()">Save Meal Preset</button>
+                <button type="button" style="background:#38bdf8; margin-top:8px;" onclick="logCurrentMeal()">
+                    Log this meal now
+                </button>
+            </div>
+        </div>
+
+    </section>
+</main>
+
+<script>
+let currentUserRef = null;
+let editingMealId = null;
+
+auth.onAuthStateChanged(async user => {
+    if (!user) return window.location.href = "index.html";
+    currentUserRef = db.collection("users").doc(user.uid);
+    loadMeals();
+    addItemRow(); // start with one row
+});
+
+/* LOAD MEALS */
+async function loadMeals() {
+    const list = document.getElementById("mealsList");
+    list.innerHTML = "";
+
+    const snap = await currentUserRef.collection("meals").orderBy("timestamp", "desc").get();
+
+    if (snap.empty) {
+        const p = document.createElement("p");
+        p.className = "info-line";
+        p.innerText = "No meals saved yet. Create one on the right.";
+        list.appendChild(p);
+        return;
+    }
+
+    snap.forEach(doc => {
+        const meal = doc.data();
+        const div = document.createElement("div");
+        div.className = "meal-item";
+
+        const total = meal.totalCalories || 0;
+        const count = (meal.items && meal.items.length) || 0;
+
+        div.innerHTML = `
+            <span>${meal.name} — ${total} kcal (${count} items)</span>
+            <div class="meal-controls">
+                <button class="pill-btn" onclick="loadMealIntoForm('${doc.id}'); event.stopPropagation();">✏️ Edit</button>
+                <button class="pill-btn delete" onclick="deleteMeal('${doc.id}'); event.stopPropagation();">🗑️ Delete</button>
+            </div>
+        `;
+
+        div.onclick = () => logMealPreset(doc.id, meal);
+
+        list.appendChild(div);
+    });
+}
+
+/* ADD ITEM ROW */
+function addItemRow(name = "", calories = "") {
+    const container = document.getElementById("itemsContainer");
+
+    const row = document.createElement("div");
+    row.className = "item-row";
+
+    row.innerHTML = `
+        <input type="text" placeholder="Item name" value="${name}">
+        <input type="number" placeholder="kcal" value="${calories}">
+        <button type="button">✕</button>
+    `;
+
+    const btn = row.querySelector("button");
+    btn.onclick = () => {
+        row.remove();
+        updateMealTotal();
+    };
+
+    const inputs = row.querySelectorAll("input");
+    inputs.forEach(inp => inp.addEventListener("input", updateMealTotal));
+
+    container.appendChild(row);
+    updateMealTotal();
+}
+
+/* GET CURRENT MEAL DATA FROM FORM */
+function getMealFromForm() {
+    const name = document.getElementById("mealName").value.trim();
+    const rows = document.querySelectorAll("#itemsContainer .item-row");
+
+    const items = [];
+    let total = 0;
+
+    rows.forEach(row => {
+        const [nameInput, calInput] = row.querySelectorAll("input");
+        const itemName = nameInput.value.trim();
+        const kcal = parseInt(calInput.value);
+
+        if (itemName && !isNaN(kcal)) {
+            items.push({ name: itemName, calories: kcal });
+            total += kcal;
+        }
+    });
+
+    return { name, items, total };
+}
+
+/* UPDATE TOTAL LABEL */
+function updateMealTotal() {
+    const { total } = getMealFromForm();
+    document.getElementById("mealTotal").innerText = `Total calories: ${total} kcal`;
+}
+
+/* SAVE MEAL PRESET */
+async function saveMeal() {
+    const { name, items, total } = getMealFromForm();
+
+    if (!name) {
+        alert("Enter a meal name.");
+        return;
+    }
+    if (!items.length) {
+        alert("Add at least one item.");
+        return;
+    }
+
+    const payload = {
+        name,
+        items,
+        totalCalories: total,
+        timestamp: Date.now()
+    };
+
+    if (editingMealId) {
+        await currentUserRef.collection("meals").doc(editingMealId).set(payload, { merge: true });
+        alert("Meal updated.");
+    } else {
+        await currentUserRef.collection("meals").add(payload);
+        alert("Meal saved.");
+    }
+
+    editingMealId = null;
+    document.getElementById("mealFormTitle").innerText = "Create New Meal";
+    document.getElementById("mealName").value = "";
+    document.getElementById("itemsContainer").innerHTML = "";
+    addItemRow();
+    loadMeals();
+}
+
+/* LOAD MEAL INTO FORM FOR EDITING */
+async function loadMealIntoForm(id) {
+    const doc = await currentUserRef.collection("meals").doc(id).get();
+    if (!doc.exists) return;
+
+    const meal = doc.data();
+    editingMealId = id;
+
+    document.getElementById("mealFormTitle").innerText = "Edit Meal";
+    document.getElementById("mealName").value = meal.name || "";
+
+    const container = document.getElementById("itemsContainer");
+    container.innerHTML = "";
+
+    (meal.items || []).forEach(item => {
+        addItemRow(item.name, item.calories);
+    });
+
+    updateMealTotal();
+}
+
+/* DELETE MEAL */
+async function deleteMeal(id) {
+    if (!confirm("Delete this meal preset?")) return;
+    await currentUserRef.collection("meals").doc(id).delete();
+    if (editingMealId === id) {
+        editingMealId = null;
+        document.getElementById("mealFormTitle").innerText = "Create New Meal";
+        document.getElementById("mealName").value = "";
+        document.getElementById("itemsContainer").innerHTML = "";
+        addItemRow();
+        updateMealTotal();
+    }
+    loadMeals();
+}
+
+/* LOG MEAL PRESET FROM LEFT LIST */
+async function logMealPreset(id, meal) {
+    if (!confirm(`Log meal: ${meal.name} (${meal.totalCalories} kcal)?`)) return;
+
+    await currentUserRef.collection("food").add({
+        name: meal.name,
+        calories: meal.totalCalories,
+        items: meal.items || [],
+        timestamp: Date.now(),
+        source: "meal_preset"
+    });
+
+    FitQuestBrain.awardXp(currentUserRef, 20, "meal_logged");
+    alert(`Logged meal: ${meal.name}`);
+}
+
+/* LOG CURRENT MEAL FROM FORM */
+async function logCurrentMeal() {
+    const { name, items, total } = getMealFromForm();
+
+    if (!name || !items.length) {
+        alert("Enter a meal name and at least one item.");
+        return;
+    }
+
+    await currentUserRef.collection("food").add({
+        name,
+        calories: total,
+        items,
+        timestamp: Date.now(),
+        source: "meal_form"
+    });
+
+    FitQuestBrain.awardXp(currentUserRef, 20, "meal_logged");
+    alert(`Logged meal: ${name}`);
+}
+</script>
+
+</body>
+</html>
