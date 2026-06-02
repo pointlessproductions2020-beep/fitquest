@@ -10,14 +10,16 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-storage.js"></script>
 
     <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-    <script defer src="firebase.js"></script>
+    <!-- Firebase config + globals (auth, db, storage) -->
+    <script src="firebase.js"></script>
 
-    <!-- FitQuest Brain -->
-    <script src="fitquestBrain.js"></script>
+    <!-- FitQuest Brain (lowercase filename) -->
+    <script src="fitquestbrain.js"></script>
 
     <!-- Neon breathing + rotation (local overrides if needed) -->
     <style>
@@ -233,13 +235,13 @@
 
     </section>
 
-    <!-- AI DAILY INSIGHTS (inserted by JS if not present) -->
+    <!-- AI DAILY INSIGHTS -->
     <section id="insightsBox" class="card neon-card" style="margin-top:16px; display:none;">
         <h2 class="neon-text">Daily Insights</h2>
         <ul id="insightsList"></ul>
     </section>
 
-    <!-- ADAPTIVE GOAL BOX (shown only when needed) -->
+    <!-- ADAPTIVE GOAL BOX -->
     <section id="adaptiveBox" class="card neon-card" style="margin-top:14px; display:none;">
         <h2 class="neon-text">Smart Adjustment</h2>
         <p id="adaptiveText"></p>
@@ -603,7 +605,7 @@ function openUpgradeModal() {
 }
 </script>
 
-<!-- CHARTS + NEON INTERACTIONS -->
+<!-- CHARTS + NEON INTERACTIONS (your own chart wiring if needed) -->
 <script src="chart.js"></script>
 
 </body>
