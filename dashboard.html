@@ -15,6 +15,151 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
     <script defer src="firebase.js"></script>
+
+    <!-- FitQuest Brain -->
+    <script src="fitquestBrain.js"></script>
+
+    <!-- Neon breathing + rotation (local overrides if needed) -->
+    <style>
+        :root {
+            --neon: #00eaff;
+        }
+
+        @keyframes neonBreath {
+            0% { box-shadow: 0 0 10px var(--neon), inset 0 0 4px var(--neon); }
+            50% { box-shadow: 0 0 18px var(--neon), inset 0 0 8px var(--neon); }
+            100% { box-shadow: 0 0 10px var(--neon), inset 0 0 4px var(--neon); }
+        }
+
+        .neon-card, .card, .summary-card, .class-card, .analytics-panel {
+            border: 1px solid var(--neon);
+            box-shadow: 0 0 12px var(--neon), inset 0 0 6px var(--neon);
+            animation: neonBreath 6s ease-in-out infinite;
+            transition:
+                border-color 4s linear,
+                box-shadow 4s linear,
+                background 0.8s ease;
+        }
+
+        .xp-bar-container {
+            margin-top: 6px;
+            width: 100%;
+            max-width: 260px;
+            height: 8px;
+            border-radius: 999px;
+            background: rgba(15,23,42,0.9);
+            overflow: hidden;
+            border: 1px solid var(--neon);
+            box-shadow: 0 0 10px var(--neon);
+        }
+
+        .xp-bar-fill {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, #22c55e, #00eaff, #7b2fff);
+            transition: width 0.6s ease-out;
+        }
+
+        .hero-top {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            margin-bottom: 10px;
+        }
+
+        .hero-left {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .hero-right {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .avatar-ring {
+            width: 64px;
+            height: 64px;
+            border-radius: 50%;
+            border: 2px solid var(--neon);
+            box-shadow: 0 0 14px var(--neon);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .avatar-ring img {
+            width: 90%;
+            height: 90%;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+
+        .level-badge {
+            position: absolute;
+            bottom: -4px;
+            right: -4px;
+            background: #0f172a;
+            border-radius: 999px;
+            padding: 2px 8px;
+            font-size: 11px;
+            border: 1px solid var(--neon);
+            box-shadow: 0 0 8px var(--neon);
+        }
+
+        .tone-sub {
+            font-size: 0.9rem;
+            opacity: 0.85;
+        }
+
+        #insightsBox {
+            margin-top: 14px;
+        }
+
+        #insightsList {
+            list-style: none;
+            padding-left: 0;
+            margin-top: 8px;
+        }
+
+        #insightsList li {
+            margin-bottom: 6px;
+            font-size: 0.9rem;
+        }
+
+        #adaptiveBox {
+            margin-top: 14px;
+        }
+
+        .pulse {
+            animation: pulseOnce 0.6s ease-out;
+        }
+
+        @keyframes pulseOnce {
+            0% { transform: scale(1); box-shadow: 0 0 10px var(--neon); }
+            50% { transform: scale(1.02); box-shadow: 0 0 22px var(--neon); }
+            100% { transform: scale(1); box-shadow: 0 0 10px var(--neon); }
+        }
+
+        .spark {
+            position: absolute;
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            pointer-events: none;
+            animation: sparkFly 0.45s ease-out forwards;
+        }
+
+        @keyframes sparkFly {
+            0% { opacity: 1; transform: translate(0,0) scale(1); }
+            100% { opacity: 0; transform: translate(var(--x), var(--y)) scale(0.4); }
+        }
+    </style>
 </head>
 
 <body class="dashboard-body">
@@ -40,31 +185,47 @@
 <!-- MAIN CONTENT -->
 <main class="main-content">
 
-    <h1 class="page-title">Welcome Back, <span id="userName" class="neon-text">Adventurer</span></h1>
-    <p class="subtitle" id="brainMessage">Calibrating your fitness brain...</p>
+    <!-- HERO WITH AI TONE + AVATAR + XP -->
+    <section class="hero-top">
+        <div class="hero-left">
+            <h1 class="page-title">
+                Welcome Back, <span id="userName" class="neon-text">Adventurer</span>
+            </h1>
+            <p class="subtitle" id="brainMessage">Calibrating your fitness brain...</p>
+            <div class="xp-bar-container">
+                <div id="xpFill" class="xp-bar-fill"></div>
+            </div>
+        </div>
+        <div class="hero-right">
+            <div class="avatar-ring neon-interactive" id="heroAvatarRing">
+                <img id="dashboardAvatar" src="assets/avatar-placeholder.png" alt="Avatar">
+                <span class="level-badge" id="heroLevelBadge">Lv 1</span>
+            </div>
+        </div>
+    </section>
 
     <!-- TOP SUMMARY ROW -->
     <section class="top-summary-row">
 
-        <div class="summary-card neon-card neon-interactive" onclick="openAnalyticsPanel('panel-calories')">
+        <div id="calorieCard" class="summary-card neon-card neon-interactive">
             <h3>Calories Intake</h3>
             <p class="summary-number" id="calEaten">1,800 kcal</p>
             <span class="summary-sub">Today</span>
         </div>
 
-        <div class="summary-card neon-card neon-interactive" onclick="openAnalyticsPanel('panel-burned')">
+        <div id="burnCard" class="summary-card neon-card neon-interactive">
             <h3>Calories Burned</h3>
             <p class="summary-number" id="calBurned">520 kcal</p>
             <span class="summary-sub">Today</span>
         </div>
 
-        <div class="summary-card neon-card neon-interactive" onclick="openAnalyticsPanel('panel-bmi')">
+        <div id="bmiCard" class="summary-card neon-card neon-interactive">
             <h3>Current BMI</h3>
             <p class="summary-number" id="currentBMI">23.4</p>
             <span class="summary-sub">Healthy</span>
         </div>
 
-        <div class="summary-card neon-card neon-interactive" onclick="openAnalyticsPanel('panel-steps')">
+        <div id="stepsCard" class="summary-card neon-card neon-interactive">
             <h3>Steps Today</h3>
             <p class="summary-number" id="stepsToday">7,450</p>
             <span class="summary-sub">Steps</span>
@@ -72,11 +233,25 @@
 
     </section>
 
+    <!-- AI DAILY INSIGHTS (inserted by JS if not present) -->
+    <section id="insightsBox" class="card neon-card" style="margin-top:16px; display:none;">
+        <h2 class="neon-text">Daily Insights</h2>
+        <ul id="insightsList"></ul>
+    </section>
+
+    <!-- ADAPTIVE GOAL BOX (shown only when needed) -->
+    <section id="adaptiveBox" class="card neon-card" style="margin-top:14px; display:none;">
+        <h2 class="neon-text">Smart Adjustment</h2>
+        <p id="adaptiveText"></p>
+        <button id="adaptiveYes" class="join-btn neon-interactive">Yes, adjust</button>
+        <button id="adaptiveNo" class="join-btn neon-interactive" style="background:#444;margin-left:10px;">Not now</button>
+    </section>
+
     <!-- SECOND ROW -->
     <section class="row-2">
 
         <!-- WORKOUT RING -->
-        <div class="card large-card neon-card neon-interactive">
+        <div id="workoutCard" class="card large-card neon-card neon-interactive">
             <div class="card-header">
                 <h2 class="neon-text">Workout Progress</h2>
             </div>
@@ -87,7 +262,7 @@
         </div>
 
         <!-- WEIGHT TREND -->
-        <div class="card large-card neon-card neon-interactive">
+        <div id="weightCard" class="card large-card neon-card neon-interactive">
             <div class="card-header">
                 <h2 class="neon-text">Weight Trend</h2>
             </div>
@@ -102,7 +277,7 @@
     <section class="row-3">
 
         <!-- BMI CALCULATOR -->
-        <div class="card neon-card neon-interactive">
+        <div id="bmiCalcCard" class="card neon-card neon-interactive">
             <div class="card-header">
                 <h2 class="neon-text">BMI Calculator</h2>
             </div>
@@ -117,7 +292,7 @@
         </div>
 
         <!-- STEP TRACKER -->
-        <div class="card neon-card neon-interactive">
+        <div id="stepTrackerCard" class="card neon-card neon-interactive">
             <div class="card-header">
                 <h2 class="neon-text">Daily Step Tracker</h2>
             </div>
@@ -219,7 +394,7 @@
     <canvas id="chartStepsMonthly"></canvas>
 </div>
 
-<!-- DASHBOARD LOGIC -->
+<!-- DASHBOARD LOGIC + AI BRAIN INTEGRATION -->
 <script>
 auth.onAuthStateChanged(async user => {
     if (!user) {
@@ -233,28 +408,31 @@ auth.onAuthStateChanged(async user => {
 
     const data = doc.data();
 
-    /* -----------------------------------------------------------
-       1. BASIC DASHBOARD SETUP
-    ----------------------------------------------------------- */
-
+    // Name
     document.getElementById("userName").innerText = data.name || "Adventurer";
 
-    // BMI card
+    // Avatar
+    if (data.avatarUrl) {
+        document.getElementById("dashboardAvatar").src = data.avatarUrl + "?t=" + Date.now();
+    }
+
+    // Level + XP
+    const xp = data.xp || 0;
+    const level = data.level || (Math.floor(xp / 100) + 1);
+    document.getElementById("heroLevelBadge").innerText = "Lv " + level;
+    document.getElementById("xpFill").style.width = (xp % 100) + "%";
+
+    // BMI + steps
     if (data.bmi) {
         document.getElementById("currentBMI").innerText = data.bmi.toFixed(1);
     }
-
-    // Steps card
     if (data.stepsToday) {
         document.getElementById("stepsToday").innerText = data.stepsToday;
         document.getElementById("stepTrackerLabel").innerText =
             `${data.stepsToday} / 10,000 Steps`;
     }
 
-    /* -----------------------------------------------------------
-       2. CALORIE BRAIN — BMR, TDEE, TARGET CALORIES
-    ----------------------------------------------------------- */
-
+    // Calorie brain
     const profile = {
         sex: data.sex,
         weightKg: data.weightKg,
@@ -268,27 +446,20 @@ auth.onAuthStateChanged(async user => {
     const targets = FitQuestBrain.calculateTargets(profile);
 
     if (targets) {
-        document.getElementById("brainMessage").innerText =
-            `Your target today is ${Math.round(targets.targetCalories)} kcal`;
-
-        // Save updated values
         userRef.set({
             tdee: targets.tdee,
             targetCalories: targets.targetCalories
         }, { merge: true });
+
+        document.getElementById("brainMessage").innerText =
+            `Target: ${Math.round(targets.targetCalories)} kcal • TDEE: ${Math.round(targets.tdee)} kcal`;
     }
 
-    /* -----------------------------------------------------------
-       3. TREND ENGINE — WEIGHT + CALORIES
-    ----------------------------------------------------------- */
-
+    // Trends
     const weightTrend = FitQuestBrain.calculateTrend(data.weightHistory || []);
     const calorieTrend = FitQuestBrain.calculateTrend(data.calorieHistory || []);
 
-    /* -----------------------------------------------------------
-       4. TONE ENGINE — AI-LIKE LANGUAGE
-    ----------------------------------------------------------- */
-
+    // Tone engine
     const tone = FitQuestBrain.toneEngine({
         bmi: data.bmi,
         trend: weightTrend,
@@ -299,10 +470,7 @@ auth.onAuthStateChanged(async user => {
     document.getElementById("brainMessage").innerText =
         `${tone.headline} — ${tone.subline}`;
 
-    /* -----------------------------------------------------------
-       5. INSIGHTS ENGINE — DAILY SMART INSIGHTS
-    ----------------------------------------------------------- */
-
+    // Insights
     const hydration = data.waterToday || 0;
 
     const insights = FitQuestBrain.generateInsights({
@@ -311,31 +479,19 @@ auth.onAuthStateChanged(async user => {
         hydration
     });
 
-    // Create insights container if missing
-    let insightsBox = document.getElementById("insightsBox");
-    if (!insightsBox) {
-        insightsBox = document.createElement("div");
-        insightsBox.id = "insightsBox";
-        insightsBox.className = "card neon-card";
-        insightsBox.style.marginTop = "20px";
-        insightsBox.innerHTML = `<h2 class="neon-text">Daily Insights</h2><ul id="insightsList"></ul>`;
-        document.querySelector(".main-content").appendChild(insightsBox);
+    if (insights && insights.length > 0) {
+        const insightsBox = document.getElementById("insightsBox");
+        const list = document.getElementById("insightsList");
+        insightsBox.style.display = "block";
+        list.innerHTML = "";
+        insights.forEach(text => {
+            const li = document.createElement("li");
+            li.innerText = text;
+            list.appendChild(li);
+        });
     }
 
-    const list = document.getElementById("insightsList");
-    list.innerHTML = "";
-
-    insights.forEach(text => {
-        const li = document.createElement("li");
-        li.innerText = text;
-        li.style.marginBottom = "6px";
-        list.appendChild(li);
-    });
-
-    /* -----------------------------------------------------------
-       6. ADAPTIVE GOALS — SMART SUGGESTIONS
-    ----------------------------------------------------------- */
-
+    // Adaptive goals
     const adherence = data.adherence || 0.5;
 
     const adaptive = FitQuestBrain.adaptiveGoalCheck({
@@ -345,43 +501,70 @@ auth.onAuthStateChanged(async user => {
     });
 
     if (adaptive) {
-        let box = document.getElementById("adaptiveBox");
-        if (!box) {
-            box = document.createElement("div");
-            box.id = "adaptiveBox";
-            box.className = "card neon-card";
-            box.style.marginTop = "20px";
-            box.innerHTML = `
-                <h2 class="neon-text">Smart Adjustment</h2>
-                <p id="adaptiveText"></p>
-                <button id="adaptiveYes" class="join-btn neon-interactive">Yes, adjust</button>
-                <button id="adaptiveNo" class="join-btn neon-interactive" style="background:#444;margin-left:10px;">Not now</button>
-            `;
-            document.querySelector(".main-content").appendChild(box);
-        }
-
+        const box = document.getElementById("adaptiveBox");
+        box.style.display = "block";
         document.getElementById("adaptiveText").innerText = adaptive.suggestion;
 
-        document.getElementById("adaptiveYes").onclick = () => {
-            userRef.set({
+        document.getElementById("adaptiveYes").onclick = async () => {
+            await userRef.set({
                 targetCalories: adaptive.newTarget
             }, { merge: true });
 
             document.getElementById("brainMessage").innerText =
                 `Target updated to ${adaptive.newTarget} kcal`;
 
-            box.remove();
+            box.style.display = "none";
+            FitQuestBrain.awardXp(userRef, 20, "adaptive_goal");
         };
 
-        document.getElementById("adaptiveNo").onclick = () => box.remove();
+        document.getElementById("adaptiveNo").onclick = () => {
+            box.style.display = "none";
+        };
     }
 
+    // Neon interactive burst on hover
+    document.querySelectorAll(".neon-interactive").forEach(el => {
+        el.addEventListener("mouseenter", () => sparkBurst(el));
+    });
 });
 
-/* -----------------------------------------------------------
-   7. EXISTING FUNCTIONS (unchanged)
------------------------------------------------------------ */
+// Neon burst
+function sparkBurst(element) {
+    const rect = element.getBoundingClientRect();
+    const centerX = rect.width / 2;
+    const centerY = rect.height / 2;
 
+    const rootStyles = getComputedStyle(document.documentElement);
+    const currentNeon = rootStyles.getPropertyValue("--neon").trim();
+
+    const sparkPalette = ["#00eaff", "#7b2fff", "#ff00ff", "#ff8800", "#22c55e"];
+    const filteredPalette = sparkPalette.filter(c => c.toLowerCase() !== currentNeon.toLowerCase());
+    const color = filteredPalette[Math.floor(Math.random() * filteredPalette.length)] || "#ffffff";
+
+    for (let i = 0; i < 8; i++) {
+        const spark = document.createElement("span");
+        spark.className = "spark";
+        spark.style.background = color;
+
+        const angle = (Math.PI * 2 * i) / 8;
+        const distance = 40 + Math.random() * 10;
+        const x = Math.cos(angle) * distance;
+        const y = Math.sin(angle) * distance;
+
+        spark.style.setProperty("--x", `${x}px`);
+        spark.style.setProperty("--y", `${y}px`);
+
+        spark.style.left = `${centerX - 3}px`;
+        spark.style.top = `${centerY - 3}px`;
+
+        element.style.position = "relative";
+        element.appendChild(spark);
+
+        setTimeout(() => spark.remove(), 450);
+    }
+}
+
+// Membership + panels
 let membership = "free";
 
 function openAnalyticsPanel(panelId) {
@@ -419,7 +602,6 @@ function openUpgradeModal() {
     alert("FitQuest Pro required to view detailed analytics.");
 }
 </script>
-
 
 <!-- CHARTS + NEON INTERACTIONS -->
 <script src="chart.js"></script>
