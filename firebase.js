@@ -1,5 +1,6 @@
 /* ---------------------------------------------------
-   Firebase Config — FIXED for new bucket domain
+   Firebase Config — FINAL FIXED VERSION
+   Uses the correct firebasestorage.app bucket
 --------------------------------------------------- */
 
 const firebaseConfig = {
@@ -7,8 +8,8 @@ const firebaseConfig = {
   authDomain: "fitquest-1b9f1.firebaseapp.com",
   projectId: "fitquest-1b9f1",
 
-  // ⭐ FIXED — use the REAL bucket, not the legacy one
-  storageBucket: "fitquest-1b9f1.appspot.com",
+  // ⭐ THIS WAS THE PROBLEM — now fixed
+  storageBucket: "fitquest-1b9f1.firebasestorage.app",
 
   messagingSenderId: "958554033321",
   appId: "1:958554033321:web:07b2fa75d1e4c9243e2db8",
@@ -23,10 +24,7 @@ firebase.initializeApp(firebaseConfig);
 
 const auth = firebase.auth();
 const db = firebase.firestore();
-
-// ⭐ DO NOT override this in profile.js
-// This is the global storage instance used everywhere
-const storage = firebase.storage();
+const storage = firebase.storage();   // ⭐ Correct global storage instance
 
 /* ---------------------------------------------------
    AUTH
