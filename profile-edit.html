@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FitQuest — Your Current Stats</title>
+    <link rel="stylesheet" href="styles.css">
+
+    <!-- Firebase v8 -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-storage.js"></script>
+
+    <script defer src="firebase.js"></script>
+    <script src="fitquestBrain.js"></script>
+
+    <style>
+        .profile-layout {
+            display: grid;
+            grid-template-columns: 280px 1fr;
+            gap: 24px;
+            align-items: flex-start;
+        }
+
+        .profile-sidebar-card {
+            padding: 16px;
+        }
+
+        .profile-main-card {
+            padding: 16px;
+        }
+
+        .avatar-ring {
+            width: 96px;
+            height: 96px;
+            border-radius: 50%;
+            border: 2px solid var(--neon);
+            box-shadow: 0 0 16px var(--neon);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+            margin-bottom: 10px;
+        }
+
+        .avatar-ring img {
+            width: 92%;
+            height: 92%;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+
+        .level-badge {
+            position: absolute;
+            bottom: -4px;
+            right: -4px;
+            background: #0f172a;
+            border-radius: 999px;
+            padding: 2px 8px;
+            font-size: 11px;
+            border: 1px solid var(--neon);
+            box-shadow: 0 0 8px var(--neon);
+        }
+
+        .xp-bar-container {
+            margin-top: 6px;
+            width: 100%;
+            height: 8px;
+            border-radius: 999px;
+            background: rgba(15,23,42,0.9);
+            overflow: hidden;
+            border: 1px solid var(--neon);
+            box-shadow: 0 0 10px var(--neon);
+        }
+
+        .xp-bar-fill {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, #22c55e, #00eaff, #7b2fff);
+            transition: width 0.6s ease-out;
+        }
+
+        .profile-field-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 12px 18px;
+        }
+
+        .profile-field-grid label {
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+
+        .profile-field-grid input,
+        .profile-field-grid select {
+            width: 100%;
+        }
+
+        .health-snapshot {
+            margin-top: 18px;
+            padding-top: 10px;
+            border-top: 1px solid rgba(148,163,184,0.4);
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 10px;
+            font-size: 0.9rem;
+        }
+
+        .health-snapshot div span {
+            display: block;
+        }
+
+        .health-label {
+            opacity: 0.7;
+        }
+
+        .health-value {
+            font-weight: 600;
+        }
+
+        .tone-message {
+            margin-top: 8px;
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+
+        .profile-actions {
+            margin-top: 18px;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+    </style>
+</head>
+<body class="dashboard-body">
+
+<aside class="sidebar">
+    <div class="sidebar-logo">
+        <img src="assets/logo.png" alt="FitQuest Logo">
+        <h3 class="neon-text">FitQuest</h3>
+    </div>
+
+    <ul class="sidebar-links">
+        <li class="neon-hover" onclick="window.location.href='dashboard.html'">🏠 Dashboard</li>
+        <li class="neon-hover">🔥 Quests</li>
+        <li class="active neon-hover">👤 Profile</li>
+        <li class="neon-hover">📊 Progress</li>
+        <li class="neon-hover">⚙️ Settings</li>
+    </ul>
+
+    <button class="logout-btn neon-interactive" onclick="logoutUser()">Logout</button>
+</aside>
+
+<main class="main-content">
+    <h1 class="page-title">Your Current Stats</h1>
+
+    <section class="profile-layout">
+
+        <!-- LEFT: Avatar + basic info -->
+        <div class="card neon-card profile-sidebar-card">
+            <div class="avatar-ring neon-interactive" id="avatarRing">
+                <img id="profileAvatar" src="assets/avatar-placeholder.png" alt="Avatar">
+                <span class="level-badge" id="profileLevelBadge">Lv 1</span>
+            </div>
+            <button class="join-btn neon-interactive" id="changePhotoBtn">Change Photo</button>
+            <input type="file" id="photoInput" accept="image/*" style="display:none;">
+
+            <h2 id="profileNameDisplay" class="neon-text" style="margin-top:12px;">Your Name</h2>
+            <p id="profileMeta" style="font-size:0.9rem; opacity:0.85;">Age: – • Sex: –</p>
+
+            <div class="xp-bar-container" style="margin-top:10px;">
+                <div id="xpFillProfile" class="xp-bar-fill"></div>
+            </div>
+
+            <p id="profileTone" class="tone-message">Let’s set up your stats so the AI can guide you properly.</p>
+        </div>
+
+        <!-- RIGHT: Form + health snapshot -->
+        <div class="card neon-card profile-main-card">
+            <h2 class="neon-text" style="margin-bottom:10px;">Edit Your Details</h2>
+
+            <div class="profile-field-grid">
+                <div>
+                    <label for="fullName">Full Name</label>
+                    <input type="text" id="fullName" placeholder="Your name">
+                </div>
+                <div>
+                    <label for="age">Age</label>
+                    <input type="number" id="age" min="10" max="120">
+                </div>
+                <div>
+                    <label for="sex">Sex</label>
+                    <select id="sex">
+                        <option value="">Select</option>
+                        <option value="female">Female</option>
+                        <option value="male">Male</option>
+                        <option value="other">Other</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="heightCm">Height (cm)</label>
+                    <input type="number" id="heightCm" min="100" max="250">
+                </div>
+                <div>
+                    <label for="weightKg">Weight (kg)</label>
+                    <input type="number" id="weightKg" min="30" max="300">
+                </div>
+                <div>
+                    <label for="activityLevel">Activity Level</label>
+                    <select id="activityLevel">
+                        <option value="">Select</option>
+                        <option value="sedentary">Sedentary</option>
+                        <option value="light">Lightly Active</option>
+                        <option value="moderate">Moderately Active</option>
+                        <option value="active">Very Active</option>
+                        <option value="athlete">Athlete</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="goal">Goal</label>
+                    <select id="goal">
+                        <option value="">Select</option>
+                        <option value="lose">Lose Fat</option>
+                        <option value="gain">Gain Muscle</option>
+                        <option value="recomp">Recomp / Maintain</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="goalPace">Goal Pace</label>
+                    <select id="goalPace">
+                        <option value="">Select</option>
+                        <option value="slow">Slow & Steady</option>
+                        <option value="moderate">Moderate</option>
+                        <option value="aggressive">Aggressive</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="health-snapshot">
+                <div>
+                    <span class="health-label">BMI</span>
+                    <span class="health-value" id="snapshotBMI">–</span>
+                </div>
+                <div>
+                    <span class="health-label">TDEE</span>
+                    <span class="health-value" id="snapshotTDEE">– kcal</span>
+                </div>
+                <div>
+                    <span class="health-label">Daily Target Calories</span>
+                    <span class="health-value" id="snapshotTarget">– kcal</span>
+                </div>
+            </div>
+
+            <div class="profile-actions">
+                <button class="join-btn neon-interactive" id="saveProfileBtn">Save Profile</button>
+                <button class="join-btn neon-interactive" style="background:#334155;" onclick="window.location.href='profile.html'">
+                    View Profile
+                </button>
+                <button class="join-btn neon-interactive" style="background:#1f2937;" onclick="window.location.href='dashboard.html'">
+                    Back to Dashboard
+                </button>
+            </div>
+        </div>
+
+    </section>
+</main>
+
+<script src="profile.js"></script>
+</body>
+</html>
