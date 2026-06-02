@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FitQuest — Profile</title>
+    <title>FitQuest — Your Current Stats</title>
     <link rel="stylesheet" href="styles.css">
 
     <!-- Firebase v8 -->
@@ -13,113 +13,232 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-storage.js"></script>
 
     <script defer src="firebase.js"></script>
-</head>
+    <script src="fitquestBrain.js"></script>
 
+    <style>
+        .profile-view-layout {
+            display: grid;
+            grid-template-columns: 280px 1fr;
+            gap: 24px;
+            align-items: flex-start;
+        }
+
+        .profile-sidebar-card {
+            padding: 16px;
+        }
+
+        .profile-main-card {
+            padding: 16px;
+        }
+
+        .avatar-ring {
+            width: 96px;
+            height: 96px;
+            border-radius: 50%;
+            border: 2px solid var(--neon);
+            box-shadow: 0 0 16px var(--neon);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+            margin-bottom: 10px;
+        }
+
+        .avatar-ring img {
+            width: 92%;
+            height: 92%;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+
+        .level-badge {
+            position: absolute;
+            bottom: -4px;
+            right: -4px;
+            background: #0f172a;
+            border-radius: 999px;
+            padding: 2px 8px;
+            font-size: 11px;
+            border: 1px solid var(--neon);
+            box-shadow: 0 0 8px var(--neon);
+        }
+
+        .xp-bar-container {
+            margin-top: 6px;
+            width: 100%;
+            height: 8px;
+            border-radius: 999px;
+            background: rgba(15,23,42,0.9);
+            overflow: hidden;
+            border: 1px solid var(--neon);
+            box-shadow: 0 0 10px var(--neon);
+        }
+
+        .xp-bar-fill {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, #22c55e, #00eaff, #7b2fff);
+            transition: width 0.6s ease-out;
+        }
+
+        .profile-view-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 12px 18px;
+            font-size: 0.95rem;
+        }
+
+        .profile-view-grid div span {
+            display: block;
+        }
+
+        .field-label {
+            opacity: 0.7;
+        }
+
+        .field-value {
+            font-weight: 600;
+        }
+
+        .health-snapshot {
+            margin-top: 18px;
+            padding-top: 10px;
+            border-top: 1px solid rgba(148,163,184,0.4);
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 10px;
+            font-size: 0.9rem;
+        }
+
+        .health-snapshot div span {
+            display: block;
+        }
+
+        .tone-message {
+            margin-top: 8px;
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+
+        .profile-actions {
+            margin-top: 18px;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+    </style>
+</head>
 <body class="dashboard-body">
 
-<!-- SIDEBAR -->
-<aside class="profile-sidebar neon-card">
-
-    <div class="avatar-wrapper neon-interactive" id="avatarWrapper">
-        <div class="avatar-ring"></div>
-        <div class="avatar-particles"></div>
-        <img id="profileAvatar" class="avatar-img" src="assets/default-avatar.png">
-        <label for="avatarUpload" class="avatar-camera">📷</label>
-        <input type="file" id="avatarUpload" accept="image/*" style="display:none;">
+<aside class="sidebar">
+    <div class="sidebar-logo">
+        <img src="assets/logo.png" alt="FitQuest Logo">
+        <h3 class="neon-text">FitQuest</h3>
     </div>
 
-    <button class="change-photo-btn neon-interactive" onclick="document.getElementById('avatarUpload').click()">
-        Change Photo
-    </button>
+    <ul class="sidebar-links">
+        <li class="neon-hover" onclick="window.location.href='dashboard.html'">🏠 Dashboard</li>
+        <li class="neon-hover">🔥 Quests</li>
+        <li class="active neon-hover">👤 Profile</li>
+        <li class="neon-hover">📊 Progress</li>
+        <li class="neon-hover">⚙️ Settings</li>
+    </ul>
 
-    <div class="sidebar-info">
-        <h2 id="sidebarName" class="neon-text">Your Name</h2>
-        <p id="sidebarAge">Age: –</p>
-        <p id="sidebarSex">Sex: –</p>
-
-        <div class="level-box">
-            <p>Level <span id="userLevel">1</span></p>
-            <div class="xp-bar">
-                <div id="xpFill"></div>
-            </div>
-        </div>
-    </div>
-
+    <button class="logout-btn neon-interactive" onclick="logoutUser()">Logout</button>
 </aside>
 
-<!-- MAIN CONTENT -->
-<main class="profile-main">
+<main class="main-content">
+    <h1 class="page-title">Your Current Stats</h1>
 
-    <h1 class="page-title">Your Character Sheet</h1>
-    <p class="subtitle">Tune your stats. Power your quest.</p>
+    <section class="profile-view-layout">
 
-    <div class="profile-form neon-card">
+        <!-- LEFT: Avatar + tone -->
+        <div class="card neon-card profile-sidebar-card">
+            <div class="avatar-ring neon-interactive" id="viewAvatarRing">
+                <img id="viewProfileAvatar" src="assets/avatar-placeholder.png" alt="Avatar">
+                <span class="level-badge" id="viewProfileLevelBadge">Lv 1</span>
+            </div>
 
-        <label>Full Name</label>
-        <input type="text" id="profileName">
+            <h2 id="viewProfileName" class="neon-text" style="margin-top:12px;">Your Name</h2>
+            <p id="viewProfileMeta" style="font-size:0.9rem; opacity:0.85;">Age: – • Sex: –</p>
 
-        <label>Age</label>
-        <input type="number" id="profileAge">
+            <div class="xp-bar-container" style="margin-top:10px;">
+                <div id="xpFillView" class="xp-bar-fill"></div>
+            </div>
 
-        <label>Sex</label>
-        <select id="profileSex">
-            <option value="">Select</option>
-            <option value="male">Male</option>
-            <option value="female">Female</option>
-        </select>
+            <p id="viewProfileTone" class="tone-message">
+                Your stats are the foundation of your quest — keep them updated and the AI will guide you smarter.
+            </p>
+        </div>
 
-        <label>Height (cm)</label>
-        <input type="number" id="profileHeight">
+        <!-- RIGHT: Read-only stats -->
+        <div class="card neon-card profile-main-card">
+            <h2 class="neon-text" style="margin-bottom:10px;">Overview</h2>
 
-        <label>Weight (kg)</label>
-        <input type="number" id="profileWeight">
+            <div class="profile-view-grid">
+                <div>
+                    <span class="field-label">Full Name</span>
+                    <span class="field-value" id="viewFullName">–</span>
+                </div>
+                <div>
+                    <span class="field-label">Age</span>
+                    <span class="field-value" id="viewAge">–</span>
+                </div>
+                <div>
+                    <span class="field-label">Sex</span>
+                    <span class="field-value" id="viewSex">–</span>
+                </div>
+                <div>
+                    <span class="field-label">Height</span>
+                    <span class="field-value" id="viewHeight">–</span>
+                </div>
+                <div>
+                    <span class="field-label">Weight</span>
+                    <span class="field-value" id="viewWeight">–</span>
+                </div>
+                <div>
+                    <span class="field-label">Activity Level</span>
+                    <span class="field-value" id="viewActivity">–</span>
+                </div>
+                <div>
+                    <span class="field-label">Goal</span>
+                    <span class="field-value" id="viewGoal">–</span>
+                </div>
+                <div>
+                    <span class="field-label">Goal Pace</span>
+                    <span class="field-value" id="viewGoalPace">–</span>
+                </div>
+            </div>
 
-        <label>Activity Level</label>
-        <select id="profileActivity">
-            <option value="">Select</option>
-            <option value="sedentary">Sedentary</option>
-            <option value="light">Light</option>
-            <option value="moderate">Moderate</option>
-            <option value="active">Active</option>
-            <option value="very_active">Very Active</option>
-        </select>
+            <div class="health-snapshot">
+                <div>
+                    <span class="field-label">BMI</span>
+                    <span class="field-value" id="viewBMI">–</span>
+                </div>
+                <div>
+                    <span class="field-label">TDEE</span>
+                    <span class="field-value" id="viewTDEE">– kcal</span>
+                </div>
+                <div>
+                    <span class="field-label">Daily Target Calories</span>
+                    <span class="field-value" id="viewTarget">– kcal</span>
+                </div>
+            </div>
 
-        <label>Goal</label>
-        <select id="profileGoal">
-            <option value="">Select</option>
-            <option value="lose">Lose Weight</option>
-            <option value="maintain">Maintain Weight</option>
-            <option value="gain">Gain Weight</option>
-        </select>
+            <div class="profile-actions">
+                <button class="join-btn neon-interactive" onclick="window.location.href='profile-edit.html'">
+                    Edit Profile
+                </button>
+                <button class="join-btn neon-interactive" style="background:#1f2937;" onclick="window.location.href='dashboard.html'">
+                    Back to Dashboard
+                </button>
+            </div>
+        </div>
 
-        <label>Goal Pace</label>
-        <select id="profileGoalPace">
-            <option value="">Select</option>
-            <option value="slow">Slow</option>
-            <option value="medium">Medium</option>
-            <option value="fast">Fast</option>
-        </select>
-
-        <button class="save-profile-btn neon-interactive" onclick="saveProfile()">Save Profile</button>
-
-        <p id="profileStatus" class="small-text"></p>
-
-        <hr class="divider">
-
-        <h3 class="neon-text">Health Snapshot</h3>
-        <p><strong>BMI:</strong> <span id="bmiValue">–</span></p>
-        <p><strong>TDEE:</strong> <span id="tdeeValue">–</span> kcal</p>
-        <p><strong>Daily Target Calories:</strong> <span id="targetCaloriesValue">–</span> kcal</p>
-
-        <button class="back-btn neon-interactive" onclick="window.location.href='dashboard.html'">
-            Back to Dashboard
-        </button>
-
-    </div>
-
+    </section>
 </main>
 
 <script src="profile.js"></script>
-
 </body>
 </html>
