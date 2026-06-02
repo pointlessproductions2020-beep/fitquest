@@ -8,7 +8,7 @@ let userRef = null;
 
 // ⭐ DO NOT redeclare "storage" — it already exists in firebase.js
 // We ONLY override the bucket using refFromURL:
-const storageRef = storage.refFromURL("gs://fitquest-1b9f1.appspot.com");
+const storageRef = storage.ref();
 
 auth.onAuthStateChanged(async user => {
     if (!user) {
