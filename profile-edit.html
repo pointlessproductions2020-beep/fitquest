@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FitQuest — Your Current Stats</title>
+    <title>FitQuest — Edit Profile</title>
     <link rel="stylesheet" href="styles.css">
 
     <!-- Firebase v8 -->
@@ -12,6 +12,7 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-storage.js"></script>
 
+    <!-- Firebase config + FitQuest brain -->
     <script src="firebase.js"></script>
     <script src="fitquestbrain.js"></script>
 
@@ -160,10 +161,12 @@
 
         <!-- LEFT: Avatar + basic info -->
         <div class="card neon-card profile-sidebar-card">
-            <div class="avatar-ring neon-interactive" id="avatarRing">
+            <!-- ⭐ FIXED: removed neon-interactive so it stops spinning -->
+            <div class="avatar-ring" id="avatarRing">
                 <img id="profileAvatar" src="assets/avatar-placeholder.svg" alt="Avatar">
                 <span class="level-badge" id="profileLevelBadge">Lv 1</span>
             </div>
+
             <button class="join-btn neon-interactive" id="changePhotoBtn">Change Photo</button>
             <input type="file" id="photoInput" accept="image/*" style="display:none;">
 
@@ -267,6 +270,8 @@
     </section>
 </main>
 
-<script src="profile.js"></script>
+<!-- ⭐ IMPORTANT: version bump forces GitHub Pages to load the NEW JS -->
+<script src="profile.js?v=2"></script>
+
 </body>
 </html>
