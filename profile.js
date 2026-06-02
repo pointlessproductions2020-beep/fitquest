@@ -1,163 +1,291 @@
-/* -----------------------------------------------------------
-   LOAD PROFILE DATA
------------------------------------------------------------ */
+// PROFILE LOGIC FOR BOTH profile-edit.html AND profile.html
 
-auth.onAuthStateChanged(user => {
+let currentUser = null;
+let userRef = null;
+let storageRef = null;
+
+auth.onAuthStateChanged(async user => {
     if (!user) {
         window.location.href = "index.html";
         return;
     }
 
-    const userRef = db.collection("users").doc(user.uid);
+    currentUser = user;
+    userRef = db.collection("users").doc(user.uid);
+    storageRef = firebase.storage().ref();
 
-    userRef.get().then(doc => {
-        if (!doc.exists) return;
-        const data = doc.data();
+    const doc = await userRef.get();
+    const data = doc.exists ? doc.data() : {};
 
-        // Fill fields
-        if (data.name) {
-            document.getElementById("profileName").value = data.name;
-            document.getElementById("sidebarName").innerText = data.name;
-        }
+    const path = window.location.pathname;
 
-        if (data.age) {
-            document.getElementById("profileAge").value = data.age;
-            document.getElementById("sidebarAge").innerText = "Age: " + data.age;
-        }
+    if (path.includes("profile-edit.html")) {
+        initProfileEdit(data);
+    } else if (path.includes("profile.html")) {
+        initProfileView(data);
+    }
+});
 
-        if (data.sex) {
-            document.getElementById("profileSex").value = data.sex;
-            document.getElementById("sidebarSex").innerText = "Sex: " + data.sex;
-        }
+// ---------- SHARED HELPERS ----------
 
-        if (data.heightCm) document.getElementById("profileHeight").value = data.heightCm;
-        if (data.weightKg) document.getElementById("profileWeight").value = data.weightKg;
-        if (data.activityLevel) document.getElementById("profileActivity").value = data.activityLevel;
-        if (data.goal) document.getElementById("profileGoal").value = data.goal;
-        if (data.goalPace) document.getElementById("profileGoalPace").value = data.goalPace;
+function computeTargetsFromData(data) {
+    const profile = {
+        sex: data.sex,
+        weightKg: data.weightKg,
+        heightCm: data.heightCm,
+        age: data.age,
+        activityLevel: data.activityLevel,
+        goal: data.goal,
+        goalPace: data.goalPace
+    };
 
-        if (data.avatarUrl) {
-            document.getElementById("profileAvatar").src = data.avatarUrl + "?t=" + Date.now();
-        }
+    const targets = FitQuestBrain.calculateTargets(profile);
+    return targets || null;
+}
 
-        // Stats
-        if (data.bmi) document.getElementById("bmiValue").innerText = data.bmi.toFixed(1);
-        if (data.tdee) document.getElementById("tdeeValue").innerText = Math.round(data.tdee);
-        if (data.targetCalories) document.getElementById("targetCaloriesValue").innerText = Math.round(data.targetCalories);
+function computeBMI(weightKg, heightCm) {
+    if (!weightKg || !heightCm) return null;
+    const hM = heightCm / 100;
+    return weightKg / (hM * hM);
+}
 
-        // XP + Level
-        const xp = data.xp || 0;
-        const level = Math.floor(xp / 100) + 1;
-        document.getElementById("userLevel").innerText = level;
-        document.getElementById("xpFill").style.width = (xp % 100) + "%";
+// ---------- EDIT PAGE ----------
+
+function initProfileEdit(data) {
+    const fullName = document.getElementById("fullName");
+    const age = document.getElementById("age");
+    const sex = document.getElementById("sex");
+    const heightCm = document.getElementById("heightCm");
+    const weightKg = document.getElementById("weightKg");
+    const activityLevel = document.getElementById("activityLevel");
+    const goal = document.getElementById("goal");
+    const goalPace = document.getElementById("goalPace");
+
+    const snapshotBMI = document.getElementById("snapshotBMI");
+    const snapshotTDEE = document.getElementById("snapshotTDEE");
+    const snapshotTarget = document.getElementById("snapshotTarget");
+
+    const profileNameDisplay = document.getElementById("profileNameDisplay");
+    const profileMeta = document.getElementById("profileMeta");
+    const profileAvatar = document.getElementById("profileAvatar");
+    const profileLevelBadge = document.getElementById("profileLevelBadge");
+    const xpFillProfile = document.getElementById("xpFillProfile");
+    const profileTone = document.getElementById("profileTone");
+
+    const changePhotoBtn = document.getElementById("changePhotoBtn");
+    const photoInput = document.getElementById("photoInput");
+    const saveProfileBtn = document.getElementById("saveProfileBtn");
+
+    // Populate fields
+    fullName.value = data.name || "";
+    age.value = data.age || "";
+    sex.value = data.sex || "";
+    heightCm.value = data.heightKg ? "" : (data.heightCm || "");
+    weightKg.value = data.weightKg || "";
+    activityLevel.value = data.activityLevel || "";
+    goal.value = data.goal || "";
+    goalPace.value = data.goalPace || "";
+
+    // Avatar
+    if (data.avatarUrl) {
+        profileAvatar.src = data.avatarUrl + "?t=" + Date.now();
+    }
+
+    // Name + meta
+    profileNameDisplay.innerText = data.name || "Your Name";
+    profileMeta.innerText = `Age: ${data.age || "–"} • Sex: ${data.sex || "–"}`;
+
+    // XP + level
+    const xp = data.xp || 0;
+    const level = data.level || (Math.floor(xp / 100) + 1);
+    profileLevelBadge.innerText = "Lv " + level;
+    xpFillProfile.style.width = (xp % 100) + "%";
+
+    // Targets + BMI
+    const bmi = computeBMI(data.weightKg, data.heightCm);
+    const targets = computeTargetsFromData(data);
+
+    if (bmi) snapshotBMI.innerText = bmi.toFixed(1);
+    if (targets) {
+        snapshotTDEE.innerText = Math.round(targets.tdee) + " kcal";
+        snapshotTarget.innerText = Math.round(targets.targetCalories) + " kcal";
+    }
+
+    // Tone
+    const tone = FitQuestBrain.toneEngine({
+        bmi: bmi,
+        trend: null,
+        goal: data.goal,
+        pace: data.goalPace
     });
-});
+    profileTone.innerText = `${tone.headline} — ${tone.subline}`;
 
-/* -----------------------------------------------------------
-   SAVE PROFILE (FIXED)
------------------------------------------------------------ */
+    // Live update snapshot when fields change
+    [age, sex, heightCm, weightKg, activityLevel, goal, goalPace].forEach(el => {
+        el.addEventListener("input", () => {
+            const tempData = {
+                sex: sex.value || null,
+                weightKg: weightKg.value ? parseFloat(weightKg.value) : null,
+                heightCm: heightCm.value ? parseFloat(heightCm.value) : null,
+                age: age.value ? parseInt(age.value) : null,
+                activityLevel: activityLevel.value || null,
+                goal: goal.value || null,
+                goalPace: goalPace.value || null
+            };
 
-function saveProfile() {
-    const user = auth.currentUser;
-    if (!user) return;
+            const tempBMI = computeBMI(tempData.weightKg, tempData.heightCm);
+            const tempTargets = computeTargetsFromData(tempData);
 
-    const userRef = db.collection("users").doc(user.uid);
+            snapshotBMI.innerText = tempBMI ? tempBMI.toFixed(1) : "–";
+            snapshotTDEE.innerText = tempTargets ? Math.round(tempTargets.tdee) + " kcal" : "– kcal";
+            snapshotTarget.innerText = tempTargets ? Math.round(tempTargets.targetCalories) + " kcal" : "– kcal";
+        });
+    });
 
-    const name = document.getElementById("profileName").value;
-    const age = parseInt(document.getElementById("profileAge").value);
-    const sex = document.getElementById("profileSex").value;
-    const height = parseFloat(document.getElementById("profileHeight").value);
-    const weight = parseFloat(document.getElementById("profileWeight").value);
-    const activity = document.getElementById("profileActivity").value;
-    const goal = document.getElementById("profileGoal").value;
-    const pace = document.getElementById("profileGoalPace").value;
+    // Photo upload
+    changePhotoBtn.addEventListener("click", () => photoInput.click());
 
-    // Calculate BMI
-    let bmi = null;
-    if (height && weight) {
-        bmi = weight / Math.pow(height / 100, 2);
-        document.getElementById("bmiValue").innerText = bmi.toFixed(1);
-    }
+    photoInput.addEventListener("change", async e => {
+        const file = e.target.files[0];
+        if (!file || !currentUser) return;
 
-    // Save using set() with merge so fields ALWAYS save
-    userRef.set({
-        name,
-        age,
-        sex,
-        heightCm: height,
-        weightKg: weight,
-        activityLevel: activity,
-        goal,
-        goalPace: pace,
-        bmi
-    }, { merge: true });
+        const avatarRef = storageRef.child(`avatars/${currentUser.uid}.jpg`);
+        await avatarRef.put(file);
+        const url = await avatarRef.getDownloadURL();
 
-    document.getElementById("profileStatus").innerText = "Profile saved!";
+        await userRef.set({ avatarUrl: url }, { merge: true });
+        profileAvatar.src = url + "?t=" + Date.now();
+    });
+
+    // Save profile
+    saveProfileBtn.addEventListener("click", async () => {
+        if (!currentUser) return;
+
+        const newName = fullName.value.trim();
+        const newAge = age.value ? parseInt(age.value) : null;
+        const newSex = sex.value || null;
+        const newHeight = heightCm.value ? parseFloat(heightCm.value) : null;
+        const newWeight = weightKg.value ? parseFloat(weightKg.value) : null;
+        const newActivity = activityLevel.value || null;
+        const newGoal = goal.value || null;
+        const newGoalPace = goalPace.value || null;
+
+        const newBMI = computeBMI(newWeight, newHeight);
+        const newTargets = computeTargetsFromData({
+            sex: newSex,
+            weightKg: newWeight,
+            heightCm: newHeight,
+            age: newAge,
+            activityLevel: newActivity,
+            goal: newGoal,
+            goalPace: newGoalPace
+        });
+
+        // Weight history update
+        let weightHistory = data.weightHistory || [];
+        if (newWeight && newWeight !== data.weightKg) {
+            weightHistory = weightHistory.concat([{
+                date: new Date().toISOString(),
+                weight: newWeight
+            }]);
+        }
+
+        const payload = {
+            name: newName || null,
+            age: newAge,
+            sex: newSex,
+            heightCm: newHeight,
+            weightKg: newWeight,
+            activityLevel: newActivity,
+            goal: newGoal,
+            goalPace: newGoalPace,
+            bmi: newBMI || null,
+            weightHistory: weightHistory
+        };
+
+        if (newTargets) {
+            payload.tdee = newTargets.tdee;
+            payload.targetCalories = newTargets.targetCalories;
+        }
+
+        await userRef.set(payload, { merge: true });
+
+        // XP reward for completing/updating profile
+        FitQuestBrain.awardXp(userRef, 30, "profile_update");
+
+        // UI refresh
+        profileNameDisplay.innerText = newName || "Your Name";
+        profileMeta.innerText = `Age: ${newAge || "–"} • Sex: ${newSex || "–"}`;
+        snapshotBMI.innerText = newBMI ? newBMI.toFixed(1) : "–";
+        snapshotTDEE.innerText = newTargets ? Math.round(newTargets.tdee) + " kcal" : "– kcal";
+        snapshotTarget.innerText = newTargets ? Math.round(newTargets.targetCalories) + " kcal" : "– kcal";
+
+        alert("Profile saved successfully.");
+    });
 }
 
-/* -----------------------------------------------------------
-   AVATAR UPLOAD (FIXED)
------------------------------------------------------------ */
+// ---------- VIEW PAGE ----------
 
-document.getElementById("avatarUpload").addEventListener("change", async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
+function initProfileView(data) {
+    const viewProfileAvatar = document.getElementById("viewProfileAvatar");
+    const viewProfileLevelBadge = document.getElementById("viewProfileLevelBadge");
+    const xpFillView = document.getElementById("xpFillView");
+    const viewProfileName = document.getElementById("viewProfileName");
+    const viewProfileMeta = document.getElementById("viewProfileMeta");
+    const viewProfileTone = document.getElementById("viewProfileTone");
 
-    const user = auth.currentUser;
-    if (!user) return;
+    const viewFullName = document.getElementById("viewFullName");
+    const viewAge = document.getElementById("viewAge");
+    const viewSex = document.getElementById("viewSex");
+    const viewHeight = document.getElementById("viewHeight");
+    const viewWeight = document.getElementById("viewWeight");
+    const viewActivity = document.getElementById("viewActivity");
+    const viewGoal = document.getElementById("viewGoal");
+    const viewGoalPace = document.getElementById("viewGoalPace");
 
-    const storageRef = firebase.storage().ref(`avatars/${user.uid}.jpg`);
-    await storageRef.put(file);
-    const url = await storageRef.getDownloadURL();
+    const viewBMI = document.getElementById("viewBMI");
+    const viewTDEE = document.getElementById("viewTDEE");
+    const viewTarget = document.getElementById("viewTarget");
 
-    // Force refresh (fixes caching)
-    document.getElementById("profileAvatar").src = url + "?t=" + Date.now();
-
-    // Save URL using set() so it ALWAYS saves
-    db.collection("users").doc(user.uid).set({
-        avatarUrl: url
-    }, { merge: true });
-});
-
-/* -----------------------------------------------------------
-   CLICK SPARK BURST
------------------------------------------------------------ */
-
-function sparkBurst(element) {
-    const rect = element.getBoundingClientRect();
-    const centerX = rect.width / 2;
-    const centerY = rect.height / 2;
-
-    const sparkPalette = ["#00eaff", "#7b2fff", "#ff00ff", "#ff8800", "#22c55e"];
-
-    for (let i = 0; i < 8; i++) {
-        const spark = document.createElement("span");
-        spark.className = "spark";
-
-        const usePalette = Math.random() < 0.3;
-        const color = usePalette
-            ? sparkPalette[Math.floor(Math.random() * sparkPalette.length)]
-            : getComputedStyle(document.documentElement).getPropertyValue("--neon").trim();
-
-        spark.style.background = color;
-
-        const angle = (Math.PI * 2 * i) / 8;
-        const distance = 40 + Math.random() * 10;
-        const x = Math.cos(angle) * distance;
-        const y = Math.sin(angle) * distance;
-
-        spark.style.setProperty("--x", `${x}px`);
-        spark.style.setProperty("--y", `${y}px`);
-
-        spark.style.left = `${centerX - 3}px`;
-        spark.style.top = `${centerY - 3}px`;
-
-        element.appendChild(spark);
-
-        setTimeout(() => spark.remove(), 450);
+    // Avatar
+    if (data.avatarUrl) {
+        viewProfileAvatar.src = data.avatarUrl + "?t=" + Date.now();
     }
-}
 
-document.querySelectorAll(".neon-interactive").forEach(el => {
-    el.addEventListener("click", () => sparkBurst(el));
-});
+    // Name + meta
+    viewProfileName.innerText = data.name || "Your Name";
+    viewProfileMeta.innerText = `Age: ${data.age || "–"} • Sex: ${data.sex || "–"}`;
+
+    // XP + level
+    const xp = data.xp || 0;
+    const level = data.level || (Math.floor(xp / 100) + 1);
+    viewProfileLevelBadge.innerText = "Lv " + level;
+    xpFillView.style.width = (xp % 100) + "%";
+
+    // Fields
+    viewFullName.innerText = data.name || "–";
+    viewAge.innerText = data.age || "–";
+    viewSex.innerText = data.sex || "–";
+    viewHeight.innerText = data.heightCm ? `${data.heightCm} cm` : "–";
+    viewWeight.innerText = data.weightKg ? `${data.weightKg} kg` : "–";
+    viewActivity.innerText = data.activityLevel || "–";
+    viewGoal.innerText = data.goal || "–";
+    viewGoalPace.innerText = data.goalPace || "–";
+
+    // BMI + targets
+    const bmi = data.bmi || computeBMI(data.weightKg, data.heightCm);
+    const targets = computeTargetsFromData(data);
+
+    viewBMI.innerText = bmi ? bmi.toFixed(1) : "–";
+    viewTDEE.innerText = targets ? Math.round(targets.tdee) + " kcal" : "– kcal";
+    viewTarget.innerText = targets ? Math.round(targets.targetCalories) + " kcal" : "– kcal";
+
+    // Tone
+    const tone = FitQuestBrain.toneEngine({
+        bmi: bmi,
+        trend: null,
+        goal: data.goal,
+        pace: data.goalPace
+    });
+    viewProfileTone.innerText = `${tone.headline} — ${tone.subline}`;
+}
