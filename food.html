@@ -17,7 +17,7 @@
     <style>
         .food-layout {
             display: grid;
-            grid-template-columns: 260px 1fr;
+            grid-template-columns: 300px 1fr;
             gap: 20px;
         }
 
@@ -25,7 +25,9 @@
             padding: 16px;
         }
 
-        .food-list button {
+        /* QUICK ADD BUTTONS */
+        .quick-item {
+            position: relative;
             width: 100%;
             padding: 10px;
             margin-bottom: 10px;
@@ -36,13 +38,51 @@
             cursor: pointer;
             font-size: 14px;
             box-shadow: 0 0 12px var(--neon);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
 
-        .food-list button:hover {
+        .quick-item:hover {
             background: rgba(15,23,42,1);
             box-shadow: 0 0 18px var(--neon);
         }
 
+        /* EDIT/DELETE BUTTONS */
+        .quick-controls {
+            display: flex;
+            gap: 8px;
+            opacity: 0;
+            transition: opacity 0.2s ease;
+        }
+
+        .quick-item:hover .quick-controls {
+            opacity: 1;
+        }
+
+        /* MOBILE ALWAYS SHOW CONTROLS */
+        @media (hover: none) {
+            .quick-controls {
+                opacity: 1 !important;
+            }
+        }
+
+        .quick-btn {
+            padding: 4px 10px;
+            border-radius: 999px;
+            background: var(--neon);
+            color: #020617;
+            font-size: 12px;
+            cursor: pointer;
+            border: none;
+        }
+
+        .quick-btn.delete {
+            background: #ef4444;
+            color: white;
+        }
+
+        /* MANUAL ENTRY */
         .food-form label {
             font-size: 12px;
             opacity: 0.8;
@@ -70,10 +110,47 @@
             box-shadow: 0 0 18px var(--neon);
         }
 
-        .food-result {
+        /* EDIT MODAL */
+        #editModal {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.7);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 999;
+        }
+
+        #editModalContent {
+            background: #0f172a;
+            padding: 20px;
+            border-radius: 16px;
+            width: 90%;
+            max-width: 400px;
+            border: 1px solid var(--neon);
+            box-shadow: 0 0 20px var(--neon);
+        }
+
+        #editModalContent input {
+            width: 100%;
+            padding: 8px;
+            margin-top: 6px;
+            border-radius: 10px;
+            border: 1px solid rgba(148,163,184,0.4);
+            background: #020617;
+            color: #e5e7eb;
+        }
+
+        #editModalContent button {
             margin-top: 12px;
-            font-size: 14px;
-            color: #a5b4fc;
+            padding: 10px;
+            width: 100%;
+            border-radius: 999px;
+            border: none;
+            background: var(--neon);
+            color: #020617;
+            font-weight: 600;
+            cursor: pointer;
         }
     </style>
 </head>
@@ -90,6 +167,7 @@
         <li class="neon-hover" onclick="window.location.href='dashboard.html'">🏠 Dashboard</li>
         <li class="active neon-hover">🍽️ Food Intake</li>
         <li class="neon-hover" onclick="window.location.href='exercise.html'">💪 Workout</li>
+        <li class="neon-hover" onclick="window.location.href='barcode.html'">📷 Barcode Scanner</li>
         <li class="neon-hover" onclick="window.location.href='profile.html'">👤 Profile</li>
         <li class="neon-hover">📊 Progress</li>
         <li class="neon-hover">⚙️ Settings</li>
@@ -108,14 +186,7 @@
         <div class="card neon-card food-card">
             <h2 class="neon-text" style="margin-bottom:10px;">Quick Add</h2>
 
-            <div class="food-list">
-                <button onclick="quickAdd('Apple', 95)">🍎 Apple — 95 kcal</button>
-                <button onclick="quickAdd('Banana', 105)">🍌 Banana — 105 kcal</button>
-                <button onclick="quickAdd('Chicken Breast 100g', 165)">🍗 Chicken Breast — 165 kcal</button>
-                <button onclick="quickAdd('Rice 1 cup', 205)">🍚 Rice (1 cup) — 205 kcal</button>
-                <button onclick="quickAdd('Protein Shake', 180)">🥤 Protein Shake — 180 kcal</button>
-                <button onclick="quickAdd('Water 500ml', 0)">💧 Water — 0 kcal</button>
-            </div>
+            <div id="quickAddList"></div>
         </div>
 
         <!-- RIGHT: Manual Entry -->
@@ -131,6 +202,10 @@
 
                 <button onclick="saveManual()">Add Entry</button>
 
+                <button style="background:#38bdf8; margin-top:8px;" onclick="saveToQuickAdd()">
+                    ⭐ Save to Quick‑Add
+                </button>
+
                 <p class="food-result" id="foodResult"></p>
             </div>
         </div>
@@ -138,28 +213,71 @@
     </section>
 </main>
 
+<!-- EDIT MODAL -->
+<div id="editModal">
+    <div id="editModalContent">
+        <h3 class="neon-text">Edit Quick‑Add Item</h3>
+
+        <label>Name</label>
+        <input type="text" id="editName">
+
+        <label>Calories</label>
+        <input type="number" id="editCalories">
+
+        <button onclick="saveEdit()">Save Changes</button>
+        <button style="background:#334155; margin-top:6px;" onclick="closeEditModal()">Cancel</button>
+    </div>
+</div>
+
 <script>
+let currentUserRef = null;
+let editingItemId = null;
+
 auth.onAuthStateChanged(async user => {
     if (!user) return window.location.href = "index.html";
+    currentUserRef = db.collection("users").doc(user.uid);
+    loadQuickAdd();
 });
 
-// QUICK ADD
-async function quickAdd(name, calories) {
-    const user = auth.currentUser;
-    if (!user) return;
+/* LOAD QUICK ADD */
+async function loadQuickAdd() {
+    const list = document.getElementById("quickAddList");
+    list.innerHTML = "";
 
-    await db.collection("users").doc(user.uid).collection("food").add({
+    const snap = await currentUserRef.collection("quickadd").orderBy("timestamp", "desc").get();
+
+    snap.forEach(doc => {
+        const item = doc.data();
+        const div = document.createElement("div");
+        div.className = "quick-item";
+
+        div.innerHTML = `
+            <span>${item.name} — ${item.calories} kcal</span>
+            <div class="quick-controls">
+                <button class="quick-btn" onclick="openEditModal('${doc.id}', '${item.name}', ${item.calories}); event.stopPropagation();">✏️ Edit</button>
+                <button class="quick-btn delete" onclick="deleteQuickAdd('${doc.id}'); event.stopPropagation();">🗑️ Delete</button>
+            </div>
+        `;
+
+        div.onclick = () => quickAddLog(item.name, item.calories);
+
+        list.appendChild(div);
+    });
+}
+
+/* LOG QUICK ADD ITEM */
+async function quickAddLog(name, calories) {
+    await currentUserRef.collection("food").add({
         name,
         calories,
         timestamp: Date.now()
     });
 
-    FitQuestBrain.awardXp(db.collection("users").doc(user.uid), 10, "food_logged");
-
+    FitQuestBrain.awardXp(currentUserRef, 10, "food_logged");
     alert(`${name} added!`);
 }
 
-// MANUAL ENTRY
+/* SAVE MANUAL ENTRY */
 async function saveManual() {
     const name = document.getElementById("foodName").value.trim();
     const calories = parseInt(document.getElementById("foodCalories").value);
@@ -169,22 +287,78 @@ async function saveManual() {
         return;
     }
 
-    const user = auth.currentUser;
-    if (!user) return;
-
-    await db.collection("users").doc(user.uid).collection("food").add({
+    await currentUserRef.collection("food").add({
         name,
         calories,
         timestamp: Date.now()
     });
 
-    FitQuestBrain.awardXp(db.collection("users").doc(user.uid), 10, "food_logged");
+    FitQuestBrain.awardXp(currentUserRef, 10, "food_logged");
 
     document.getElementById("foodResult").innerText =
         `${name} logged: ${calories} kcal`;
 
     document.getElementById("foodName").value = "";
     document.getElementById("foodCalories").value = "";
+}
+
+/* SAVE TO QUICK ADD */
+async function saveToQuickAdd() {
+    const name = document.getElementById("foodName").value.trim();
+    const calories = parseInt(document.getElementById("foodCalories").value);
+
+    if (!name || isNaN(calories)) {
+        alert("Enter food name and calories first");
+        return;
+    }
+
+    await currentUserRef.collection("quickadd").add({
+        name,
+        calories,
+        timestamp: Date.now()
+    });
+
+    alert(`${name} saved to Quick‑Add!`);
+    loadQuickAdd();
+}
+
+/* EDIT MODAL */
+function openEditModal(id, name, calories) {
+    editingItemId = id;
+    document.getElementById("editName").value = name;
+    document.getElementById("editCalories").value = calories;
+    document.getElementById("editModal").style.display = "flex";
+}
+
+function closeEditModal() {
+    document.getElementById("editModal").style.display = "none";
+}
+
+/* SAVE EDIT */
+async function saveEdit() {
+    const name = document.getElementById("editName").value.trim();
+    const calories = parseInt(document.getElementById("editCalories").value);
+
+    if (!name || isNaN(calories)) {
+        alert("Enter valid name and calories");
+        return;
+    }
+
+    await currentUserRef.collection("quickadd").doc(editingItemId).update({
+        name,
+        calories
+    });
+
+    closeEditModal();
+    loadQuickAdd();
+}
+
+/* DELETE QUICK ADD */
+async function deleteQuickAdd(id) {
+    if (!confirm("Delete this Quick‑Add item?")) return;
+
+    await currentUserRef.collection("quickadd").doc(id).delete();
+    loadQuickAdd();
 }
 </script>
 
