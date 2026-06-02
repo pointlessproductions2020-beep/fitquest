@@ -12,8 +12,11 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-storage.js"></script>
 
-    <script defer src="firebase.js"></script>
-    <script src="fitquestBrain.js"></script>
+    <!-- Firebase config + globals -->
+    <script src="firebase.js"></script>
+
+    <!-- FitQuest Brain (lowercase) -->
+    <script src="fitquestbrain.js"></script>
 
     <style>
         .profile-view-layout {
@@ -239,6 +242,7 @@
     </section>
 </main>
 
+<!-- Profile logic (loads after firebase.js + brain) -->
 <script src="profile.js"></script>
 </body>
 </html>
