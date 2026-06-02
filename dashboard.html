@@ -18,10 +18,10 @@
     <!-- Firebase config + globals (auth, db, storage) -->
     <script src="firebase.js"></script>
 
-    <!-- FitQuest Brain (lowercase filename) -->
+    <!-- FitQuest Brain -->
     <script src="fitquestbrain.js"></script>
 
-    <!-- Neon breathing + rotation (local overrides if needed) -->
+    <!-- Neon breathing + rotation -->
     <style>
         :root {
             --neon: #00eaff;
@@ -37,10 +37,7 @@
             border: 1px solid var(--neon);
             box-shadow: 0 0 12px var(--neon), inset 0 0 6px var(--neon);
             animation: neonBreath 6s ease-in-out infinite;
-            transition:
-                border-color 4s linear,
-                box-shadow 4s linear,
-                background 0.8s ease;
+            transition: border-color 4s linear, box-shadow 4s linear, background 0.8s ease;
         }
 
         .xp-bar-container {
@@ -82,22 +79,29 @@
             gap: 12px;
         }
 
+        /* ⭐ Bigger dashboard avatar */
         .avatar-ring {
-            width: 64px;
-            height: 64px;
+            width: 110px;
+            height: 110px;
             border-radius: 50%;
-            border: 2px solid var(--neon);
+            border: 3px solid var(--neon);
             box-shadow: 0 0 14px var(--neon);
             display: flex;
             align-items: center;
             justify-content: center;
             position: relative;
             overflow: hidden;
+            transition: transform 0.25s ease-out;
+            cursor: pointer;
+        }
+
+        .avatar-ring:hover {
+            transform: scale(1.06);
         }
 
         .avatar-ring img {
-            width: 90%;
-            height: 90%;
+            width: 100%;
+            height: 100%;
             border-radius: 50%;
             object-fit: cover;
         }
@@ -170,12 +174,16 @@
 <aside class="sidebar">
     <div class="sidebar-logo">
         <img src="assets/logo.png" alt="FitQuest Logo">
-        <h3 class="neon-text">FitQuest</h3>
+        <!-- Removed FITQUEST text -->
     </div>
 
     <ul class="sidebar-links">
         <li class="active neon-hover">🏠 Dashboard</li>
-        <li class="neon-hover">🔥 Quests</li>
+
+        <!-- ⭐ NEW BUTTONS -->
+        <li class="neon-hover" onclick="window.location.href='exercise.html'">💪 Workout</li>
+        <li class="neon-hover" onclick="window.location.href='food.html'">🍽️ Food Intake</li>
+
         <li class="neon-hover" onclick="window.location.href='profile.html'">👤 Profile</li>
         <li class="neon-hover">📊 Progress</li>
         <li class="neon-hover">⚙️ Settings</li>
@@ -187,7 +195,7 @@
 <!-- MAIN CONTENT -->
 <main class="main-content">
 
-    <!-- HERO WITH AI TONE + AVATAR + XP -->
+    <!-- HERO -->
     <section class="hero-top">
         <div class="hero-left">
             <h1 class="page-title">
@@ -198,15 +206,17 @@
                 <div id="xpFill" class="xp-bar-fill"></div>
             </div>
         </div>
+
+        <!-- ⭐ Avatar clickable -->
         <div class="hero-right">
-            <div class="avatar-ring neon-interactive" id="heroAvatarRing">
+            <div class="avatar-ring neon-interactive" id="heroAvatarRing" onclick="window.location.href='profile.html'">
                 <img id="dashboardAvatar" src="assets/avatar-placeholder.png" alt="Avatar">
                 <span class="level-badge" id="heroLevelBadge">Lv 1</span>
             </div>
         </div>
     </section>
 
-    <!-- TOP SUMMARY ROW -->
+    <!-- SUMMARY CARDS -->
     <section class="top-summary-row">
 
         <div id="calorieCard" class="summary-card neon-card neon-interactive">
@@ -235,13 +245,13 @@
 
     </section>
 
-    <!-- AI DAILY INSIGHTS -->
+    <!-- INSIGHTS -->
     <section id="insightsBox" class="card neon-card" style="margin-top:16px; display:none;">
         <h2 class="neon-text">Daily Insights</h2>
         <ul id="insightsList"></ul>
     </section>
 
-    <!-- ADAPTIVE GOAL BOX -->
+    <!-- ADAPTIVE GOAL -->
     <section id="adaptiveBox" class="card neon-card" style="margin-top:14px; display:none;">
         <h2 class="neon-text">Smart Adjustment</h2>
         <p id="adaptiveText"></p>
@@ -252,7 +262,6 @@
     <!-- SECOND ROW -->
     <section class="row-2">
 
-        <!-- WORKOUT RING -->
         <div id="workoutCard" class="card large-card neon-card neon-interactive">
             <div class="card-header">
                 <h2 class="neon-text">Workout Progress</h2>
@@ -263,7 +272,6 @@
             <p class="ring-label">4 / 5 Workouts Completed</p>
         </div>
 
-        <!-- WEIGHT TREND -->
         <div id="weightCard" class="card large-card neon-card neon-interactive">
             <div class="card-header">
                 <h2 class="neon-text">Weight Trend</h2>
@@ -278,7 +286,6 @@
     <!-- THIRD ROW -->
     <section class="row-3">
 
-        <!-- BMI CALCULATOR -->
         <div id="bmiCalcCard" class="card neon-card neon-interactive">
             <div class="card-header">
                 <h2 class="neon-text">BMI Calculator</h2>
@@ -293,7 +300,6 @@
             </div>
         </div>
 
-        <!-- STEP TRACKER -->
         <div id="stepTrackerCard" class="card neon-card neon-interactive">
             <div class="card-header">
                 <h2 class="neon-text">Daily Step Tracker</h2>
@@ -331,10 +337,9 @@
     </div>
 </aside>
 
-<!-- MOBILE FLOATING BUTTON -->
+<!-- MOBILE -->
 <button class="mobile-classes-btn neon-interactive" onclick="openClassesMobile()">Classes</button>
 
-<!-- MOBILE SLIDE-UP PANEL -->
 <div id="mobileClassesPanel" class="mobile-panel">
     <div class="mobile-panel-header">
         <h3 class="neon-text">Upcoming Classes</h3>
@@ -396,7 +401,7 @@
     <canvas id="chartStepsMonthly"></canvas>
 </div>
 
-<!-- DASHBOARD LOGIC + AI BRAIN INTEGRATION -->
+<!-- DASHBOARD LOGIC -->
 <script>
 auth.onAuthStateChanged(async user => {
     if (!user) {
@@ -410,8 +415,9 @@ auth.onAuthStateChanged(async user => {
 
     const data = doc.data();
 
-    // Name
-    document.getElementById("userName").innerText = data.name || "Adventurer";
+    // ⭐ Nickname support
+    const displayName = data.nickname || data.name || "Adventurer";
+    document.getElementById("userName").innerText = displayName;
 
     // Avatar
     if (data.avatarUrl) {
@@ -424,6 +430,11 @@ auth.onAuthStateChanged(async user => {
     document.getElementById("heroLevelBadge").innerText = "Lv " + level;
     document.getElementById("xpFill").style.width = (xp % 100) + "%";
 
+    // ⭐ Calories Burned → Workout page
+    document.getElementById("burnCard").onclick = () => {
+        window.location.href = "exercise.html";
+    };
+
     // BMI + steps
     if (data.bmi) {
         document.getElementById("currentBMI").innerText = data.bmi.toFixed(1);
@@ -434,7 +445,7 @@ auth.onAuthStateChanged(async user => {
             `${data.stepsToday} / 10,000 Steps`;
     }
 
-    // Calorie brain
+        // Calorie brain
     const profile = {
         sex: data.sex,
         weightKg: data.weightKg,
@@ -605,7 +616,7 @@ function openUpgradeModal() {
 }
 </script>
 
-<!-- CHARTS + NEON INTERACTIONS (your own chart wiring if needed) -->
+<!-- CHARTS + NEON INTERACTIONS -->
 <script src="chart.js"></script>
 
 </body>
