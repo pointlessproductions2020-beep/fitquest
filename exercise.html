@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FitQuest — Workout Entry</title>
+    <link rel="stylesheet" href="styles.css">
+
+    <!-- Firebase -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
+
+    <script src="firebase.js"></script>
+    <script src="fitquestbrain.js"></script>
+
+    <style>
+        .exercise-layout {
+            display: grid;
+            grid-template-columns: 260px 1fr;
+            gap: 20px;
+        }
+
+        .exercise-card {
+            padding: 16px;
+        }
+
+        .exercise-list button {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 10px;
+            border-radius: 12px;
+            border: 1px solid var(--neon);
+            background: rgba(15,23,42,0.9);
+            color: var(--neon);
+            cursor: pointer;
+            font-size: 14px;
+            box-shadow: 0 0 12px var(--neon);
+        }
+
+        .exercise-list button:hover {
+            background: rgba(15,23,42,1);
+            box-shadow: 0 0 18px var(--neon);
+        }
+
+        .exercise-form label {
+            font-size: 12px;
+            opacity: 0.8;
+        }
+
+        .exercise-form input,
+        .exercise-form select {
+            width: 100%;
+            padding: 8px;
+            margin-top: 4px;
+            border-radius: 10px;
+            border: 1px solid rgba(148,163,184,0.4);
+            background: #020617;
+            color: #e5e7eb;
+        }
+
+        .exercise-form button {
+            margin-top: 14px;
+            padding: 10px;
+            border-radius: 999px;
+            border: none;
+            background: var(--neon);
+            color: #020617;
+            font-weight: 600;
+            cursor: pointer;
+            box-shadow: 0 0 18px var(--neon);
+        }
+
+        .exercise-result {
+            margin-top: 12px;
+            font-size: 14px;
+            color: #a5b4fc;
+        }
+    </style>
+</head>
+
+<body class="dashboard-body">
+
+<!-- SIDEBAR -->
+<aside class="sidebar">
+    <div class="sidebar-logo">
+        <img src="assets/logo.png" alt="FitQuest Logo">
+    </div>
+
+    <ul class="sidebar-links">
+        <li class="neon-hover" onclick="window.location.href='dashboard.html'">🏠 Dashboard</li>
+        <li class="neon-hover" onclick="window.location.href='food.html'">🍽️ Food Intake</li>
+        <li class="active neon-hover">💪 Workout</li>
+        <li class="neon-hover" onclick="window.location.href='profile.html'">👤 Profile</li>
+        <li class="neon-hover">📊 Progress</li>
+        <li class="neon-hover">⚙️ Settings</li>
+    </ul>
+
+    <button class="logout-btn neon-interactive" onclick="logoutUser()">Logout</button>
+</aside>
+
+<!-- MAIN -->
+<main class="main-content">
+    <h1 class="page-title">Workout Entry</h1>
+
+    <section class="exercise-layout">
+
+        <!-- LEFT: Exercise Types -->
+        <div class="card neon-card exercise-card">
+            <h2 class="neon-text" style="margin-bottom:10px;">Choose Exercise</h2>
+
+            <div class="exercise-list">
+                <button onclick="selectExercise('treadmill')">🏃‍♂️ Treadmill</button>
+                <button onclick="selectExercise('bike')">🚴 Exercise Bike</button>
+                <button onclick="selectExercise('rower')">🚣 Rowing Machine</button>
+                <button onclick="selectExercise('elliptical')">🌀 Elliptical</button>
+                <button onclick="selectExercise('strength')">🏋️ Strength Training</button>
+                <button onclick="selectExercise('custom')">✨ Custom Exercise</button>
+            </div>
+        </div>
+
+        <!-- RIGHT: Form -->
+        <div class="card neon-card exercise-card">
+            <h2 class="neon-text" id="exerciseTitle">Select an exercise</h2>
+
+            <div class="exercise-form" id="exerciseForm" style="display:none;">
+
+                <label>Duration (minutes)</label>
+                <input type="number" id="duration" min="1">
+
+                <label id="extraLabel" style="display:none;">Speed (km/h)</label>
+                <input type="number" id="speed" style="display:none;">
+
+                <label id="intensityLabel" style="display:none;">Intensity</label>
+                <select id="intensity" style="display:none;">
+                    <option value="light">Light</option>
+                    <option value="moderate">Moderate</option>
+                    <option value="vigorous">Vigorous</option>
+                </select>
+
+                <button onclick="calculateBurn()">Calculate Burn</button>
+
+                <p class="exercise-result" id="burnResult"></p>
+
+                <button onclick="saveExercise()" style="display:none;" id="saveBtn">Save Workout</button>
+            </div>
+        </div>
+
+    </section>
+</main>
+
+<script>
+let selectedExercise = null;
+let userWeight = 70; // fallback
+
+auth.onAuthStateChanged(async user => {
+    if (!user) return window.location.href = "index.html";
+
+    const doc = await db.collection("users").doc(user.uid).get();
+    if (doc.exists) {
+        const data = doc.data();
+        userWeight = data.weightKg || 70;
+    }
+});
+
+function selectExercise(type) {
+    selectedExercise = type;
+    document.getElementById("exerciseForm").style.display = "block";
+    document.getElementById("saveBtn").style.display = "none";
+    document.getElementById("burnResult").innerText = "";
+
+    const title = {
+        treadmill: "Treadmill",
+        bike: "Exercise Bike",
+        rower: "Rowing Machine",
+        elliptical: "Elliptical",
+        strength: "Strength Training",
+        custom: "Custom Exercise"
+    }[type];
+
+    document.getElementById("exerciseTitle").innerText = title;
+
+    // Reset fields
+    document.getElementById("speed").style.display = "none";
+    document.getElementById("extraLabel").style.display = "none";
+    document.getElementById("intensity").style.display = "none";
+    document.getElementById("intensityLabel").style.display = "none";
+
+    if (type === "treadmill") {
+        document.getElementById("speed").style.display = "block";
+        document.getElementById("extraLabel").style.display = "block";
+    }
+
+    if (["bike", "rower", "elliptical"].includes(type)) {
+        document.getElementById("intensity").style.display = "block";
+        document.getElementById("intensityLabel").style.display = "block";
+    }
+}
+
+function calculateBurn() {
+    const duration = parseFloat(document.getElementById("duration").value);
+    if (!duration) return alert("Enter duration");
+
+    let MET = 5;
+
+    if (selectedExercise === "treadmill") {
+        const speed = parseFloat(document.getElementById("speed").value);
+        if (!speed) return alert("Enter speed");
+        MET = speed < 5 ? 4 : speed < 7 ? 6 : 9;
+    }
+
+    if (selectedExercise === "bike") {
+        const intensity = document.getElementById("intensity").value;
+        MET = intensity === "light" ? 4 : intensity === "moderate" ? 6 : 8;
+    }
+
+    if (selectedExercise === "rower") {
+        const intensity = document.getElementById("intensity").value;
+        MET = intensity === "light" ? 3.5 : intensity === "moderate" ? 7 : 10;
+    }
+
+    if (selectedExercise === "elliptical") {
+        const intensity = document.getElementById("intensity").value;
+        MET = intensity === "light" ? 5 : intensity === "moderate" ? 6 : 8;
+    }
+
+    if (selectedExercise === "strength") MET = 3.5;
+    if (selectedExercise === "custom") MET = 5;
+
+    const calories = (MET * 3.5 * userWeight / 200) * duration;
+
+    document.getElementById("burnResult").innerText =
+        `Estimated Burn: ${Math.round(calories)} kcal`;
+
+    document.getElementById("saveBtn").style.display = "block";
+}
+
+async function saveExercise() {
+    const user = auth.currentUser;
+    if (!user) return;
+
+    const duration = parseFloat(document.getElementById("duration").value);
+    const burnText = document.getElementById("burnResult").innerText;
+    const calories = parseInt(burnText.replace(/\D/g, ""));
+
+    await db.collection("users").doc(user.uid).collection("workouts").add({
+        type: selectedExercise,
+        duration,
+        calories,
+        timestamp: Date.now()
+    });
+
+    FitQuestBrain.awardXp(db.collection("users").doc(user.uid), 15, "workout_logged");
+
+    alert("Workout saved!");
+}
+</script>
+
+</body>
+</html>
