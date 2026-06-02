@@ -151,7 +151,7 @@ function initProfileEdit(data) {
     });
 
     /* ---------------------------------------------------------
-       ⭐ FIXED AVATAR UPLOAD — correct bucket + CORS safe
+       ⭐ AVATAR UPLOAD WITH CLIENT-SIDE VALIDATION
     --------------------------------------------------------- */
     changePhotoBtn.addEventListener("click", () => photoInput.click());
 
@@ -159,13 +159,43 @@ function initProfileEdit(data) {
         const file = e.target.files[0];
         if (!file || !currentUser) return;
 
-        const avatarRef = storageRef.child(`avatars/${currentUser.uid}.jpg`);
+        // Allowed MIME types
+        const allowedTypes = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
 
-        await avatarRef.put(file);
-        const url = await avatarRef.getDownloadURL();
+        // Max size 2MB
+        const maxSize = 2 * 1024 * 1024;
 
-        await userRef.set({ avatarUrl: url }, { merge: true });
-        profileAvatar.src = url + "?t=" + Date.now();
+        // Validate type
+        if (!allowedTypes.includes(file.type)) {
+            alert("Please upload a JPG, JPEG, PNG, or WEBP image.");
+            return;
+        }
+
+        // Validate size
+        if (file.size > maxSize) {
+            alert("Image must be under 2MB.");
+            return;
+        }
+
+        // Determine correct extension
+        let ext = "jpg";
+        if (file.type === "image/jpeg") ext = "jpeg";
+        if (file.type === "image/png") ext = "png";
+        if (file.type === "image/webp") ext = "webp";
+
+        // Build correct filename
+        const avatarRef = storageRef.child(`avatars/${currentUser.uid}.${ext}`);
+
+        try {
+            await avatarRef.put(file);
+            const url = await avatarRef.getDownloadURL();
+
+            await userRef.set({ avatarUrl: url }, { merge: true });
+            profileAvatar.src = url + "?t=" + Date.now();
+        } catch (err) {
+            console.error(err);
+            alert("Upload failed. Please try again.");
+        }
     });
 
     // Save profile
