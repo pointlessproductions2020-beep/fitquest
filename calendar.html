@@ -1091,12 +1091,17 @@ function renderCalendar() {
         }
 
         if (!isOutside && !future) {
-            cell.addEventListener("click", () => {
-                selectedDate = cellDate;
-                renderCalendar(); // re-render to update selected state
-                renderDayDetail();
-            });
-        }
+    cell.addEventListener("click", () => {
+        selectedDate = cellDate;
+
+        // ⭐ Save globally so exercise/food/hydration pages know the date
+        localStorage.setItem("fitquest_selected_date", formatDateKey(cellDate));
+
+        renderCalendar(); // re-render to update selected state
+        renderDayDetail();
+    });
+}
+
 
         if (selectedDate && isSameDay(cellDate, selectedDate)) {
             cell.classList.add("selected");
