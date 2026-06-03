@@ -79,6 +79,7 @@
             margin-top: 12px;
             font-size: 14px;
             color: #a5b4fc;
+            white-space: pre-line;
         }
     </style>
 </head>
@@ -99,8 +100,8 @@
         <li class="neon-hover" onclick="window.location.href='barcode.html'">📷 Barcode Scanner</li>
         <li class="neon-hover" onclick="window.location.href='bmi.html'">📏 BMI Calculator</li>
         <li class="neon-hover" onclick="window.location.href='profile.html'">👤 Profile</li>
-        <li class="neon-hover">📊 Progress</li>
-        <li class="neon-hover">⚙️ Settings</li>
+        <li class="neon-hover" onclick="window.location.href='progress.html'">📊 Progress</li>
+        <li class="neon-hover" onclick="window.location.href='settings.html'">⚙️ Settings</li>
     </ul>
 
     <button class="logout-btn neon-interactive" onclick="logoutUser()">Logout</button>
@@ -159,14 +160,25 @@
 <script>
 let selectedExercise = null;
 let userRef = null;
-let userWeight = 70; // fallback
-let lastAutoSave = null; // prevent duplicate auto-saves
+let userWeight = 70;
+
+// ⭐ Read selected date from calendar
+let selectedLogDate = null;
+const storedDate = localStorage.getItem("fitquest_selected_date");
+
+if (storedDate) {
+    selectedLogDate = new Date(storedDate);
+    selectedLogDate.setHours(12,0,0,0);
+} else {
+    selectedLogDate = new Date();
+    selectedLogDate.setHours(12,0,0,0);
+}
 
 auth.onAuthStateChanged(async user => {
     if (!user) return window.location.href = "index.html";
 
-     await applyUserTheme();
-    
+    await applyUserTheme();
+
     userRef = db.collection("users").doc(user.uid);
 
     const doc = await userRef.get();
@@ -214,7 +226,7 @@ function selectExercise(type) {
 }
 
 /* -----------------------------------------------------------
-   CALCULATE CALORIES + STEPS (TREADMILL UPGRADE)
+   CALCULATE CALORIES
 ----------------------------------------------------------- */
 function calculateBurn() {
     const duration = parseFloat(document.getElementById("duration").value);
@@ -229,16 +241,10 @@ function calculateBurn() {
         const speed = parseFloat(document.getElementById("speed").value);
         if (!speed) return alert("Enter speed");
 
-        // MET based on speed
         MET = speed < 5 ? 4 : speed < 7 ? 6 : 9;
 
-        // Distance (km)
         distance = speed * (duration / 60);
-
-        // Steps (estimate)
         steps = Math.round(distance * 1312);
-
-        // Pace (min per km)
         pace = distance > 0 ? (duration / distance).toFixed(2) : 0;
     }
 
@@ -260,10 +266,9 @@ function calculateBurn() {
     if (selectedExercise === "strength") MET = 3.5;
     if (selectedExercise === "custom") MET = 5;
 
-    const calories = (MET * 3.5 * userWeight / 200) * duration;
+    const calories = Math.round((MET * 3.5 * userWeight / 200) * duration);
 
-    // Display results
-    let result = `Estimated Burn: ${Math.round(calories)} kcal`;
+    let result = `Estimated Burn: ${calories} kcal`;
 
     if (selectedExercise === "treadmill") {
         result += `\nDistance: ${distance.toFixed(2)} km`;
@@ -273,36 +278,10 @@ function calculateBurn() {
 
     document.getElementById("burnResult").innerText = result;
     document.getElementById("saveBtn").style.display = "block";
-
-    // Auto-save (Option C)
-    autoSaveWorkout(duration, Math.round(calories), distance, steps);
 }
 
 /* -----------------------------------------------------------
-   AUTO-SAVE WORKOUT (Option C)
------------------------------------------------------------ */
-async function autoSaveWorkout(duration, calories, distance = 0, steps = 0) {
-    if (!userRef) return;
-
-    const signature = `${selectedExercise}_${duration}_${calories}_${steps}`;
-    if (lastAutoSave === signature) return;
-    lastAutoSave = signature;
-
-    await userRef.collection("workouts").add({
-        type: selectedExercise,
-        durationMinutes: duration,
-        caloriesBurned: calories,
-        distanceKm: distance,
-        steps: steps,
-        timestamp: Date.now(),
-        xpAwarded: true
-    });
-
-    FitQuestBrain.awardXp(userRef, 1, "workout_session");
-}
-
-/* -----------------------------------------------------------
-   MANUAL SAVE (Finish Workout button)
+   MANUAL SAVE ONLY (No Auto-Save)
 ----------------------------------------------------------- */
 async function saveExercise() {
     if (!userRef) return;
@@ -310,7 +289,9 @@ async function saveExercise() {
     const duration = parseFloat(document.getElementById("duration").value);
     const burnText = document.getElementById("burnResult").innerText;
 
-    const calories = parseInt(burnText.replace(/\D/g, ""));
+    const caloriesMatch = burnText.match(/Estimated Burn: (\d+)/);
+    const calories = caloriesMatch ? parseInt(caloriesMatch[1]) : 0;
+
     const distanceMatch = burnText.match(/Distance: ([0-9.]+)/);
     const stepsMatch = burnText.match(/Steps: (\d+)/);
 
@@ -323,7 +304,7 @@ async function saveExercise() {
         caloriesBurned: calories,
         distanceKm: distance,
         steps: steps,
-        timestamp: Date.now(),
+        timestamp: selectedLogDate.getTime(),
         xpAwarded: true
     });
 
@@ -331,7 +312,6 @@ async function saveExercise() {
 
     alert("Workout saved!");
 }
-
 </script>
 
 </body>
