@@ -15,6 +15,11 @@
     <script src="fitquestbrain.js"></script>
 
     <style>
+        :root {
+            --neon: #00eaff;
+            --neon-soft: rgba(0,234,255,0.2);
+        }
+
         .food-layout {
             display: grid;
             grid-template-columns: 300px 1fr;
@@ -25,19 +30,24 @@
             padding: 16px;
         }
 
-        /* QUICK ADD BUTTONS */
+        /* QUICK ADD */
+        #quickAddList {
+            max-height: 420px;
+            overflow-y: auto;
+        }
+
         .quick-item {
             position: relative;
             width: 100%;
-            padding: 10px;
+            padding: 10px 12px;
             margin-bottom: 10px;
-            border-radius: 12px;
+            border-radius: 999px;
             border: 1px solid var(--neon);
             background: rgba(15,23,42,0.9);
             color: var(--neon);
             cursor: pointer;
             font-size: 14px;
-            box-shadow: 0 0 12px var(--neon);
+            box-shadow: 0 0 12px var(--neon-soft);
             display: flex;
             justify-content: space-between;
             align-items: center;
@@ -48,10 +58,23 @@
             box-shadow: 0 0 18px var(--neon);
         }
 
-        /* EDIT/DELETE BUTTONS */
+        .quick-main {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .quick-name {
+            font-weight: 500;
+        }
+
+        .quick-kcal {
+            font-size: 12px;
+            opacity: 0.8;
+        }
+
         .quick-controls {
             display: flex;
-            gap: 8px;
+            gap: 6px;
             opacity: 0;
             transition: opacity 0.2s ease;
         }
@@ -60,7 +83,6 @@
             opacity: 1;
         }
 
-        /* MOBILE ALWAYS SHOW CONTROLS */
         @media (hover: none) {
             .quick-controls {
                 opacity: 1 !important;
@@ -72,7 +94,7 @@
             border-radius: 999px;
             background: var(--neon);
             color: #020617;
-            font-size: 12px;
+            font-size: 11px;
             cursor: pointer;
             border: none;
         }
@@ -80,6 +102,12 @@
         .quick-btn.delete {
             background: #ef4444;
             color: white;
+        }
+
+        .quick-limit-note {
+            font-size: 11px;
+            opacity: 0.7;
+            margin-top: 6px;
         }
 
         /* MANUAL ENTRY */
@@ -108,6 +136,160 @@
             font-weight: 600;
             cursor: pointer;
             box-shadow: 0 0 18px var(--neon);
+        }
+
+        .food-checkbox-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: 10px;
+            font-size: 12px;
+            opacity: 0.85;
+        }
+
+        .food-checkbox-row input {
+            width: auto;
+        }
+
+        .food-result {
+            margin-top: 10px;
+            font-size: 13px;
+            color: #a5b4fc;
+        }
+
+        /* DAILY LIST (NEON PILLS) */
+        .daily-section {
+            margin-top: 20px;
+        }
+
+        .daily-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            margin-bottom: 8px;
+        }
+
+        .daily-header span {
+            font-size: 13px;
+            opacity: 0.8;
+        }
+
+        #dailyFoodList {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-bottom: 10px;
+        }
+
+        .food-pill {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 12px;
+            border-radius: 999px;
+            border: 1px solid var(--neon);
+            background: radial-gradient(circle at top left, rgba(0,234,255,0.18), #020617);
+            color: #e5e7eb;
+            box-shadow: 0 0 14px var(--neon-soft);
+            font-size: 13px;
+        }
+
+        .food-pill-main {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .food-pill-name {
+            font-weight: 500;
+        }
+
+        .food-pill-kcal {
+            font-size: 11px;
+            opacity: 0.8;
+        }
+
+        .food-pill-delete {
+            border-radius: 999px;
+            border: none;
+            background: #ef4444;
+            color: white;
+            font-size: 11px;
+            padding: 4px 10px;
+            cursor: pointer;
+            box-shadow: 0 0 12px rgba(239,68,68,0.6);
+        }
+
+        #dailyTotal {
+            font-size: 13px;
+            opacity: 0.9;
+        }
+
+        /* MINI CALENDAR */
+        .mini-calendar {
+            margin-top: 18px;
+            padding-top: 12px;
+            border-top: 1px solid rgba(148,163,184,0.3);
+        }
+
+        .mini-cal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 6px;
+        }
+
+        .mini-cal-header button {
+            background: transparent;
+            border: 1px solid rgba(148,163,184,0.5);
+            color: #e5e7eb;
+            border-radius: 999px;
+            padding: 2px 8px;
+            font-size: 11px;
+            cursor: pointer;
+        }
+
+        .mini-cal-header span {
+            font-size: 13px;
+            font-weight: 500;
+        }
+
+        .mini-cal-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 4px;
+            font-size: 11px;
+        }
+
+        .mini-cal-dayname {
+            text-align: center;
+            opacity: 0.6;
+        }
+
+        .mini-cal-cell {
+            text-align: center;
+            padding: 4px 0;
+            border-radius: 6px;
+            cursor: pointer;
+            border: 1px solid transparent;
+        }
+
+        .mini-cal-cell.disabled {
+            opacity: 0.25;
+            cursor: default;
+        }
+
+        .mini-cal-cell.selected {
+            border-color: var(--neon);
+            background: rgba(0,234,255,0.15);
+            box-shadow: 0 0 10px var(--neon-soft);
+        }
+
+        .mini-cal-cell.today {
+            border-color: rgba(148,163,184,0.7);
+        }
+
+        .mini-cal-cell:hover:not(.disabled):not(.selected) {
+            background: rgba(15,23,42,0.9);
         }
 
         /* EDIT MODAL */
@@ -167,10 +349,12 @@
         <li class="neon-hover" onclick="window.location.href='dashboard.html'">🏠 Dashboard</li>
         <li class="active neon-hover">🍽️ Food Intake</li>
         <li class="neon-hover" onclick="window.location.href='exercise.html'">💪 Workout</li>
+        <li class="neon-hover" onclick="window.location.href='meals.html'">🍱 Meals</li>
         <li class="neon-hover" onclick="window.location.href='barcode.html'">📷 Barcode Scanner</li>
+        <li class="neon-hover" onclick="window.location.href='bmi.html'">📏 BMI Calculator</li>
         <li class="neon-hover" onclick="window.location.href='profile.html'">👤 Profile</li>
-        <li class="neon-hover">📊 Progress</li>
-        <li class="neon-hover">⚙️ Settings</li>
+        <li class="neon-hover" onclick="window.location.href='progress.html'">📊 Progress</li>
+        <li class="neon-hover" onclick="window.location.href='settings.html'">⚙️ Settings</li>
     </ul>
 
     <button class="logout-btn neon-interactive" onclick="logoutUser()">Logout</button>
@@ -184,12 +368,12 @@
 
         <!-- LEFT: Quick Add -->
         <div class="card neon-card food-card">
-            <h2 class="neon-text" style="margin-bottom:10px;">Quick Add</h2>
-
+            <h2 class="neon-text" style="margin-bottom:10px;">Quick‑Add</h2>
+            <p class="quick-limit-note">Up to 20 favourites. Tap to log to the selected day.</p>
             <div id="quickAddList"></div>
         </div>
 
-        <!-- RIGHT: Manual Entry -->
+        <!-- RIGHT: Manual + Daily List + Mini Calendar -->
         <div class="card neon-card food-card">
             <h2 class="neon-text">Manual Entry</h2>
 
@@ -200,13 +384,34 @@
                 <label>Calories</label>
                 <input type="number" id="foodCalories" min="0">
 
+                <div class="food-checkbox-row">
+                    <input type="checkbox" id="addToQuick">
+                    <label for="addToQuick">Also save this to Quick‑Add</label>
+                </div>
+
                 <button onclick="saveManual()">Add Entry</button>
 
-                <button style="background:#38bdf8; margin-top:8px;" onclick="saveToQuickAdd()">
-                    ⭐ Save to Quick‑Add
-                </button>
-
                 <p class="food-result" id="foodResult"></p>
+            </div>
+
+            <!-- DAILY LIST -->
+            <div class="daily-section">
+                <div class="daily-header">
+                    <h3 class="neon-text" style="font-size:16px;">Today’s Intake</h3>
+                    <span id="dailyDateLabel"></span>
+                </div>
+                <div id="dailyFoodList"></div>
+                <p id="dailyTotal"></p>
+            </div>
+
+            <!-- MINI CALENDAR -->
+            <div class="mini-calendar">
+                <div class="mini-cal-header">
+                    <button onclick="shiftMonth(-1)">&lt;</button>
+                    <span id="miniCalMonthLabel"></span>
+                    <button onclick="shiftMonth(1)">&gt;</button>
+                </div>
+                <div class="mini-cal-grid" id="miniCalGrid"></div>
             </div>
         </div>
 
@@ -232,55 +437,120 @@
 <script>
 let currentUserRef = null;
 let editingItemId = null;
+const QUICK_ADD_LIMIT = 20;
+
+// date used for logging + daily list
+let selectedLogDate = null;
+// month shown in mini calendar
+let miniCalYear = null;
+let miniCalMonth = null;
 
 auth.onAuthStateChanged(async user => {
     if (!user) return window.location.href = "index.html";
+
+    await applyUserTheme();
+
     currentUserRef = db.collection("users").doc(user.uid);
+
+    // initialise selected date from calendar or today
+    const storedDate = localStorage.getItem("fitquest_selected_date");
+    if (storedDate) {
+        selectedLogDate = new Date(storedDate);
+    } else {
+        selectedLogDate = new Date();
+    }
+    selectedLogDate.setHours(12,0,0,0);
+
+    miniCalYear = selectedLogDate.getFullYear();
+    miniCalMonth = selectedLogDate.getMonth();
+
+    renderMiniCalendar();
+    updateDailyDateLabel();
     loadQuickAdd();
+    loadDailyFood();
 });
 
-/* LOAD QUICK ADD */
+/* UTILITIES */
+function formatDateKey(date) {
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, "0");
+    const d = String(date.getDate()).padStart(2, "0");
+    return `${y}-${m}-${d}`;
+}
+
+function formatPrettyDate(date) {
+    return date.toLocaleDateString(undefined, {
+        weekday: "long",
+        day: "numeric",
+        month: "long",
+        year: "numeric"
+    });
+}
+
+function startOfDayMs(date) {
+    const d = new Date(date);
+    d.setHours(0,0,0,0);
+    return d.getTime();
+}
+
+function endOfDayMs(date) {
+    const d = new Date(date);
+    d.setHours(23,59,59,999);
+    return d.getTime();
+}
+
+/* QUICK ADD */
 async function loadQuickAdd() {
     const list = document.getElementById("quickAddList");
     list.innerHTML = "";
 
-    const snap = await currentUserRef.collection("quickadd").orderBy("timestamp", "desc").get();
+    const snap = await currentUserRef
+        .collection("quickadd")
+        .orderBy("timestamp", "desc")
+        .get();
 
     snap.forEach(doc => {
         const item = doc.data();
         const div = document.createElement("div");
         div.className = "quick-item";
 
+        div.onclick = () => quickAddLog(item.name, item.calories);
+
         div.innerHTML = `
-            <span>${item.name} — ${item.calories} kcal</span>
+            <div class="quick-main">
+                <span class="quick-name">${item.name}</span>
+                <span class="quick-kcal">${item.calories} kcal</span>
+            </div>
             <div class="quick-controls">
-                <button class="quick-btn" onclick="openEditModal('${doc.id}', '${item.name}', ${item.calories}); event.stopPropagation();">✏️ Edit</button>
-                <button class="quick-btn delete" onclick="deleteQuickAdd('${doc.id}'); event.stopPropagation();">🗑️ Delete</button>
+                <button class="quick-btn" onclick="openEditModal('${doc.id}', '${item.name.replace(/'/g, "\\'")}', ${item.calories}); event.stopPropagation();">✏️</button>
+                <button class="quick-btn delete" onclick="deleteQuickAdd('${doc.id}'); event.stopPropagation();">🗑️</button>
             </div>
         `;
-
-        div.onclick = () => quickAddLog(item.name, item.calories);
 
         list.appendChild(div);
     });
 }
 
-/* LOG QUICK ADD ITEM */
 async function quickAddLog(name, calories) {
+    if (!currentUserRef) return;
+
     await currentUserRef.collection("food").add({
         name,
         calories,
-        timestamp: Date.now()
+        timestamp: selectedLogDate.getTime()
     });
 
     FitQuestBrain.awardXp(currentUserRef, 10, "food_logged");
-    alert(`${name} added!`);
+    loadDailyFood();
 }
 
-/* SAVE MANUAL ENTRY */
+/* MANUAL ENTRY */
 async function saveManual() {
+    if (!currentUserRef) return;
+
     const name = document.getElementById("foodName").value.trim();
     const calories = parseInt(document.getElementById("foodCalories").value);
+    const addToQuick = document.getElementById("addToQuick").checked;
 
     if (!name || isNaN(calories)) {
         alert("Enter food name and calories");
@@ -290,25 +560,30 @@ async function saveManual() {
     await currentUserRef.collection("food").add({
         name,
         calories,
-        timestamp: Date.now()
+        timestamp: selectedLogDate.getTime()
     });
 
     FitQuestBrain.awardXp(currentUserRef, 10, "food_logged");
+
+    if (addToQuick) {
+        await saveToQuickAddInternal(name, calories);
+    }
 
     document.getElementById("foodResult").innerText =
         `${name} logged: ${calories} kcal`;
 
     document.getElementById("foodName").value = "";
     document.getElementById("foodCalories").value = "";
+    document.getElementById("addToQuick").checked = false;
+
+    loadDailyFood();
 }
 
-/* SAVE TO QUICK ADD */
-async function saveToQuickAdd() {
-    const name = document.getElementById("foodName").value.trim();
-    const calories = parseInt(document.getElementById("foodCalories").value);
-
-    if (!name || isNaN(calories)) {
-        alert("Enter food name and calories first");
+/* SAVE TO QUICK ADD (INTERNAL) */
+async function saveToQuickAddInternal(name, calories) {
+    const snap = await currentUserRef.collection("quickadd").get();
+    if (snap.size >= QUICK_ADD_LIMIT) {
+        alert(`Quick‑Add is full (limit ${QUICK_ADD_LIMIT}). Delete something to add a new favourite.`);
         return;
     }
 
@@ -318,7 +593,6 @@ async function saveToQuickAdd() {
         timestamp: Date.now()
     });
 
-    alert(`${name} saved to Quick‑Add!`);
     loadQuickAdd();
 }
 
@@ -359,6 +633,136 @@ async function deleteQuickAdd(id) {
 
     await currentUserRef.collection("quickadd").doc(id).delete();
     loadQuickAdd();
+}
+
+/* DAILY FOOD LIST */
+async function loadDailyFood() {
+    if (!currentUserRef || !selectedLogDate) return;
+
+    const listEl = document.getElementById("dailyFoodList");
+    const totalEl = document.getElementById("dailyTotal");
+
+    listEl.innerHTML = "";
+    totalEl.innerText = "";
+
+    const start = startOfDayMs(selectedLogDate);
+    const end = endOfDayMs(selectedLogDate);
+
+    const snap = await currentUserRef.collection("food")
+        .where("timestamp", ">=", start)
+        .where("timestamp", "<=", end)
+        .orderBy("timestamp", "asc")
+        .get();
+
+    let total = 0;
+
+    snap.forEach(doc => {
+        const item = doc.data();
+        total += item.calories || 0;
+
+        const pill = document.createElement("div");
+        pill.className = "food-pill";
+
+        pill.innerHTML = `
+            <div class="food-pill-main">
+                <span class="food-pill-name">${item.name}</span>
+                <span class="food-pill-kcal">${item.calories || 0} kcal</span>
+            </div>
+            <button class="food-pill-delete" onclick="deleteFoodEntry('${doc.id}')">✖</button>
+        `;
+
+        listEl.appendChild(pill);
+    });
+
+    if (snap.empty) {
+        listEl.innerHTML = `<span style="font-size:12px; opacity:0.7;">No food logged for this day yet.</span>`;
+    }
+
+    totalEl.innerText = `Total: ${total} kcal`;
+}
+
+async function deleteFoodEntry(id) {
+    if (!currentUserRef) return;
+    if (!confirm("Remove this food entry from this day?")) return;
+
+    await currentUserRef.collection("food").doc(id).delete();
+    loadDailyFood();
+}
+
+/* MINI CALENDAR */
+function updateDailyDateLabel() {
+    document.getElementById("dailyDateLabel").innerText = formatPrettyDate(selectedLogDate);
+}
+
+function renderMiniCalendar() {
+    const grid = document.getElementById("miniCalGrid");
+    const label = document.getElementById("miniCalMonthLabel");
+    grid.innerHTML = "";
+
+    const monthDate = new Date(miniCalYear, miniCalMonth, 1);
+    label.innerText = monthDate.toLocaleDateString(undefined, {
+        month: "long",
+        year: "numeric"
+    });
+
+    const dayNames = ["M","T","W","T","F","S","S"];
+    dayNames.forEach(d => {
+        const el = document.createElement("div");
+        el.className = "mini-cal-dayname";
+        el.innerText = d;
+        grid.appendChild(el);
+    });
+
+    const firstDay = (monthDate.getDay() + 6) % 7; // make Monday=0
+    const daysInMonth = new Date(miniCalYear, miniCalMonth + 1, 0).getDate();
+
+    for (let i = 0; i < firstDay; i++) {
+        const empty = document.createElement("div");
+        empty.className = "mini-cal-cell disabled";
+        grid.appendChild(empty);
+    }
+
+    const today = new Date();
+    today.setHours(12,0,0,0);
+
+    for (let d = 1; d <= daysInMonth; d++) {
+        const cellDate = new Date(miniCalYear, miniCalMonth, d);
+        cellDate.setHours(12,0,0,0);
+
+        const cell = document.createElement("div");
+        cell.className = "mini-cal-cell";
+        cell.innerText = d;
+
+        if (cellDate.getTime() === today.getTime()) {
+            cell.classList.add("today");
+        }
+
+        if (cellDate.getTime() === selectedLogDate.getTime()) {
+            cell.classList.add("selected");
+        }
+
+        cell.onclick = () => {
+            selectedLogDate = cellDate;
+            localStorage.setItem("fitquest_selected_date", formatDateKey(cellDate));
+            renderMiniCalendar();
+            updateDailyDateLabel();
+            loadDailyFood();
+        };
+
+        grid.appendChild(cell);
+    }
+}
+
+function shiftMonth(delta) {
+    miniCalMonth += delta;
+    if (miniCalMonth < 0) {
+        miniCalMonth = 11;
+        miniCalYear--;
+    } else if (miniCalMonth > 11) {
+        miniCalMonth = 0;
+        miniCalYear++;
+    }
+    renderMiniCalendar();
 }
 </script>
 
