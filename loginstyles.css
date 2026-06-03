@@ -1,70 +1,80 @@
 /* ---------------------------------------------------
-   GLOBAL
+   GLOBAL RESET
 --------------------------------------------------- */
-
-*,
-*::before,
-*::after {
+* {
+    margin: 0;
+    padding: 0;
     box-sizing: border-box;
+    font-family: "Inter", sans-serif;
 }
 
 body.auth-body {
-    margin: 0;
-    padding: 0;
-    min-height: 100vh;
-    font-family: 'Inter', system-ui, sans-serif;
-    color: #e5e7eb;
-
-    /* HYBRID NEON BACKGROUND */
-    background:
-        radial-gradient(circle at top, #111827 0, #020617 55%),
-        radial-gradient(circle at bottom, #020617 0, #000 60%);
-    animation: neonBG 12s linear infinite;
-    background-size: 200% 200%;
+    background: #0a0a0f;
+    color: #fff;
     overflow: hidden;
 }
 
-@keyframes neonBG {
-    0%   { background-position: 0% 0%; }
-    25%  { background-position: 100% 0%; }
-    50%  { background-position: 100% 100%; }
-    75%  { background-position: 0% 100%; }
-    100% { background-position: 0% 0%; }
+/* ---------------------------------------------------
+   LAYOUT
+--------------------------------------------------- */
+.auth-shell {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    height: 100vh;
+    position: relative;
+    z-index: 1;
 }
 
 /* ---------------------------------------------------
-   LAYOUT SHELL
+   LEFT HERO PANEL
 --------------------------------------------------- */
-
-.auth-shell {
-    position: relative;
-    z-index: 2;
-    display: grid;
-    grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
-    min-height: 100vh;
-}
-
-/* LEFT HERO */
 .auth-hero {
     display: flex;
-    align-items: center;
     justify-content: center;
-    padding: 40px 48px;
+    align-items: center;
+    padding: 40px;
+    pointer-events: none; /* prevents blocking form */
 }
 
 .hero-inner {
     max-width: 420px;
+    text-align: center;
+}
+
+.hero-title {
+    font-size: 2.6rem;
+    font-weight: 700;
+    margin-top: 20px;
+}
+
+.hero-subtitle {
+    margin-top: 10px;
+    font-size: 1rem;
+    opacity: 0.8;
+    line-height: 1.5;
+}
+
+.hero-points {
+    list-style: none;
+    margin-top: 25px;
+    font-size: 0.95rem;
+    opacity: 0.9;
+}
+
+.hero-points li {
+    margin: 8px 0;
 }
 
 /* ---------------------------------------------------
-   DUAL-LAYER NEON LOGO RING
+   LOGO RING
 --------------------------------------------------- */
-
 .logo-ring {
+    width: 160px;
+    height: 160px;
+    border-radius: 50%;
+    margin: 0 auto;
     position: relative;
-    width: 180px;
-    height: 180px;
-    margin-bottom: 20px;
+    pointer-events: none; /* prevents blocking form */
 }
 
 .logo-ring-inner {
@@ -72,254 +82,143 @@ body.auth-body {
     inset: 0;
     border-radius: 50%;
     background: conic-gradient(
+        from 0deg,
         #00eaff,
         #7b2fff,
         #ff00ff,
         #ff8800,
         #00eaff
     );
-    animation: ringSpin 6s linear infinite;
-    filter: blur(18px);
-    opacity: 0.7;
-}
-
-@keyframes ringSpin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
+    animation: spin 12s linear infinite;
+    filter: blur(6px);
 }
 
 .logo {
+    width: 90px;
+    height: 90px;
     position: absolute;
-    inset: 20px;
-    width: 140px;
-    height: 140px;
-    object-fit: contain;
-    border-radius: 50%;
-    background: #020617;
-    padding: 10px;
-
-    /* INNER SHARP RING */
-    box-shadow:
-        0 0 12px #00eaff,
-        0 0 22px #7b2fff inset,
-        0 0 18px #ff00ff inset;
-    animation: logoHue 8s linear infinite;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
 }
 
-@keyframes logoHue {
-    0%   { filter: hue-rotate(0deg); }
-    100% { filter: hue-rotate(360deg); }
-}
-
-/* ---------------------------------------------------
-   HERO TEXT
---------------------------------------------------- */
-
-.hero-title {
-    font-size: 2.2rem;
-    margin: 0 0 6px;
-}
-
-.hero-subtitle {
-    margin: 0 0 16px;
-    color: #9ca3af;
-    font-size: 0.95rem;
-}
-
-.hero-points {
-    list-style: none;
-    padding: 0;
-    margin: 0;
-    color: #9ca3af;
-    font-size: 0.9rem;
-}
-
-.hero-points li + li {
-    margin-top: 6px;
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
 }
 
 /* ---------------------------------------------------
    RIGHT PANEL
 --------------------------------------------------- */
-
 .auth-panel {
     display: flex;
-    align-items: center;
     justify-content: center;
-    padding: 40px 24px;
+    align-items: center;
+    padding: 40px;
+    z-index: 5;
+    pointer-events: auto;
 }
-
-/* ---------------------------------------------------
-   FORM CARD
---------------------------------------------------- */
 
 .form-card {
     width: 100%;
     max-width: 380px;
-    padding: 28px 26px 26px;
-    border-radius: 18px;
-    background: #050816;
-    box-shadow: 0 0 30px rgba(15,23,42,0.9);
-    position: relative;
-    overflow: hidden;
+    padding: 35px;
+    border-radius: 16px;
+    background: rgba(255, 255, 255, 0.06);
+    backdrop-filter: blur(14px);
+    box-shadow: 0 0 25px rgba(0, 0, 0, 0.4);
+    pointer-events: auto;
 }
 
-/* GLASS NEON EDGE */
-.glass-card::before {
-    content: "";
-    position: absolute;
-    inset: -1px;
-    border-radius: inherit;
-    padding: 1px;
-    background: linear-gradient(
-        135deg,
-        rgba(56,189,248,0.9),
-        rgba(168,85,247,0.9),
-        rgba(248,250,252,0.1)
-    );
-    -webkit-mask:
-        linear-gradient(#000 0 0) content-box,
-        linear-gradient(#000 0 0);
-    -webkit-mask-composite: xor;
-    mask-composite: exclude;
-    opacity: 0.9;
-}
-
-/* Titles */
 .form-title {
-    margin: 0 0 4px;
-    text-align: left;
-    font-size: 1.3rem;
+    font-size: 1.8rem;
+    font-weight: 700;
 }
 
 .form-subtitle {
-    margin: 0 0 18px;
-    text-align: left;
-    font-size: 0.9rem;
-    color: #9ca3af;
+    margin-top: 6px;
+    opacity: 0.8;
+    font-size: 0.95rem;
 }
 
-/* Fields */
 .field-label {
     display: block;
-    font-size: 0.8rem;
-    color: #9ca3af;
-    margin-bottom: 4px;
-}
-
-.form-card input {
-    width: 100%;
-    padding: 11px 11px;
-    margin-bottom: 14px;
-    border-radius: 10px;
-    border: 1px solid #1f2937;
-    background: #020617;
-    color: #e5e7eb;
+    margin-top: 18px;
+    margin-bottom: 6px;
     font-size: 0.9rem;
+    opacity: 0.9;
+}
+
+input {
+    width: 100%;
+    padding: 12px 14px;
+    border-radius: 10px;
+    border: none;
     outline: none;
-    transition: 0.18s ease;
+    background: rgba(255, 255, 255, 0.12);
+    color: #fff;
+    font-size: 0.95rem;
 }
-
-.form-card input:focus {
-    border-color: #0ea5e9;
-    box-shadow: 0 0 10px rgba(56,189,248,0.6);
-}
-
-/* ---------------------------------------------------
-   BUTTON
---------------------------------------------------- */
 
 .primary-btn {
     width: 100%;
-    padding: 13px;
-    margin-top: 4px;
-    border-radius: 999px;
+    margin-top: 22px;
+    padding: 14px;
     border: none;
-    color: #020617;
-    font-size: 0.95rem;
+    border-radius: 12px;
+    font-size: 1rem;
     font-weight: 600;
     cursor: pointer;
-
-    background: linear-gradient(
-        90deg,
-        #22c55e,
-        #0ea5e9,
-        #a855f7,
-        #f97316,
-        #22c55e
-    );
-    background-size: 260% 100%;
-    animation: neonButton 9s linear infinite;
-    box-shadow: 0 0 18px rgba(56,189,248,0.6);
-    transition: transform 0.18s ease, box-shadow 0.18s ease;
-}
-
-@keyframes neonButton {
-    0% { background-position: 0% 0; }
-    100% { background-position: 260% 0; }
+    background: linear-gradient(90deg, #00eaff, #7b2fff);
+    color: #fff;
+    transition: 0.2s ease;
 }
 
 .primary-btn:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 0 22px rgba(56,189,248,0.9);
+    transform: translateY(-2px);
+    opacity: 0.9;
 }
 
-/* ---------------------------------------------------
-   SMALL TEXT
---------------------------------------------------- */
-
 .small-text {
-    text-align: center;
-    margin-top: 10px;
-    font-size: 0.8rem;
-    color: #9ca3af;
+    margin-top: 14px;
+    font-size: 0.85rem;
+    opacity: 0.8;
 }
 
 .small-text a {
-    color: #0ea5e9;
+    color: #00eaff;
     text-decoration: none;
 }
 
 /* ---------------------------------------------------
-   BACKGROUND GRID OVERLAY
+   GRID OVERLAY (NON-INTERACTIVE)
 --------------------------------------------------- */
-
 .auth-grid-overlay {
     position: fixed;
     inset: 0;
-    background-image:
-        linear-gradient(rgba(15,23,42,0.7) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(15,23,42,0.7) 1px, transparent 1px);
+    background-image: linear-gradient(
+        rgba(255, 255, 255, 0.04) 1px,
+        transparent 1px
+    ),
+    linear-gradient(
+        90deg,
+        rgba(255, 255, 255, 0.04) 1px,
+        transparent 1px
+    );
     background-size: 40px 40px;
-    opacity: 0.35;
-    pointer-events: none;
-    z-index: 1;
-    animation: gridDrift 40s linear infinite;
-}
-
-@keyframes gridDrift {
-    0% { transform: translate3d(0,0,0); }
-    100% { transform: translate3d(-40px,-40px,0); }
+    z-index: 0;
+    pointer-events: none; /* prevents blocking form */
 }
 
 /* ---------------------------------------------------
-   MOBILE
+   RESPONSIVE
 --------------------------------------------------- */
-
 @media (max-width: 900px) {
     .auth-shell {
-        grid-template-columns: minmax(0, 1fr);
+        grid-template-columns: 1fr;
     }
 
     .auth-hero {
         display: none;
-    }
-
-    .auth-panel {
-        padding: 32px 18px;
-    }
-
-    .form-card {
-        max-width: 360px;
     }
 }
