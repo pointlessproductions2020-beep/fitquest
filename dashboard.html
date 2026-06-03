@@ -424,6 +424,8 @@ auth.onAuthStateChanged(async user => {
         return;
     }
 
+    await applyUserTheme();   // ⭐ THE FIX
+
     const userRef = db.collection("users").doc(user.uid);
     const doc = await userRef.get();
     if (!doc.exists) return;
