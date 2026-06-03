@@ -15,6 +15,10 @@
     <script src="fitquestbrain.js"></script>
 
     <style>
+        :root {
+            --neon: #00eaff;
+        }
+
         .exercise-layout {
             display: grid;
             grid-template-columns: 260px 1fr;
@@ -91,6 +95,9 @@
         <li class="neon-hover" onclick="window.location.href='dashboard.html'">🏠 Dashboard</li>
         <li class="neon-hover" onclick="window.location.href='food.html'">🍽️ Food Intake</li>
         <li class="active neon-hover">💪 Workout</li>
+        <li class="neon-hover" onclick="window.location.href='meals.html'">🍱 Meals</li>
+        <li class="neon-hover" onclick="window.location.href='barcode.html'">📷 Barcode Scanner</li>
+        <li class="neon-hover" onclick="window.location.href='bmi.html'">📏 BMI Calculator</li>
         <li class="neon-hover" onclick="window.location.href='profile.html'">👤 Profile</li>
         <li class="neon-hover">📊 Progress</li>
         <li class="neon-hover">⚙️ Settings</li>
@@ -151,18 +158,24 @@
 
 <script>
 let selectedExercise = null;
+let userRef = null;
 let userWeight = 70; // fallback
+let lastAutoSave = null; // prevent duplicate auto-saves
 
 auth.onAuthStateChanged(async user => {
     if (!user) return window.location.href = "index.html";
+    userRef = db.collection("users").doc(user.uid);
 
-    const doc = await db.collection("users").doc(user.uid).get();
+    const doc = await userRef.get();
     if (doc.exists) {
         const data = doc.data();
         userWeight = data.weightKg || 70;
     }
 });
 
+/* -----------------------------------------------------------
+   SELECT EXERCISE
+----------------------------------------------------------- */
 function selectExercise(type) {
     selectedExercise = type;
     document.getElementById("exerciseForm").style.display = "block";
@@ -197,6 +210,9 @@ function selectExercise(type) {
     }
 }
 
+/* -----------------------------------------------------------
+   CALCULATE CALORIES
+----------------------------------------------------------- */
 function calculateBurn() {
     const duration = parseFloat(document.getElementById("duration").value);
     if (!duration) return alert("Enter duration");
@@ -233,24 +249,52 @@ function calculateBurn() {
         `Estimated Burn: ${Math.round(calories)} kcal`;
 
     document.getElementById("saveBtn").style.display = "block";
+
+    // Auto-save (Option C)
+    autoSaveWorkout(duration, Math.round(calories));
 }
 
+/* -----------------------------------------------------------
+   AUTO-SAVE WORKOUT (Option C)
+----------------------------------------------------------- */
+async function autoSaveWorkout(duration, calories) {
+    if (!userRef) return;
+
+    // Prevent duplicate auto-saves
+    const signature = `${selectedExercise}_${duration}_${calories}`;
+    if (lastAutoSave === signature) return;
+    lastAutoSave = signature;
+
+    await userRef.collection("workouts").add({
+        type: selectedExercise,
+        durationMinutes: duration,
+        caloriesBurned: calories,
+        timestamp: Date.now(),
+        xpAwarded: true
+    });
+
+    FitQuestBrain.awardXp(userRef, 1, "workout_session"); // 1 XP per session
+}
+
+/* -----------------------------------------------------------
+   MANUAL SAVE (Finish Workout button)
+----------------------------------------------------------- */
 async function saveExercise() {
-    const user = auth.currentUser;
-    if (!user) return;
+    if (!userRef) return;
 
     const duration = parseFloat(document.getElementById("duration").value);
     const burnText = document.getElementById("burnResult").innerText;
     const calories = parseInt(burnText.replace(/\D/g, ""));
 
-    await db.collection("users").doc(user.uid).collection("workouts").add({
+    await userRef.collection("workouts").add({
         type: selectedExercise,
-        duration,
-        calories,
-        timestamp: Date.now()
+        durationMinutes: duration,
+        caloriesBurned: calories,
+        timestamp: Date.now(),
+        xpAwarded: true
     });
 
-    FitQuestBrain.awardXp(db.collection("users").doc(user.uid), 15, "workout_logged");
+    FitQuestBrain.awardXp(userRef, 15, "workout_logged");
 
     alert("Workout saved!");
 }
