@@ -21,7 +21,6 @@
     <!-- FitQuest Brain -->
     <script src="fitquestbrain.js"></script>
 
-    <!-- Neon breathing + rotation -->
     <style>
         :root {
             --neon: #00eaff;
@@ -117,11 +116,6 @@
             box-shadow: 0 0 8px var(--neon);
         }
 
-        .tone-sub {
-            font-size: 0.9rem;
-            opacity: 0.85;
-        }
-
         #insightsBox {
             margin-top: 14px;
         }
@@ -139,16 +133,6 @@
 
         #adaptiveBox {
             margin-top: 14px;
-        }
-
-        .pulse {
-            animation: pulseOnce 0.6s ease-out;
-        }
-
-        @keyframes pulseOnce {
-            0% { transform: scale(1); box-shadow: 0 0 10px var(--neon); }
-            50% { transform: scale(1.02); box-shadow: 0 0 22px var(--neon); }
-            100% { transform: scale(1); box-shadow: 0 0 10px var(--neon); }
         }
 
         .spark {
@@ -335,7 +319,8 @@
             </div>
             <p id="stepTrackerLabel" class="step-label" style="margin:6px 0 0 0;">7,450 / 10,000 Steps</p>
             <div class="card-body">
-                <canvas id="workoutTracker"></canvas>
+                <!-- Reuse existing stepTracker canvas so current chart.js still works -->
+                <canvas id="stepTracker"></canvas>
             </div>
         </div>
 
@@ -426,8 +411,9 @@
         <h2 class="neon-text">Workout Trend</h2>
         <span class="panel-close" onclick="closePanel('panel-workouts')">✕</span>
     </div>
-    <canvas id="chartWorkoutsWeekly"></canvas>
-    <canvas id="chartWorkoutsMonthly"></canvas>
+    <!-- Reuse existing steps canvases for workout analytics for now -->
+    <canvas id="chartStepsWeekly"></canvas>
+    <canvas id="chartStepsMonthly"></canvas>
 </div>
 
 <!-- DASHBOARD LOGIC -->
@@ -461,7 +447,7 @@ auth.onAuthStateChanged(async user => {
         window.location.href = "exercise.html";
     };
 
-    // BMI + steps summary
+    // Summary BMI + steps
     if (data.bmi) {
         document.getElementById("currentBMI").innerText = data.bmi.toFixed(1);
     }
@@ -557,46 +543,11 @@ auth.onAuthStateChanged(async user => {
         };
     }
 
+    // Neon interactive hover burst (uses sparkBurst from chart.js)
     document.querySelectorAll(".neon-interactive").forEach(el => {
         el.addEventListener("mouseenter", () => sparkBurst(el));
     });
 });
-
-// Neon burst
-function sparkBurst(element) {
-    const rect = element.getBoundingClientRect();
-    const centerX = rect.width / 2;
-    const centerY = rect.height / 2;
-
-    const rootStyles = getComputedStyle(document.documentElement);
-    const currentNeon = rootStyles.getPropertyValue("--neon").trim();
-
-    const sparkPalette = ["#00eaff", "#7b2fff", "#ff00ff", "#ff8800", "#22c55e"];
-    const filteredPalette = sparkPalette.filter(c => c.toLowerCase() !== currentNeon.toLowerCase());
-    const color = filteredPalette[Math.floor(Math.random() * filteredPalette.length)] || "#ffffff";
-
-    for (let i = 0; i < 8; i++) {
-        const spark = document.createElement("span");
-        spark.className = "spark";
-        spark.style.background = color;
-
-        const angle = (Math.PI * 2 * i) / 8;
-        const distance = 40 + Math.random() * 10;
-        const x = Math.cos(angle) * distance;
-        const y = Math.sin(angle) * distance;
-
-        spark.style.setProperty("--x", `${x}px`);
-        spark.style.setProperty("--y", `${y}px`);
-
-        spark.style.left = `${centerX - 3}px`;
-        spark.style.top = `${centerY - 3}px`;
-
-        element.style.position = "relative";
-        element.appendChild(spark);
-
-        setTimeout(() => spark.remove(), 450);
-    }
-}
 
 // Membership + panels
 let membership = "free";
@@ -625,7 +576,7 @@ function openUpgradeModal() {
     alert("FitQuest Pro required to view detailed analytics.");
 }
 
-/* Range toggles – hooks for chart.js */
+/* Range toggles – hooks for chart.js (we'll wire these in updated chart.js) */
 function setIntakeRange(range) {
     document.getElementById("intakeDayBtn").classList.toggle("active", range === "day");
     document.getElementById("intakeWeekBtn").classList.toggle("active", range === "week");
