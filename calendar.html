@@ -1,0 +1,933 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FitQuest — Calendar</title>
+
+    <link rel="stylesheet" href="styles.css">
+
+    <!-- Firebase -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
+
+    <script src="firebase.js"></script>
+    <script src="fitquestbrain.js"></script>
+
+    <style>
+        :root {
+            --neon: #00eaff;
+            --neon2: #ff00ff;
+            --accent: #4ade80;
+            --bg-deep: #020617;
+            --bg-card: #020617;
+            --bg-soft: #0b1020;
+            --text-main: #e5e7eb;
+            --text-muted: #9ca3af;
+            --danger: #f97373;
+        }
+
+        body {
+            margin: 0;
+            font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+            background: radial-gradient(circle at top, #111827 0, #020617 55%);
+            color: var(--text-main);
+            display: flex;
+        }
+
+        .sidebar {
+            background: #020617;
+        }
+
+        .sidebar-links li {
+            padding: 12px 18px;
+            cursor: pointer;
+            border-left: 3px solid transparent;
+            transition: 0.2s;
+            color: var(--text-muted);
+            font-size: 0.95rem;
+        }
+
+        .sidebar-links li:hover {
+            border-left: 3px solid var(--neon);
+            background: rgba(0, 234, 255, 0.08);
+            color: var(--text-main);
+        }
+
+        .sidebar-links .active {
+            border-left: 3px solid var(--neon);
+            background: rgba(0, 234, 255, 0.14);
+            color: var(--text-main);
+            font-weight: 600;
+        }
+
+        .logout-btn {
+            margin: 0 18px 18px;
+        }
+
+        .main-content {
+            padding: 24px 32px 40px;
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+        }
+
+        .page-title {
+            margin: 0 0 4px;
+        }
+
+        .subtitle {
+            margin: 0 0 16px;
+            color: var(--text-muted);
+        }
+
+        /* LAYOUT */
+        .calendar-layout {
+            display: grid;
+            grid-template-columns: minmax(0, 2.1fr) minmax(0, 1.4fr);
+            gap: 20px;
+            align-items: flex-start;
+        }
+
+        /* CALENDAR CARD */
+        .calendar-card {
+            background: var(--bg-card);
+            border-radius: 18px;
+            border: 1px solid rgba(148,163,184,0.7);
+            box-shadow: 0 0 18px rgba(15,23,42,0.9);
+            padding: 16px 18px 18px;
+        }
+
+        .calendar-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .calendar-header-left h2 {
+            margin: 0;
+            font-size: 1.1rem;
+        }
+
+        .calendar-header-left small {
+            color: var(--text-muted);
+        }
+
+        .calendar-nav {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .calendar-nav button {
+            background: rgba(15,23,42,0.9);
+            border-radius: 999px;
+            border: 1px solid rgba(148,163,184,0.7);
+            color: var(--text-main);
+            padding: 4px 10px;
+            cursor: pointer;
+            font-size: 0.85rem;
+        }
+
+        .calendar-nav button:hover {
+            border-color: var(--neon);
+            box-shadow: 0 0 10px rgba(0,234,255,0.5);
+        }
+
+        .calendar-nav .today-btn {
+            background: rgba(0,234,255,0.08);
+            border-color: rgba(0,234,255,0.7);
+        }
+
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, minmax(0, 1fr));
+            gap: 6px;
+            margin-top: 10px;
+        }
+
+        .calendar-day-header {
+            text-align: center;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+        }
+
+        .calendar-cell {
+            min-height: 70px;
+            border-radius: 12px;
+            background: radial-gradient(circle at top left, rgba(15,23,42,0.9), #020617);
+            border: 1px solid rgba(31,41,55,0.9);
+            padding: 6px 7px;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            transition: 0.15s ease;
+            position: relative;
+        }
+
+        .calendar-cell:hover {
+            border-color: rgba(0,234,255,0.6);
+            box-shadow: 0 0 12px rgba(0,234,255,0.4);
+        }
+
+        .calendar-cell.outside-month {
+            opacity: 0.25;
+            cursor: default;
+        }
+
+        .calendar-cell.future {
+            opacity: 0.35;
+            cursor: default;
+        }
+
+        .calendar-cell.selected {
+            border-color: var(--neon);
+            box-shadow: 0 0 16px rgba(0,234,255,0.7);
+        }
+
+        .calendar-cell-today::after {
+            content: "Today";
+            position: absolute;
+            top: 4px;
+            right: 7px;
+            font-size: 0.65rem;
+            color: var(--neon);
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+        }
+
+        .calendar-date {
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+
+        .calendar-dots {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px;
+            margin-top: 6px;
+        }
+
+        .calendar-dot {
+            width: 7px;
+            height: 7px;
+            border-radius: 999px;
+        }
+
+        .dot-workout { background: #4ade80; }
+        .dot-food { background: #fb923c; }
+        .dot-hydration { background: #38bdf8; }
+        .dot-weight { background: #a855f7; }
+        .dot-xp { background: #facc15; }
+
+        .calendar-summary {
+            margin-top: 10px;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
+
+        /* RIGHT PANEL */
+        .detail-card {
+            background: var(--bg-card);
+            border-radius: 18px;
+            border: 1px solid rgba(148,163,184,0.7);
+            box-shadow: 0 0 18px rgba(15,23,42,0.9);
+            padding: 16px 18px 18px;
+        }
+
+        .detail-card h2 {
+            margin: 0 0 6px;
+            font-size: 1rem;
+        }
+
+        .detail-date {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            margin-bottom: 10px;
+        }
+
+        .detail-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-bottom: 10px;
+        }
+
+        .detail-tag {
+            font-size: 0.75rem;
+            padding: 3px 8px;
+            border-radius: 999px;
+            border: 1px solid rgba(148,163,184,0.7);
+            color: var(--text-muted);
+        }
+
+        .detail-section {
+            margin-top: 10px;
+        }
+
+        .detail-section h3 {
+            margin: 0 0 4px;
+            font-size: 0.9rem;
+        }
+
+        .detail-section p {
+            margin: 0;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+
+        .detail-section ul {
+            margin: 4px 0 0;
+            padding-left: 18px;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+
+        .detail-section li + li {
+            margin-top: 2px;
+        }
+
+        .detail-actions {
+            margin-top: 12px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .detail-actions button {
+            padding: 7px 12px;
+            border-radius: 999px;
+            border: 1px solid rgba(148,163,184,0.7);
+            background: rgba(15,23,42,0.9);
+            color: var(--text-main);
+            font-size: 0.8rem;
+            cursor: pointer;
+        }
+
+        .detail-actions button:hover {
+            border-color: var(--neon);
+            box-shadow: 0 0 10px rgba(0,234,255,0.5);
+        }
+
+        .detail-actions button.primary {
+            background: linear-gradient(90deg, var(--accent), var(--neon2));
+            border-color: transparent;
+            color: #020617;
+            box-shadow: 0 0 14px rgba(74,222,128,0.7);
+        }
+
+        .detail-actions button.primary:hover {
+            box-shadow: 0 0 18px rgba(74,222,128,0.9);
+        }
+
+        .future-note {
+            margin-top: 8px;
+            font-size: 0.8rem;
+            color: var(--danger);
+        }
+
+        .legend {
+            margin-top: 10px;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .legend-item {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .legend-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 999px;
+        }
+
+        @media (max-width: 960px) {
+            .calendar-layout {
+                grid-template-columns: minmax(0, 1fr);
+            }
+        }
+    </style>
+</head>
+
+<body class="dashboard-body">
+
+<!-- SIDEBAR -->
+<aside class="sidebar">
+    <div class="sidebar-logo">
+        <img src="assets/logo.png" alt="FitQuest Logo">
+    </div>
+
+    <ul class="sidebar-links">
+        <li onclick="window.location.href='dashboard.html'">🏠 Dashboard</li>
+        <li onclick="window.location.href='exercise.html'">💪 Workout Entry</li>
+        <li onclick="window.location.href='exercise-history.html'">📚 Workout History</li>
+        <li onclick="window.location.href='food.html'">🍽️ Food Intake</li>
+        <li onclick="window.location.href='meals.html'">🍱 Meals</li>
+        <li onclick="window.location.href='barcode.html'">📷 Barcode Scanner</li>
+        <li onclick="window.location.href='bmi.html'">📏 BMI Calculator</li>
+        <li onclick="window.location.href='progress.html'">📊 Progress</li>
+        <li class="active">🗓️ Calendar</li>
+        <li onclick="window.location.href='profile.html'">👤 Profile</li>
+        <li onclick="window.location.href='settings.html'">⚙️ Settings</li>
+    </ul>
+
+    <button class="logout-btn neon-interactive" onclick="logoutUser()">Logout</button>
+</aside>
+
+<!-- MAIN -->
+<main class="main-content">
+    <h1 class="page-title">Calendar</h1>
+    <p class="subtitle">See your journey day by day. No future logging, only real progress.</p>
+
+    <section class="calendar-layout">
+
+        <!-- CALENDAR -->
+        <div class="calendar-card">
+            <div class="calendar-header">
+                <div class="calendar-header-left">
+                    <h2 id="calendarMonthLabel">Loading...</h2>
+                    <small id="calendarSummaryLabel">Your activity this month</small>
+                </div>
+                <div class="calendar-nav">
+                    <button onclick="changeMonth(-1)">◀</button>
+                    <button onclick="changeMonth(1)">▶</button>
+                    <button class="today-btn" onclick="goToToday()">Today</button>
+                </div>
+            </div>
+
+            <div class="calendar-grid" id="calendarGridHeaders">
+                <div class="calendar-day-header">Mon</div>
+                <div class="calendar-day-header">Tue</div>
+                <div class="calendar-day-header">Wed</div>
+                <div class="calendar-day-header">Thu</div>
+                <div class="calendar-day-header">Fri</div>
+                <div class="calendar-day-header">Sat</div>
+                <div class="calendar-day-header">Sun</div>
+            </div>
+
+            <div class="calendar-grid" id="calendarGrid"></div>
+
+            <div class="legend">
+                <div class="legend-item">
+                    <span class="legend-dot dot-workout"></span><span>Workout</span>
+                </div>
+                <div class="legend-item">
+                    <span class="legend-dot dot-food"></span><span>Food logged</span>
+                </div>
+                <div class="legend-item">
+                    <span class="legend-dot dot-hydration"></span><span>Hydration</span>
+                </div>
+                <div class="legend-item">
+                    <span class="legend-dot dot-weight"></span><span>Weight/BMI</span>
+                </div>
+                <div class="legend-item">
+                    <span class="legend-dot dot-xp"></span><span>XP change</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- DETAIL PANEL -->
+        <div class="detail-card">
+            <h2>Day Overview</h2>
+            <div class="detail-date" id="detailDateLabel">Select a day</div>
+
+            <div class="detail-tags" id="detailTags"></div>
+
+            <div class="detail-section">
+                <h3>Workouts</h3>
+                <ul id="detailWorkouts">
+                    <li>No workouts logged.</li>
+                </ul>
+            </div>
+
+            <div class="detail-section">
+                <h3>Food & Calories</h3>
+                <p id="detailFood">No food logged.</p>
+            </div>
+
+            <div class="detail-section">
+                <h3>Hydration</h3>
+                <p id="detailHydration">No hydration logged.</p>
+            </div>
+
+            <div class="detail-section">
+                <h3>Weight & BMI</h3>
+                <p id="detailWeight">No weight/BMI logged.</p>
+            </div>
+
+            <div class="detail-section">
+                <h3>XP & Quests</h3>
+                <p id="detailXP">No XP changes recorded.</p>
+            </div>
+
+            <div class="detail-actions" id="detailActions">
+                <!-- Buttons injected based on day & future/past -->
+            </div>
+
+            <div class="future-note" id="futureNote" style="display:none;">
+                You can’t log future days. FitQuest is about real progress, not time‑travel.
+            </div>
+        </div>
+
+    </section>
+</main>
+
+<script>
+let userRef = null;
+let currentUser = null;
+
+let currentMonth = null; // Date object pinned to first of month
+let today = new Date();
+today.setHours(0,0,0,0);
+
+let monthDataCache = {}; // key: YYYY-MM, value: { [dateKey]: {workouts, food, hydration, weight, xp} }
+let selectedDate = null;
+
+auth.onAuthStateChanged(async user => {
+    if (!user) return window.location.href = "index.html";
+    userRef = db.collection("users").doc(user.uid);
+    await initCalendar();
+});
+
+/* -----------------------------------------------------------
+   INIT
+----------------------------------------------------------- */
+async function initCalendar() {
+    currentMonth = new Date();
+    currentMonth.setDate(1);
+    await loadMonthData(currentMonth);
+    renderCalendar();
+}
+
+/* -----------------------------------------------------------
+   HELPERS
+----------------------------------------------------------- */
+function formatMonthKey(date) {
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, "0");
+    return `${y}-${m}`;
+}
+
+function formatDateKey(date) {
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, "0");
+    const d = String(date.getDate()).padStart(2, "0");
+    return `${y}-${m}-${d}`;
+}
+
+function isSameDay(a, b) {
+    return a.getFullYear() === b.getFullYear()
+        && a.getMonth() === b.getMonth()
+        && a.getDate() === b.getDate();
+}
+
+function isFuture(date) {
+    return date.getTime() > today.getTime();
+}
+
+/* -----------------------------------------------------------
+   LOAD MONTH DATA
+----------------------------------------------------------- */
+async function loadMonthData(date) {
+    const monthKey = formatMonthKey(date);
+    if (monthDataCache[monthKey]) return;
+
+    monthDataCache[monthKey] = {};
+
+    const year = date.getFullYear();
+    const month = date.getMonth();
+
+    const start = new Date(year, month, 1);
+    const end = new Date(year, month + 1, 0);
+
+    const startKey = formatDateKey(start);
+    const endKey = formatDateKey(end);
+
+    // We assume dailyLogs are stored as /users/{uid}/dailyLogs/{YYYY-MM-DD} or {uid_YYYY-MM-DD}
+    const dailyLogsSnap = await userRef.collection("dailyLogs").get();
+    const workoutsSnap = await userRef.collection("workouts").get();
+    const foodSnap = await userRef.collection("food").get();
+    const weightHistory = (await userRef.get()).data()?.weightHistory || [];
+    const bmiHistory = (await userRef.get()).data()?.bmiHistory || [];
+    const xpHistory = (await userRef.get()).data()?.xpHistory || [];
+
+    const monthData = monthDataCache[monthKey];
+
+    function ensureDay(dateKey) {
+        if (!monthData[dateKey]) {
+            monthData[dateKey] = {
+                workouts: [],
+                food: [],
+                hydration: null,
+                weight: null,
+                bmi: null,
+                xp: []
+            };
+        }
+    }
+
+    // Workouts
+    workoutsSnap.forEach(doc => {
+        const w = doc.data();
+        if (!w.timestamp) return;
+        const d = new Date(w.timestamp);
+        if (d.getMonth() !== month || d.getFullYear() !== year) return;
+        const key = formatDateKey(d);
+        ensureDay(key);
+        monthData[key].workouts.push(w);
+    });
+
+    // Food
+    foodSnap.forEach(doc => {
+        const f = doc.data();
+        if (!f.timestamp) return;
+        const d = new Date(f.timestamp);
+        if (d.getMonth() !== month || d.getFullYear() !== year) return;
+        const key = formatDateKey(d);
+        ensureDay(key);
+        monthData[key].food.push(f);
+    });
+
+    // Daily logs (hydration, etc.) if you use them
+    dailyLogsSnap.forEach(doc => {
+        const id = doc.id;
+        // Try to extract date from id if formatted like YYYY-MM-DD or uid_YYYY-MM-DD
+        let datePart = id;
+        if (id.includes("_")) {
+            datePart = id.split("_").pop();
+        }
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(datePart)) return;
+        const d = new Date(datePart);
+        if (d.getMonth() !== month || d.getFullYear() !== year) return;
+        const key = formatDateKey(d);
+        ensureDay(key);
+        const log = doc.data();
+        if (log.hydrationLitres || log.hydration) {
+            monthData[key].hydration = log.hydrationLitres || log.hydration;
+        }
+    });
+
+    // Weight history
+    weightHistory.forEach(entry => {
+        if (!entry.timestamp) return;
+        const d = new Date(entry.timestamp);
+        if (d.getMonth() !== month || d.getFullYear() !== year) return;
+        const key = formatDateKey(d);
+        ensureDay(key);
+        monthData[key].weight = entry.value;
+    });
+
+    // BMI history
+    bmiHistory.forEach(entry => {
+        if (!entry.timestamp) return;
+        const d = new Date(entry.timestamp);
+        if (d.getMonth() !== month || d.getFullYear() !== year) return;
+        const key = formatDateKey(d);
+        ensureDay(key);
+        monthData[key].bmi = entry.value;
+    });
+
+    // XP history
+    xpHistory.forEach(entry => {
+        if (!entry.timestamp) return;
+        const d = new Date(entry.timestamp);
+        if (d.getMonth() !== month || d.getFullYear() !== year) return;
+        const key = formatDateKey(d);
+        ensureDay(key);
+        monthData[key].xp.push(entry);
+    });
+}
+
+/* -----------------------------------------------------------
+   RENDER CALENDAR
+----------------------------------------------------------- */
+function renderCalendar() {
+    const monthLabel = document.getElementById("calendarMonthLabel");
+    const grid = document.getElementById("calendarGrid");
+    grid.innerHTML = "";
+
+    const monthName = currentMonth.toLocaleString("default", { month: "long" });
+    const year = currentMonth.getFullYear();
+    monthLabel.textContent = `${monthName} ${year}`;
+
+    const monthKey = formatMonthKey(currentMonth);
+    const monthData = monthDataCache[monthKey] || {};
+
+    const firstDayOfWeek = (currentMonth.getDay() + 6) % 7; // Monday-based
+    const daysInMonth = new Date(year, currentMonth.getMonth() + 1, 0).getDate();
+
+    const prevMonth = new Date(year, currentMonth.getMonth(), 0);
+    const daysInPrevMonth = prevMonth.getDate();
+
+    const totalCells = 42; // 6 weeks grid
+
+    let dayCounter = 1;
+    let nextMonthDay = 1;
+
+    for (let i = 0; i < totalCells; i++) {
+        const cell = document.createElement("div");
+        cell.className = "calendar-cell";
+
+        let cellDate;
+        let isOutside = false;
+
+        if (i < firstDayOfWeek) {
+            // previous month
+            const dateNum = daysInPrevMonth - (firstDayOfWeek - 1 - i);
+            cellDate = new Date(year, currentMonth.getMonth() - 1, dateNum);
+            isOutside = true;
+        } else if (dayCounter <= daysInMonth) {
+            // current month
+            cellDate = new Date(year, currentMonth.getMonth(), dayCounter);
+            dayCounter++;
+        } else {
+            // next month
+            cellDate = new Date(year, currentMonth.getMonth() + 1, nextMonthDay);
+            nextMonthDay++;
+            isOutside = true;
+        }
+
+        const dateKey = formatDateKey(cellDate);
+        const isToday = isSameDay(cellDate, today);
+        const future = isFuture(cellDate);
+
+        if (isOutside) {
+            cell.classList.add("outside-month");
+        }
+
+        if (isToday) {
+            cell.classList.add("calendar-cell-today");
+        }
+
+        if (future) {
+            cell.classList.add("future");
+        }
+
+        if (!isOutside && !future) {
+            cell.addEventListener("click", () => {
+                selectedDate = cellDate;
+                renderCalendar(); // re-render to update selected state
+                renderDayDetail();
+            });
+        }
+
+        if (selectedDate && isSameDay(cellDate, selectedDate)) {
+            cell.classList.add("selected");
+        }
+
+        const dateLabel = document.createElement("div");
+        dateLabel.className = "calendar-date";
+        dateLabel.textContent = cellDate.getDate();
+        cell.appendChild(dateLabel);
+
+        const dotsContainer = document.createElement("div");
+        dotsContainer.className = "calendar-dots";
+
+        const dayData = monthData[dateKey];
+
+        if (dayData) {
+            if (dayData.workouts && dayData.workouts.length > 0) {
+                const dot = document.createElement("div");
+                dot.className = "calendar-dot dot-workout";
+                dotsContainer.appendChild(dot);
+            }
+            if (dayData.food && dayData.food.length > 0) {
+                const dot = document.createElement("div");
+                dot.className = "calendar-dot dot-food";
+                dotsContainer.appendChild(dot);
+            }
+            if (dayData.hydration != null) {
+                const dot = document.createElement("div");
+                dot.className = "calendar-dot dot-hydration";
+                dotsContainer.appendChild(dot);
+            }
+            if (dayData.weight != null || dayData.bmi != null) {
+                const dot = document.createElement("div");
+                dot.className = "calendar-dot dot-weight";
+                dotsContainer.appendChild(dot);
+            }
+            if (dayData.xp && dayData.xp.length > 0) {
+                const dot = document.createElement("div");
+                dot.className = "calendar-dot dot-xp";
+                dotsContainer.appendChild(dot);
+            }
+        }
+
+        cell.appendChild(dotsContainer);
+        grid.appendChild(cell);
+    }
+
+    if (!selectedDate || selectedDate.getMonth() !== currentMonth.getMonth() || selectedDate.getFullYear() !== currentMonth.getFullYear()) {
+        selectedDate = new Date(today);
+    }
+    renderDayDetail();
+}
+
+/* -----------------------------------------------------------
+   RENDER DAY DETAIL
+----------------------------------------------------------- */
+function renderDayDetail() {
+    const dateLabel = document.getElementById("detailDateLabel");
+    const tagsContainer = document.getElementById("detailTags");
+    const workoutsList = document.getElementById("detailWorkouts");
+    const foodP = document.getElementById("detailFood");
+    const hydrationP = document.getElementById("detailHydration");
+    const weightP = document.getElementById("detailWeight");
+    const xpP = document.getElementById("detailXP");
+    const actions = document.getElementById("detailActions");
+    const futureNote = document.getElementById("futureNote");
+
+    const d = selectedDate || today;
+    const dateKey = formatDateKey(d);
+    const monthKey = formatMonthKey(d);
+    const monthData = monthDataCache[monthKey] || {};
+    const dayData = monthData[dateKey] || null;
+
+    const prettyDate = d.toLocaleDateString(undefined, {
+        weekday: "long",
+        year: "numeric",
+        month: "long",
+        day: "numeric"
+    });
+
+    dateLabel.textContent = prettyDate;
+
+    tagsContainer.innerHTML = "";
+    workoutsList.innerHTML = "";
+    actions.innerHTML = "";
+    futureNote.style.display = "none";
+
+    const future = isFuture(d);
+
+    if (dayData) {
+        if (dayData.workouts && dayData.workouts.length > 0) {
+            const tag = document.createElement("span");
+            tag.className = "detail-tag";
+            tag.textContent = `${dayData.workouts.length} workout${dayData.workouts.length > 1 ? "s" : ""}`;
+            tagsContainer.appendChild(tag);
+
+            dayData.workouts.forEach(w => {
+                const li = document.createElement("li");
+                const name = w.exerciseName || w.type || "Workout";
+                const mins = w.durationMinutes ? `${w.durationMinutes} min` : "";
+                const cals = w.caloriesBurned ? `${w.caloriesBurned} kcal` : "";
+                li.textContent = [name, mins, cals].filter(Boolean).join(" • ");
+                workoutsList.appendChild(li);
+            });
+        } else {
+            workoutsList.innerHTML = "<li>No workouts logged.</li>";
+        }
+
+        if (dayData.food && dayData.food.length > 0) {
+            const totalCalories = dayData.food.reduce((sum, f) => {
+                return sum + (f.totalCalories || f.calories || 0);
+            }, 0);
+            const tag = document.createElement("span");
+            tag.className = "detail-tag";
+            tag.textContent = "Food logged";
+            tagsContainer.appendChild(tag);
+
+            foodP.textContent = `Approx. ${Math.round(totalCalories)} kcal logged.`;
+        } else {
+            foodP.textContent = "No food logged.";
+        }
+
+        if (dayData.hydration != null) {
+            const tag = document.createElement("span");
+            tag.className = "detail-tag";
+            tag.textContent = "Hydration";
+            tagsContainer.appendChild(tag);
+
+            hydrationP.textContent = `${dayData.hydration} L logged.`;
+        } else {
+            hydrationP.textContent = "No hydration logged.";
+        }
+
+        if (dayData.weight != null || dayData.bmi != null) {
+            const tag = document.createElement("span");
+            tag.className = "detail-tag";
+            tag.textContent = "Body metrics";
+            tagsContainer.appendChild(tag);
+
+            const parts = [];
+            if (dayData.weight != null) parts.push(`Weight: ${dayData.weight}`);
+            if (dayData.bmi != null) parts.push(`BMI: ${dayData.bmi}`);
+            weightP.textContent = parts.join(" • ");
+        } else {
+            weightP.textContent = "No weight/BMI logged.";
+        }
+
+        if (dayData.xp && dayData.xp.length > 0) {
+            const tag = document.createElement("span");
+            tag.className = "detail-tag";
+            tag.textContent = "XP changes";
+            tagsContainer.appendChild(tag);
+
+            const last = dayData.xp[dayData.xp.length - 1];
+            const xpVal = last.value;
+            xpP.textContent = `XP changed on this day. Latest recorded XP: ${xpVal}.`;
+        } else {
+            xpP.textContent = "No XP changes recorded.";
+        }
+    } else {
+        workoutsList.innerHTML = "<li>No workouts logged.</li>";
+        foodP.textContent = "No food logged.";
+        hydrationP.textContent = "No hydration logged.";
+        weightP.textContent = "No weight/BMI logged.";
+        xpP.textContent = "No XP changes recorded.";
+    }
+
+    // Actions
+    if (future) {
+        futureNote.style.display = "block";
+        return;
+    }
+
+    const exerciseBtn = document.createElement("button");
+    exerciseBtn.className = "primary";
+    exerciseBtn.textContent = "Add workout";
+    exerciseBtn.onclick = () => window.location.href = "exercise.html";
+    actions.appendChild(exerciseBtn);
+
+    const foodBtn = document.createElement("button");
+    foodBtn.textContent = "Add food";
+    foodBtn.onclick = () => window.location.href = "food.html";
+    actions.appendChild(foodBtn);
+
+    const weightBtn = document.createElement("button");
+    weightBtn.textContent = "Update weight/BMI";
+    weightBtn.onclick = () => window.location.href = "bmi.html";
+    actions.appendChild(weightBtn);
+}
+
+/* -----------------------------------------------------------
+   NAVIGATION
+----------------------------------------------------------- */
+async function changeMonth(delta) {
+    currentMonth.setMonth(currentMonth.getMonth() + delta);
+    await loadMonthData(currentMonth);
+    renderCalendar();
+}
+
+async function goToToday() {
+    currentMonth = new Date();
+    currentMonth.setDate(1);
+    await loadMonthData(currentMonth);
+    selectedDate = new Date(today);
+    renderCalendar();
+}
+</script>
+
+</body>
+</html>
