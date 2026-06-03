@@ -677,12 +677,25 @@ auth.onAuthStateChanged(async user => {
    INIT
 ----------------------------------------------------------- */
 async function initCalendar() {
-    currentMonth = new Date();
-    currentMonth.setDate(1);
+
+    // ⭐ Restore last selected date if available
+    const stored = localStorage.getItem("fitquest_selected_date");
+    if (stored) {
+        selectedDate = new Date(stored);
+        selectedDate.setHours(0,0,0,0);
+        currentMonth = new Date(selectedDate);
+        currentMonth.setDate(1);
+    } else {
+        selectedDate = new Date(today);
+        currentMonth = new Date();
+        currentMonth.setDate(1);
+    }
+
     await loadMonthData(currentMonth);
     await updateWeeklySummary();
     renderCalendar();
 }
+
 
 /* -----------------------------------------------------------
    HELPERS
