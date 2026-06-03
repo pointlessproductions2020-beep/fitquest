@@ -79,7 +79,6 @@
             gap: 12px;
         }
 
-        /* ⭐ Bigger dashboard avatar */
         .avatar-ring {
             width: 110px;
             height: 110px;
@@ -165,6 +164,30 @@
             0% { opacity: 1; transform: translate(0,0) scale(1); }
             100% { opacity: 0; transform: translate(var(--x), var(--y)) scale(0.4); }
         }
+
+        /* Chart toggle buttons */
+        .chart-toggle {
+            display: flex;
+            gap: 6px;
+            align-items: center;
+        }
+
+        .chart-toggle button {
+            padding: 4px 10px;
+            border-radius: 999px;
+            border: 1px solid rgba(148,163,184,0.6);
+            background: rgba(15,23,42,0.9);
+            color: #e5e7eb;
+            font-size: 11px;
+            cursor: pointer;
+        }
+
+        .chart-toggle button.active {
+            border-color: var(--neon);
+            color: #020617;
+            background: var(--neon);
+            box-shadow: 0 0 10px var(--neon);
+        }
     </style>
 </head>
 
@@ -174,15 +197,16 @@
 <aside class="sidebar">
     <div class="sidebar-logo">
         <img src="assets/logo.png" alt="FitQuest Logo">
-        <!-- Removed FITQUEST text -->
     </div>
 
     <ul class="sidebar-links">
         <li class="active neon-hover">🏠 Dashboard</li>
 
-        <!-- ⭐ NEW BUTTONS -->
         <li class="neon-hover" onclick="window.location.href='exercise.html'">💪 Workout</li>
         <li class="neon-hover" onclick="window.location.href='food.html'">🍽️ Food Intake</li>
+        <li class="neon-hover" onclick="window.location.href='meals.html'">🍱 Meals</li>
+        <li class="neon-hover" onclick="window.location.href='barcode.html'">📷 Barcode Scanner</li>
+        <li class="neon-hover" onclick="window.location.href='bmi.html'">📏 BMI Calculator</li>
 
         <li class="neon-hover" onclick="window.location.href='profile.html'">👤 Profile</li>
         <li class="neon-hover">📊 Progress</li>
@@ -207,7 +231,7 @@
             </div>
         </div>
 
-        <!-- ⭐ Avatar clickable -->
+        <!-- Avatar clickable -->
         <div class="hero-right">
             <div class="avatar-ring neon-interactive" id="heroAvatarRing" onclick="window.location.href='profile.html'">
                 <img id="dashboardAvatar" src="assets/avatar-placeholder.png" alt="Avatar">
@@ -283,30 +307,35 @@
 
     </section>
 
-    <!-- THIRD ROW -->
+    <!-- THIRD ROW: Intake chart + Workout tracker chart -->
     <section class="row-3">
 
-        <div id="bmiCalcCard" class="card neon-card neon-interactive">
-            <div class="card-header">
-                <h2 class="neon-text">BMI Calculator</h2>
+        <div id="intakeChartCard" class="card neon-card neon-interactive" onclick="openAnalyticsPanel('panel-calories')">
+            <div class="card-header" style="display:flex;justify-content:space-between;align-items:center;">
+                <h2 class="neon-text">Intake Chart</h2>
+                <div class="chart-toggle">
+                    <button id="intakeDayBtn" class="active" onclick="setIntakeRange('day'); event.stopPropagation();">Day</button>
+                    <button id="intakeWeekBtn" onclick="setIntakeRange('week'); event.stopPropagation();">Week</button>
+                    <button id="intakeMonthBtn" onclick="setIntakeRange('month'); event.stopPropagation();">Month</button>
+                </div>
             </div>
             <div class="card-body">
-                <label>Height (cm)</label>
-                <input type="number" id="height">
-                <label>Weight (kg)</label>
-                <input type="number" id="weight">
-                <button class="calc-btn neon-interactive" onclick="calculateBMI()">Calculate</button>
-                <p id="bmiResult"></p>
+                <canvas id="intakeChart"></canvas>
             </div>
         </div>
 
-        <div id="stepTrackerCard" class="card neon-card neon-interactive">
-            <div class="card-header">
-                <h2 class="neon-text">Daily Step Tracker</h2>
+        <div id="workoutTrackerCard" class="card neon-card neon-interactive" onclick="openAnalyticsPanel('panel-workouts')">
+            <div class="card-header" style="display:flex;justify-content:space-between;align-items:center;">
+                <h2 class="neon-text">Workout Tracker</h2>
+                <div class="chart-toggle">
+                    <button id="workoutDayBtn" class="active" onclick="setWorkoutRange('day'); event.stopPropagation();">Day</button>
+                    <button id="workoutWeekBtn" onclick="setWorkoutRange('week'); event.stopPropagation();">Week</button>
+                    <button id="workoutMonthBtn" onclick="setWorkoutRange('month'); event.stopPropagation();">Month</button>
+                </div>
             </div>
-            <p id="stepTrackerLabel" class="step-label">7,450 / 10,000 Steps</p>
+            <p id="stepTrackerLabel" class="step-label" style="margin:6px 0 0 0;">7,450 / 10,000 Steps</p>
             <div class="card-body">
-                <canvas id="stepTracker"></canvas>
+                <canvas id="workoutTracker"></canvas>
             </div>
         </div>
 
@@ -392,13 +421,13 @@
     <canvas id="chartBMIHistory"></canvas>
 </div>
 
-<div id="panel-steps" class="analytics-panel">
+<div id="panel-workouts" class="analytics-panel">
     <div class="panel-header">
-        <h2 class="neon-text">Steps Trend</h2>
-        <span class="panel-close" onclick="closePanel('panel-steps')">✕</span>
+        <h2 class="neon-text">Workout Trend</h2>
+        <span class="panel-close" onclick="closePanel('panel-workouts')">✕</span>
     </div>
-    <canvas id="chartStepsWeekly"></canvas>
-    <canvas id="chartStepsMonthly"></canvas>
+    <canvas id="chartWorkoutsWeekly"></canvas>
+    <canvas id="chartWorkoutsMonthly"></canvas>
 </div>
 
 <!-- DASHBOARD LOGIC -->
@@ -415,27 +444,24 @@ auth.onAuthStateChanged(async user => {
 
     const data = doc.data();
 
-    // ⭐ Nickname support
     const displayName = data.nickname || data.name || "Adventurer";
     document.getElementById("userName").innerText = displayName;
 
-    // Avatar
     if (data.avatarUrl) {
         document.getElementById("dashboardAvatar").src = data.avatarUrl + "?t=" + Date.now();
     }
 
-    // Level + XP
     const xp = data.xp || 0;
     const level = data.level || (Math.floor(xp / 100) + 1);
     document.getElementById("heroLevelBadge").innerText = "Lv " + level;
     document.getElementById("xpFill").style.width = (xp % 100) + "%";
 
-    // ⭐ Calories Burned → Workout page
+    // Calories Burned → Workout page
     document.getElementById("burnCard").onclick = () => {
         window.location.href = "exercise.html";
     };
 
-    // BMI + steps
+    // BMI + steps summary
     if (data.bmi) {
         document.getElementById("currentBMI").innerText = data.bmi.toFixed(1);
     }
@@ -445,7 +471,7 @@ auth.onAuthStateChanged(async user => {
             `${data.stepsToday} / 10,000 Steps`;
     }
 
-        // Calorie brain
+    // Calorie brain
     const profile = {
         sex: data.sex,
         weightKg: data.weightKg,
@@ -468,11 +494,9 @@ auth.onAuthStateChanged(async user => {
             `Target: ${Math.round(targets.targetCalories)} kcal • TDEE: ${Math.round(targets.tdee)} kcal`;
     }
 
-    // Trends
     const weightTrend = FitQuestBrain.calculateTrend(data.weightHistory || []);
     const calorieTrend = FitQuestBrain.calculateTrend(data.calorieHistory || []);
 
-    // Tone engine
     const tone = FitQuestBrain.toneEngine({
         bmi: data.bmi,
         trend: weightTrend,
@@ -483,7 +507,6 @@ auth.onAuthStateChanged(async user => {
     document.getElementById("brainMessage").innerText =
         `${tone.headline} — ${tone.subline}`;
 
-    // Insights
     const hydration = data.waterToday || 0;
 
     const insights = FitQuestBrain.generateInsights({
@@ -504,7 +527,6 @@ auth.onAuthStateChanged(async user => {
         });
     }
 
-    // Adaptive goals
     const adherence = data.adherence || 0.5;
 
     const adaptive = FitQuestBrain.adaptiveGoalCheck({
@@ -535,7 +557,6 @@ auth.onAuthStateChanged(async user => {
         };
     }
 
-    // Neon interactive burst on hover
     document.querySelectorAll(".neon-interactive").forEach(el => {
         el.addEventListener("mouseenter", () => sparkBurst(el));
     });
@@ -600,19 +621,27 @@ function closeClassesMobile() {
     document.getElementById("mobileClassesPanel").classList.remove("open");
 }
 
-function calculateBMI() {
-    const h = parseFloat(document.getElementById("height").value);
-    const w = parseFloat(document.getElementById("weight").value);
-    if (!h || !w) {
-        document.getElementById("bmiResult").innerText = "Enter height and weight.";
-        return;
-    }
-    const bmi = w / Math.pow(h / 100, 2);
-    document.getElementById("bmiResult").innerText = "BMI: " + bmi.toFixed(1);
-}
-
 function openUpgradeModal() {
     alert("FitQuest Pro required to view detailed analytics.");
+}
+
+/* Range toggles – hooks for chart.js */
+function setIntakeRange(range) {
+    document.getElementById("intakeDayBtn").classList.toggle("active", range === "day");
+    document.getElementById("intakeWeekBtn").classList.toggle("active", range === "week");
+    document.getElementById("intakeMonthBtn").classList.toggle("active", range === "month");
+    if (window.updateIntakeChartRange) {
+        window.updateIntakeChartRange(range);
+    }
+}
+
+function setWorkoutRange(range) {
+    document.getElementById("workoutDayBtn").classList.toggle("active", range === "day");
+    document.getElementById("workoutWeekBtn").classList.toggle("active", range === "week");
+    document.getElementById("workoutMonthBtn").classList.toggle("active", range === "month");
+    if (window.updateWorkoutChartRange) {
+        window.updateWorkoutChartRange(range);
+    }
 }
 </script>
 
