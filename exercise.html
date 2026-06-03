@@ -164,6 +164,9 @@ let lastAutoSave = null; // prevent duplicate auto-saves
 
 auth.onAuthStateChanged(async user => {
     if (!user) return window.location.href = "index.html";
+
+     await applyUserTheme();
+    
     userRef = db.collection("users").doc(user.uid);
 
     const doc = await userRef.get();
