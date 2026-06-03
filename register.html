@@ -14,29 +14,57 @@
     <script defer src="firebase.js"></script>
 </head>
 
-<body>
+<body class="auth-body">
 
-<div class="container">
+<div class="auth-shell">
 
-    <!-- LOGO -->
-    <img src="assets/logo.png" class="logo">
+    <!-- LEFT HERO -->
+    <section class="auth-hero">
+        <div class="hero-inner">
 
-    <h2 class="tagline">Your Journey Starts Here.</h2>
+            <!-- DUAL-LAYER NEON LOGO RING -->
+            <div class="logo-ring">
+                <div class="logo-ring-inner"></div>
+                <img src="assets/logo.png" class="logo">
+            </div>
 
-    <!-- REGISTER CARD -->
-    <div class="form-card">
-        <h2>Create Account</h2>
+            <h1 class="hero-title">Join FitQuest</h1>
+            <p class="hero-subtitle">
+                Create your character, start your streak, and earn XP from real‑world effort.
+            </p>
 
-        <input type="text" id="regName" placeholder="Full Name">
-        <input type="email" id="regEmail" placeholder="Email">
-        <input type="password" id="regPassword" placeholder="Password">
+            <ul class="hero-points">
+                <li>[Track workouts](ca://s?q=open_workouts)</li>
+                <li>[Log meals](ca://s?q=open_food)</li>
+                <li>[Complete quests](ca://s?q=open_quests)</li>
+            </ul>
+        </div>
+    </section>
 
-        <button onclick="registerUser()">Register</button>
+    <!-- RIGHT AUTH PANEL -->
+    <section class="auth-panel">
+        <div class="form-card glass-card">
+            <h2 class="form-title">Create account</h2>
+            <p class="form-subtitle">It takes less than a minute.</p>
 
-        <p class="small-text">Already have an account? <a href="index.html">Login</a></p>
-    </div>
+            <label class="field-label" for="regName">Full name</label>
+            <input type="text" id="regName" placeholder="Alex Quest">
+
+            <label class="field-label" for="regEmail">Email</label>
+            <input type="email" id="regEmail" placeholder="you@example.com">
+
+            <label class="field-label" for="regPassword">Password</label>
+            <input type="password" id="regPassword" placeholder="Choose a strong password">
+
+            <button class="primary-btn" onclick="registerUser()">Register</button>
+
+            <p class="small-text">Already have an account? <a href="index.html">Login</a></p>
+        </div>
+    </section>
 
 </div>
+
+<div class="auth-grid-overlay"></div>
 
 </body>
 </html>
