@@ -1,0 +1,675 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FitQuest — Quests</title>
+
+    <link rel="stylesheet" href="styles.css">
+
+    <!-- Firebase -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
+
+    <script src="firebase.js"></script>
+    <script src="fitquestbrain.js"></script>
+
+    <style>
+        :root {
+            --neon: #00eaff;
+            --neon2: #ff00ff;
+            --neon3: #4ade80;
+            --bg-dark: #050814;
+            --bg-card: #0b1020;
+            --text-main: #e5e7eb;
+            --text-muted: #9ca3af;
+        }
+
+        body {
+            background: radial-gradient(circle at top, #111827 0, #020617 55%);
+            color: var(--text-main);
+            font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+            margin: 0;
+            display: flex;
+        }
+
+        .sidebar {
+            background: #020617;
+        }
+
+        .sidebar-logo img {
+            max-width: 140px;
+        }
+
+        .sidebar-links {
+            list-style: none;
+            padding: 0 0 60px 0;
+            margin: 0;
+        }
+
+        .sidebar-links li {
+            padding: 12px 18px;
+            cursor: pointer;
+            border-left: 3px solid transparent;
+            transition: 0.2s;
+            color: var(--text-muted);
+            font-size: 0.95rem;
+        }
+
+        .sidebar-links li:hover {
+            border-left: 3px solid var(--neon);
+            background: rgba(0, 234, 255, 0.08);
+            color: var(--text-main);
+        }
+
+        .sidebar-links .active {
+            border-left: 3px solid var(--neon);
+            background: rgba(0, 234, 255, 0.14);
+            color: var(--text-main);
+            font-weight: 600;
+        }
+
+        .logout-btn {
+            margin: 0 18px 18px;
+        }
+
+        .main-content {
+            padding: 24px 32px 40px;
+        }
+
+        .page-title {
+            margin: 0 0 4px;
+        }
+
+        .subtitle {
+            margin: 0 0 20px;
+            color: var(--text-muted);
+        }
+
+        /* PROFILE HEADER */
+        .profile-header {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            padding: 18px 20px;
+            background: radial-gradient(circle at top left, rgba(0,234,255,0.18), transparent 55%);
+            border-radius: 18px;
+            border: 1px solid rgba(0,234,255,0.5);
+            box-shadow: 0 0 18px rgba(0,234,255,0.35);
+            margin-bottom: 22px;
+        }
+
+        .profile-header img {
+            width: 88px;
+            height: 88px;
+            border-radius: 50%;
+            border: 3px solid var(--neon);
+            object-fit: cover;
+        }
+
+        .profile-header h2 {
+            margin: 0 0 4px;
+        }
+
+        .profile-header small {
+            color: var(--text-muted);
+        }
+
+        .xp-bar-container {
+            width: 100%;
+            background: #020617;
+            border-radius: 999px;
+            height: 14px;
+            overflow: hidden;
+            border: 1px solid rgba(0,234,255,0.6);
+            margin-top: 8px;
+        }
+
+        .xp-bar {
+            height: 100%;
+            background: linear-gradient(90deg, var(--neon), var(--neon2));
+            width: 0%;
+            transition: width 0.6s ease;
+            box-shadow: 0 0 12px rgba(0,234,255,0.8);
+        }
+
+        .streak-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 10px;
+            border-radius: 999px;
+            background: rgba(74,222,128,0.12);
+            border: 1px solid rgba(74,222,128,0.6);
+            color: #bbf7d0;
+            font-size: 0.8rem;
+            margin-top: 6px;
+        }
+
+        /* QUESTS GRID */
+        .quests-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 20px;
+            margin-top: 10px;
+        }
+
+        .quest-card {
+            background: var(--bg-card);
+            padding: 16px 18px;
+            border-radius: 18px;
+            border: 1px solid rgba(148,163,184,0.7);
+            box-shadow: 0 0 16px rgba(15,23,42,0.9);
+            position: relative;
+        }
+
+        .quest-type {
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: var(--text-muted);
+            margin-bottom: 4px;
+        }
+
+        .quest-title {
+            margin: 0 0 6px;
+            font-size: 1.05rem;
+        }
+
+        .quest-desc {
+            margin: 0 0 10px;
+            font-size: 0.9rem;
+            color: var(--text-muted);
+        }
+
+        .quest-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            margin-bottom: 10px;
+        }
+
+        .xp-pill {
+            padding: 3px 10px;
+            border-radius: 999px;
+            background: rgba(168,85,247,0.18);
+            border: 1px solid rgba(168,85,247,0.7);
+            color: #e9d5ff;
+            font-size: 0.8rem;
+        }
+
+        .quest-status {
+            font-size: 0.8rem;
+        }
+
+        .quest-btn {
+            padding: 8px 14px;
+            border-radius: 999px;
+            border: none;
+            cursor: pointer;
+            font-size: 0.9rem;
+            font-weight: 500;
+            background: linear-gradient(90deg, var(--neon3), var(--neon2));
+            color: #020617;
+            box-shadow: 0 0 14px rgba(74,222,128,0.6);
+            transition: transform 0.1s ease, box-shadow 0.1s ease, opacity 0.2s;
+        }
+
+        .quest-btn:disabled {
+            opacity: 0.4;
+            cursor: default;
+            box-shadow: none;
+        }
+
+        .quest-btn:hover:not(:disabled) {
+            transform: translateY(-1px);
+            box-shadow: 0 0 18px rgba(74,222,128,0.9);
+        }
+
+        /* HISTORY */
+        .history-section {
+            margin-top: 28px;
+            display: grid;
+            grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
+            gap: 20px;
+        }
+
+        .history-card {
+            background: var(--bg-card);
+            padding: 16px 18px;
+            border-radius: 18px;
+            border: 1px solid rgba(148,163,184,0.7);
+            box-shadow: 0 0 16px rgba(15,23,42,0.9);
+        }
+
+        .history-card h2 {
+            margin: 0 0 10px;
+            font-size: 1rem;
+        }
+
+        .history-list {
+            list-style: none;
+            padding-left: 0;
+            margin: 0;
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            max-height: 260px;
+            overflow-y: auto;
+        }
+
+        .history-list li + li {
+            margin-top: 6px;
+        }
+
+        .history-list span {
+            color: var(--text-main);
+        }
+
+        .hint-text {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            margin-top: 6px;
+        }
+    </style>
+</head>
+
+<body class="dashboard-body">
+
+<!-- SIDEBAR -->
+<aside class="sidebar">
+    <div class="sidebar-logo">
+        <img src="assets/logo.png" alt="FitQuest Logo">
+    </div>
+
+    <ul class="sidebar-links">
+        <li onclick="window.location.href='dashboard.html'">Dashboard</li>
+        <li onclick="window.location.href='exercise.html'">Workout Entry</li>
+        <li onclick="window.location.href='exercise-history.html'">Workout History</li>
+        <li onclick="window.location.href='food.html'">Food Intake</li>
+        <li onclick="window.location.href='meals.html'">Meals</li>
+        <li onclick="window.location.href='barcode.html'">Barcode Scanner</li>
+        <li onclick="window.location.href='bmi.html'">BMI Calculator</li>
+        <li onclick="window.location.href='progress.html'">Progress</li>
+        <li class="active">Quests</li>
+        <li onclick="window.location.href='calendar.html'">Calendar</li>
+        <li onclick="window.location.href='profile.html'">Profile</li>
+        <li onclick="window.location.href='settings.html'">Settings</li>
+    </ul>
+
+    <button class="logout-btn neon-interactive" onclick="logoutUser()">Logout</button>
+</aside>
+
+<!-- MAIN -->
+<main class="main-content">
+    <h1 class="page-title">Quests & Challenges</h1>
+    <p class="subtitle">Beat your past self, earn XP, and keep the streak alive.</p>
+
+    <!-- PROFILE HEADER -->
+    <div class="profile-header">
+        <img id="profilePhoto" src="assets/default-avatar.png" alt="Profile">
+        <div style="flex:1">
+            <h2 id="profileName">Loading...</h2>
+            <small id="profileLevel">Level 1 • 0 XP</small>
+            <div class="xp-bar-container">
+                <div class="xp-bar" id="xpBar"></div>
+            </div>
+            <div class="streak-pill" id="streakPill" style="display:none;">
+                <span>🔥</span>
+                <span id="streakText">0‑day streak</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- QUESTS GRID -->
+    <section class="quests-grid">
+        <!-- Daily Quest -->
+        <div class="quest-card" id="dailyQuestCard">
+            <div class="quest-type">Daily Quest</div>
+            <h2 class="quest-title" id="dailyQuestTitle">Loading...</h2>
+            <p class="quest-desc" id="dailyQuestDesc"></p>
+            <div class="quest-meta">
+                <span class="quest-status" id="dailyQuestStatus">Status: Pending</span>
+                <span class="xp-pill" id="dailyQuestXP">+50 XP</span>
+            </div>
+            <button class="quest-btn" id="dailyQuestBtn" onclick="claimDailyQuest()">Claim XP</button>
+        </div>
+
+        <!-- Weekly Quest -->
+        <div class="quest-card" id="weeklyQuestCard">
+            <div class="quest-type">Weekly Quest</div>
+            <h2 class="quest-title" id="weeklyQuestTitle">Loading...</h2>
+            <p class="quest-desc" id="weeklyQuestDesc"></p>
+            <div class="quest-meta">
+                <span class="quest-status" id="weeklyQuestStatus">Status: Pending</span>
+                <span class="xp-pill" id="weeklyQuestXP">+200 XP</span>
+            </div>
+            <button class="quest-btn" id="weeklyQuestBtn" onclick="claimWeeklyQuest()">Claim XP</button>
+        </div>
+
+        <!-- Bonus Quest -->
+        <div class="quest-card" id="bonusQuestCard">
+            <div class="quest-type">Bonus Quest</div>
+            <h2 class="quest-title" id="bonusQuestTitle">Optional Challenge</h2>
+            <p class="quest-desc" id="bonusQuestDesc">
+                Fix any missing logs from this week using the calendar. Keep your data clean, keep your story accurate.
+            </p>
+            <div class="quest-meta">
+                <span class="quest-status" id="bonusQuestStatus">Status: Manual</span>
+                <span class="xp-pill" id="bonusQuestXP">+100 XP</span>
+            </div>
+            <button class="quest-btn" onclick="window.location.href='calendar.html'">Open Calendar</button>
+            <p class="hint-text">Once you’ve filled gaps, you can manually reward yourself with a workout or custom XP rule.</p>
+        </div>
+    </section>
+
+    <!-- HISTORY & HINTS -->
+    <section class="history-section">
+        <div class="history-card">
+            <h2>Quest History</h2>
+            <ul class="history-list" id="questHistoryList"></ul>
+        </div>
+
+        <div class="history-card">
+            <h2>How Quests Work</h2>
+            <p class="hint-text">
+                • Daily quests reset every day and are about beating your recent self.<br>
+                • Weekly quests look at your last 7 days of data.<br>
+                • XP from quests feeds directly into your level and XP history.<br>
+                • No future logging — everything is based on today and the past only.
+            </p>
+        </div>
+    </section>
+</main>
+
+<script>
+let userRef = null;
+let currentUser = null;
+let dailyQuest = null;
+let weeklyQuest = null;
+
+auth.onAuthStateChanged(async user => {
+    if (!user) return window.location.href = "index.html";
+    userRef = db.collection("users").doc(user.uid);
+    await loadQuestsPage();
+});
+
+/* -----------------------------------------------------------
+   LOAD PAGE
+----------------------------------------------------------- */
+async function loadQuestsPage() {
+    const userDoc = await userRef.get();
+    currentUser = userDoc.data() || {};
+
+    // Profile header
+    document.getElementById("profileName").textContent = currentUser.fullName || "FitQuest Explorer";
+    document.getElementById("profilePhoto").src = currentUser.photoURL || "assets/default-avatar.png";
+
+    const level = currentUser.level || 1;
+    const xp = currentUser.xp || 0;
+    const xpNeeded = level * 100;
+
+    document.getElementById("profileLevel").textContent = `Level ${level} • ${xp} XP`;
+    document.getElementById("xpBar").style.width = Math.min((xp / xpNeeded) * 100, 100) + "%";
+
+    if (currentUser.streak && currentUser.streak > 0) {
+        document.getElementById("streakPill").style.display = "inline-flex";
+        document.getElementById("streakText").textContent = `${currentUser.streak}-day streak`;
+    }
+
+    // Build quests
+    await loadOrGenerateDailyQuest();
+    await loadOrGenerateWeeklyQuest();
+    await loadQuestHistory();
+}
+
+/* -----------------------------------------------------------
+   HELPERS
+----------------------------------------------------------- */
+function todayKey() {
+    const d = new Date();
+    return d.toISOString().slice(0,10); // YYYY-MM-DD
+}
+
+function weekKey() {
+    const d = new Date();
+    const year = d.getFullYear();
+    const firstJan = new Date(year, 0, 1);
+    const days = Math.floor((d - firstJan) / (24*60*60*1000));
+    const week = Math.floor((days + firstJan.getDay()) / 7) + 1;
+    return `${year}-W${week}`;
+}
+
+/* -----------------------------------------------------------
+   DAILY QUEST
+----------------------------------------------------------- */
+async function loadOrGenerateDailyQuest() {
+    const key = "daily_" + todayKey();
+    const doc = await userRef.collection("quests").doc(key).get();
+
+    if (doc.exists) {
+        dailyQuest = doc.data();
+    } else {
+        dailyQuest = generateDailyQuest();
+        await userRef.collection("quests").doc(key).set({
+            ...dailyQuest,
+            type: "daily",
+            key,
+            date: todayKey(),
+            claimed: false,
+            createdAt: new Date().toISOString()
+        });
+    }
+
+    renderDailyQuest();
+}
+
+function generateDailyQuest() {
+    // Simple pool based on your vibe
+    const options = [
+        {
+            title: "Beat Yesterday’s Effort",
+            desc: "Do a workout today that lasts at least 5 minutes longer than your last logged session.",
+            xp: 75
+        },
+        {
+            title: "Electric Hydration",
+            desc: "Drink at least 1L of water today with lemon and minerals (your ‘electric water’).",
+            xp: 60
+        },
+        {
+            title: "Log Everything",
+            desc: "Log every meal you eat today — no ghost calories.",
+            xp: 50
+        },
+        {
+            title: "Move Even If It’s Small",
+            desc: "Do at least 20 minutes of intentional movement today — walk, cycle, treadmill, anything.",
+            xp: 50
+        }
+    ];
+    return options[Math.floor(Math.random() * options.length)];
+}
+
+function renderDailyQuest() {
+    document.getElementById("dailyQuestTitle").textContent = dailyQuest.title;
+    document.getElementById("dailyQuestDesc").textContent = dailyQuest.desc;
+    document.getElementById("dailyQuestXP").textContent = `+${dailyQuest.xp} XP`;
+
+    if (dailyQuest.claimed) {
+        document.getElementById("dailyQuestStatus").textContent = "Status: Completed";
+        document.getElementById("dailyQuestBtn").disabled = true;
+        document.getElementById("dailyQuestBtn").textContent = "Already Claimed";
+    } else {
+        document.getElementById("dailyQuestStatus").textContent = "Status: Pending";
+        document.getElementById("dailyQuestBtn").disabled = false;
+        document.getElementById("dailyQuestBtn").textContent = "Claim XP";
+    }
+}
+
+async function claimDailyQuest() {
+    if (!dailyQuest || dailyQuest.claimed) return;
+
+    const key = "daily_" + todayKey();
+    const xpReward = dailyQuest.xp || 50;
+
+    // Refresh user
+    const userDoc = await userRef.get();
+    const user = userDoc.data() || {};
+    const currentXP = user.xp || 0;
+    const newXP = currentXP + xpReward;
+
+    await userRef.update({
+        xp: newXP,
+        xpHistory: firebase.firestore.FieldValue.arrayUnion({
+            timestamp: Date.now(),
+            value: newXP,
+            source: "dailyQuest"
+        })
+    });
+
+    await userRef.collection("quests").doc(key).update({
+        claimed: true,
+        claimedAt: new Date().toISOString()
+    });
+
+    dailyQuest.claimed = true;
+    renderDailyQuest();
+
+    // Update header
+    document.getElementById("profileLevel").textContent = `Level ${user.level || 1} • ${newXP} XP`;
+}
+
+/* -----------------------------------------------------------
+   WEEKLY QUEST
+----------------------------------------------------------- */
+async function loadOrGenerateWeeklyQuest() {
+    const key = "weekly_" + weekKey();
+    const doc = await userRef.collection("quests").doc(key).get();
+
+    if (doc.exists) {
+        weeklyQuest = doc.data();
+    } else {
+        weeklyQuest = generateWeeklyQuest();
+        await userRef.collection("quests").doc(key).set({
+            ...weeklyQuest,
+            type: "weekly",
+            key,
+            weekKey: weekKey(),
+            claimed: false,
+            createdAt: new Date().toISOString()
+        });
+    }
+
+    renderWeeklyQuest();
+}
+
+function generateWeeklyQuest() {
+    const options = [
+        {
+            title: "Three‑Mission Week",
+            desc: "Complete at least 3 workouts this week. Any style, any length — just show up.",
+            xp: 200
+        },
+        {
+            title: "Calorie Commander",
+            desc: "Hit your calorie target (within a reasonable range) on at least 5 days this week.",
+            xp: 220
+        },
+        {
+            title: "Step Into It",
+            desc: "Accumulate at least 40,000 steps across this week.",
+            xp: 250
+        },
+        {
+            title: "Consistency Over Perfection",
+            desc: "Log either food or workouts every single day this week.",
+            xp: 230
+        }
+    ];
+    return options[Math.floor(Math.random() * options.length)];
+}
+
+function renderWeeklyQuest() {
+    document.getElementById("weeklyQuestTitle").textContent = weeklyQuest.title;
+    document.getElementById("weeklyQuestDesc").textContent = weeklyQuest.desc;
+    document.getElementById("weeklyQuestXP").textContent = `+${weeklyQuest.xp} XP`;
+
+    if (weeklyQuest.claimed) {
+        document.getElementById("weeklyQuestStatus").textContent = "Status: Completed";
+        document.getElementById("weeklyQuestBtn").disabled = true;
+        document.getElementById("weeklyQuestBtn").textContent = "Already Claimed";
+    } else {
+        document.getElementById("weeklyQuestStatus").textContent = "Status: Pending";
+        document.getElementById("weeklyQuestBtn").disabled = false;
+        document.getElementById("weeklyQuestBtn").textContent = "Claim XP";
+    }
+}
+
+async function claimWeeklyQuest() {
+    if (!weeklyQuest || weeklyQuest.claimed) return;
+
+    const key = "weekly_" + weekKey();
+    const xpReward = weeklyQuest.xp || 200;
+
+    const userDoc = await userRef.get();
+    const user = userDoc.data() || {};
+    const currentXP = user.xp || 0;
+    const newXP = currentXP + xpReward;
+
+    await userRef.update({
+        xp: newXP,
+        xpHistory: firebase.firestore.FieldValue.arrayUnion({
+            timestamp: Date.now(),
+            value: newXP,
+            source: "weeklyQuest"
+        })
+    });
+
+    await userRef.collection("quests").doc(key).update({
+        claimed: true,
+        claimedAt: new Date().toISOString()
+    });
+
+    weeklyQuest.claimed = true;
+    renderWeeklyQuest();
+
+    document.getElementById("profileLevel").textContent = `Level ${user.level || 1} • ${newXP} XP`;
+}
+
+/* -----------------------------------------------------------
+   QUEST HISTORY
+----------------------------------------------------------- */
+async function loadQuestHistory() {
+    const snap = await userRef.collection("quests")
+        .orderBy("createdAt", "desc")
+        .limit(30)
+        .get();
+
+    const list = document.getElementById("questHistoryList");
+    if (snap.empty) {
+        list.innerHTML = "<li>No quests logged yet — today is a good day to start.</li>";
+        return;
+    }
+
+    const items = [];
+    snap.forEach(doc => {
+        const q = doc.data();
+        const label = q.type === "daily" ? "Daily" : (q.type === "weekly" ? "Weekly" : "Quest");
+        const date = q.date || q.weekKey || (q.createdAt || "").slice(0,10);
+        const status = q.claimed ? "Completed" : "Pending";
+        const xp = q.xp || 0;
+
+        items.push(
+            `<li><span>[${label}]</span> ${q.title || "Quest"} — ${status} • +${xp} XP • <span>${date}</span></li>`
+        );
+    });
+
+    list.innerHTML = items.join("");
+}
+</script>
+
+</body>
+</html>
