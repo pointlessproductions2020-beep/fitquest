@@ -649,7 +649,71 @@
     </section>
 </main>
 
+<!-- ⭐ REAL MODALS START HERE ⭐ -->
+<div id="hydrationModal" style="
+    display:none; position:fixed; inset:0;
+    background:rgba(0,0,0,0.7); 
+    align-items:center; justify-content:center;
+    z-index:999;">
+    <div style="
+        background:#0f172a; padding:20px; border-radius:16px;
+        border:1px solid var(--neon); width:90%; max-width:350px;">
+        
+        <h3 class="neon-text">Hydration</h3>
+        <input type="number" id="hydrationInput" placeholder="Litres"
+            style="width:100%; padding:8px; margin-top:8px; border-radius:10px;
+            background:#020617; color:white; border:1px solid rgba(148,163,184,0.4);">
+
+        <button onclick="saveHydration()" style="
+            margin-top:12px; width:100%; padding:10px; border-radius:999px;
+            background:var(--neon); color:#020617; border:none; font-weight:600;">
+            Save
+        </button>
+
+        <button onclick="closeHydrationModal()" style="
+            margin-top:8px; width:100%; padding:10px; border-radius:999px;
+            background:#334155; color:white; border:none;">
+            Cancel
+        </button>
+    </div>
+</div>
+
+<div id="weightModal" style="
+    display:none; position:fixed; inset:0;
+    background:rgba(0,0,0,0.7); 
+    align-items:center; justify-content:center;
+    z-index:999;">
+    <div style="
+        background:#0f172a; padding:20px; border-radius:16px;
+        border:1px solid var(--neon); width:90%; max-width:350px;">
+        
+        <h3 class="neon-text">Weight / BMI</h3>
+
+        <input type="number" id="weightInput" placeholder="Weight (kg)"
+            style="width:100%; padding:8px; margin-top:8px; border-radius:10px;
+            background:#020617; color:white; border:1px solid rgba(148,163,184,0.4);">
+
+        <input type="number" id="bmiInput" placeholder="BMI (optional)"
+            style="width:100%; padding:8px; margin-top:8px; border-radius:10px;
+            background:#020617; color:white; border:1px solid rgba(148,163,184,0.4);">
+
+        <button onclick="saveWeight()" style="
+            margin-top:12px; width:100%; padding:10px; border-radius:999px;
+            background:var(--neon); color:#020617; border:none; font-weight:600;">
+            Save
+        </button>
+
+        <button onclick="closeWeightModal()" style="
+            margin-top:8px; width:100%; padding:10px; border-radius:999px;
+            background:#334155; color:white; border:none;">
+            Cancel
+        </button>
+    </div>
+</div>
+<!-- ⭐ REAL MODALS END HERE ⭐ -->
+
 <script>
+
 let userRef = null;
 let currentUser = null;
 
@@ -1188,7 +1252,7 @@ function renderCalendar() {
 }
 
 /* -----------------------------------------------------------
-   RENDER DAY DETAIL
+   RENDER DAY DETAIL (UPGRADED + EDITABLE)
 ----------------------------------------------------------- */
 function renderDayDetail() {
     const dateLabel = document.getElementById("detailDateLabel");
@@ -1218,111 +1282,158 @@ function renderDayDetail() {
 
     tagsContainer.innerHTML = "";
     workoutsList.innerHTML = "";
+    foodP.innerHTML = "";
+    hydrationP.innerHTML = "";
+    weightP.innerHTML = "";
+    xpP.innerHTML = "";
     actions.innerHTML = "";
     futureNote.style.display = "none";
 
     const future = isFuture(d);
 
-    if (dayData) {
-        if (dayData.workouts && dayData.workouts.length > 0) {
-            const tag = document.createElement("span");
-            tag.className = "detail-tag";
-            tag.textContent = `${dayData.workouts.length} workout${dayData.workouts.length > 1 ? "s" : ""}`;
-            tagsContainer.appendChild(tag);
+    // WORKOUTS
+    if (dayData?.workouts?.length > 0) {
+        const tag = document.createElement("span");
+        tag.className = "detail-tag";
+        tag.textContent = `${dayData.workouts.length} workout${dayData.workouts.length > 1 ? "s" : ""}`;
+        tagsContainer.appendChild(tag);
 
-            dayData.workouts.forEach(w => {
-                const li = document.createElement("li");
-                const name = w.exerciseName || w.type || "Workout";
-                const mins = w.durationMinutes ? `${w.durationMinutes} min` : "";
-                const cals = w.caloriesBurned ? `${w.caloriesBurned} kcal` : "";
-                li.textContent = [name, mins, cals].filter(Boolean).join(" • ");
-                workoutsList.appendChild(li);
-            });
-        } else {
-            workoutsList.innerHTML = "<li>No workouts logged.</li>";
-        }
+        dayData.workouts.forEach((w, index) => {
+            const li = document.createElement("li");
+            const name = w.exerciseName || w.type || "Workout";
+            const mins = w.durationMinutes ? `${w.durationMinutes} min` : "";
+            const cals = w.caloriesBurned ? `${w.caloriesBurned} kcal` : "";
 
-        if (dayData.food && dayData.food.length > 0) {
-            const totalCalories = dayData.food.reduce((sum, f) => {
-                return sum + (f.totalCalories || f.calories || 0);
-            }, 0);
-            const tag = document.createElement("span");
-            tag.className = "detail-tag";
-            tag.textContent = "Food logged";
-            tagsContainer.appendChild(tag);
+            li.innerHTML = `
+                ${[name, mins, cals].filter(Boolean).join(" • ")}
+                <button style="margin-left:8px;" onclick="deleteWorkoutFromDay('${dateKey}', ${index})">✖</button>
+            `;
 
-            foodP.textContent = `Approx. ${Math.round(totalCalories)} kcal logged.`;
-        } else {
-            foodP.textContent = "No food logged.";
-        }
-
-        if (dayData.hydration != null) {
-            const tag = document.createElement("span");
-            tag.className = "detail-tag";
-            tag.textContent = "Hydration";
-            tagsContainer.appendChild(tag);
-
-            hydrationP.textContent = `${dayData.hydration} L logged.`;
-        } else {
-            hydrationP.textContent = "No hydration logged.";
-        }
-
-        if (dayData.weight != null || dayData.bmi != null) {
-            const tag = document.createElement("span");
-            tag.className = "detail-tag";
-            tag.textContent = "Body metrics";
-            tagsContainer.appendChild(tag);
-
-            const parts = [];
-            if (dayData.weight != null) parts.push(`Weight: ${dayData.weight}`);
-            if (dayData.bmi != null) parts.push(`BMI: ${dayData.bmi}`);
-            weightP.textContent = parts.join(" • ");
-        } else {
-            weightP.textContent = "No weight/BMI logged.";
-        }
-
-        if (dayData.xp && dayData.xp.length > 0) {
-            const tag = document.createElement("span");
-            tag.className = "detail-tag";
-            tag.textContent = "XP changes";
-            tagsContainer.appendChild(tag);
-
-            const last = dayData.xp[dayData.xp.length - 1];
-            const xpVal = last.value ?? last.delta ?? "?";
-            xpP.textContent = `XP changed on this day. Latest recorded: ${xpVal}.`;
-        } else {
-            xpP.textContent = "No XP changes recorded.";
-        }
+            workoutsList.appendChild(li);
+        });
     } else {
         workoutsList.innerHTML = "<li>No workouts logged.</li>";
+    }
+
+    // FOOD
+    if (dayData?.food?.length > 0) {
+        const totalCalories = dayData.food.reduce((sum, f) => {
+            return sum + (f.totalCalories || f.calories || 0);
+        }, 0);
+
+        const tag = document.createElement("span");
+        tag.className = "detail-tag";
+        tag.textContent = "Food logged";
+        tagsContainer.appendChild(tag);
+
+        let html = "";
+        dayData.food.forEach((f, index) => {
+            html += `
+                <div class="detail-food-item" style="display:flex;justify-content:space-between;margin-bottom:4px;">
+                    <span>${f.name} — ${f.calories || f.totalCalories} kcal</span>
+                    <button onclick="deleteFoodFromDay('${dateKey}', ${index})">✖</button>
+                </div>
+            `;
+        });
+
+        html += `<div style="margin-top:6px;opacity:0.8;">Total: ${Math.round(totalCalories)} kcal</div>`;
+        foodP.innerHTML = html;
+
+    } else {
         foodP.textContent = "No food logged.";
+    }
+
+    // HYDRATION
+    if (dayData?.hydration != null) {
+        const tag = document.createElement("span");
+        tag.className = "detail-tag";
+        tag.textContent = "Hydration";
+        tagsContainer.appendChild(tag);
+
+        hydrationP.innerHTML = `
+            ${dayData.hydration} L logged
+        `;
+    } else {
         hydrationP.textContent = "No hydration logged.";
+    }
+
+    // WEIGHT / BMI
+    if (dayData?.weight != null || dayData?.bmi != null) {
+        const tag = document.createElement("span");
+        tag.className = "detail-tag";
+        tag.textContent = "Body metrics";
+        tagsContainer.appendChild(tag);
+
+        const parts = [];
+        if (dayData.weight != null) parts.push(`Weight: ${dayData.weight}`);
+        if (dayData.bmi != null) parts.push(`BMI: ${dayData.bmi}`);
+
+        weightP.innerHTML = parts.join(" • ");
+    } else {
         weightP.textContent = "No weight/BMI logged.";
+    }
+
+    // XP
+    if (dayData?.xp?.length > 0) {
+        const tag = document.createElement("span");
+        tag.className = "detail-tag";
+        tag.textContent = "XP changes";
+        tagsContainer.appendChild(tag);
+
+        const last = dayData.xp[dayData.xp.length - 1];
+        const xpVal = last.value ?? last.delta ?? "?";
+        xpP.textContent = `XP changed: ${xpVal}`;
+    } else {
         xpP.textContent = "No XP changes recorded.";
     }
 
-    // Actions
+    // ACTION BUTTONS
     if (future) {
         futureNote.style.display = "block";
         return;
     }
 
-    const exerciseBtn = document.createElement("button");
-    exerciseBtn.className = "primary";
-    exerciseBtn.textContent = "Add workout";
-    exerciseBtn.onclick = () => window.location.href = "exercise.html";
-    actions.appendChild(exerciseBtn);
-
-    const foodBtn = document.createElement("button");
-    foodBtn.textContent = "Add food";
-    foodBtn.onclick = () => window.location.href = "food.html";
-    actions.appendChild(foodBtn);
-
-    const weightBtn = document.createElement("button");
-    weightBtn.textContent = "Update weight/BMI";
-    weightBtn.onclick = () => window.location.href = "bmi.html";
-    actions.appendChild(weightBtn);
+    actions.innerHTML = `
+        <button class="primary" onclick="window.location.href='exercise.html'">Add workout</button>
+        <button class="primary" onclick="window.location.href='food.html'">Add food</button>
+        <button class="primary" onclick="openHydrationModal()">Add hydration</button>
+        <button class="primary" onclick="openWeightModal()">Add weight/BMI</button>
+    `;
 }
+
+/* -----------------------------------------------------------
+   ADDING DELETE FUNCTIONS
+----------------------------------------------------------- */
+    async function deleteFoodFromDay(dateKey, index) {
+    const monthKey = formatMonthKey(selectedDate);
+    const monthData = monthDataCache[monthKey][dateKey];
+    const item = monthData.food[index];
+
+    const snap = await userRef.collection("food")
+        .where("timestamp", "==", item.timestamp)
+        .get();
+
+    snap.forEach(doc => doc.ref.delete());
+
+    await loadMonthData(selectedDate);
+    renderCalendar();
+}
+
+async function deleteWorkoutFromDay(dateKey, index) {
+    const monthKey = formatMonthKey(selectedDate);
+    const monthData = monthDataCache[monthKey][dateKey];
+    const item = monthData.workouts[index];
+
+    const snap = await userRef.collection("workouts")
+        .where("timestamp", "==", item.timestamp)
+        .get();
+
+    snap.forEach(doc => doc.ref.delete());
+
+    await loadMonthData(selectedDate);
+    renderCalendar();
+}
+
 /* -----------------------------------------------------------
    NAVIGATION
 ----------------------------------------------------------- */
@@ -1341,6 +1452,55 @@ async function goToToday() {
     await updateWeeklySummary();
     renderCalendar();
 }
+    function openHydrationModal() {
+    document.getElementById("hydrationModal").style.display = "flex";
+}
+
+function closeHydrationModal() {
+    document.getElementById("hydrationModal").style.display = "none";
+}
+
+async function saveHydration() {
+    const litres = parseFloat(document.getElementById("hydrationInput").value);
+    if (isNaN(litres)) return;
+
+    const dateKey = formatDateKey(selectedDate);
+
+    await userRef.collection("dailyLogs").doc(dateKey).set({
+        hydration: litres
+    }, { merge: true });
+
+    closeHydrationModal();
+    await loadMonthData(selectedDate);
+    renderCalendar();
+}
+
+function openWeightModal() {
+    document.getElementById("weightModal").style.display = "flex";
+}
+
+function closeWeightModal() {
+    document.getElementById("weightModal").style.display = "none";
+}
+
+async function saveWeight() {
+    const weight = parseFloat(document.getElementById("weightInput").value);
+    const bmi = parseFloat(document.getElementById("bmiInput").value);
+
+    if (isNaN(weight)) return;
+
+    const dateKey = formatDateKey(selectedDate);
+
+    await userRef.collection("dailyLogs").doc(dateKey).set({
+        weight: weight,
+        bmi: isNaN(bmi) ? null : bmi
+    }, { merge: true });
+
+    closeWeightModal();
+    await loadMonthData(selectedDate);
+    renderCalendar();
+}
+
     
 </script>
 
