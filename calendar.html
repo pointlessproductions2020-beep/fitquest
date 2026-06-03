@@ -666,6 +666,9 @@ window.getCurrentStreak = getCurrentStreak;
 
 auth.onAuthStateChanged(async user => {
     if (!user) return window.location.href = "index.html";
+    
+    await applyUserTheme();
+    
     userRef = db.collection("users").doc(user.uid);
     await initCalendar();
 });
