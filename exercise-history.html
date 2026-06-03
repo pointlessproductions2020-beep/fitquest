@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FitQuest — Workout History</title>
+    <link rel="stylesheet" href="styles.css">
+
+    <!-- Firebase -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
+
+    <script src="firebase.js"></script>
+    <script src="fitquestbrain.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <style>
+        :root { --neon: #00eaff; }
+
+        .history-layout {
+            display: grid;
+            grid-template-columns: 320px 1fr;
+            gap: 20px;
+        }
+
+        .history-card {
+            padding: 16px;
+        }
+
+        .filter-btn {
+            padding: 6px 12px;
+            border-radius: 999px;
+            border: 1px solid rgba(148,163,184,0.4);
+            background: rgba(15,23,42,0.9);
+            color: #e5e7eb;
+            cursor: pointer;
+            font-size: 12px;
+            margin-right: 6px;
+        }
+
+        .filter-btn.active {
+            background: var(--neon);
+            color: #020617;
+            border-color: var(--neon);
+            box-shadow: 0 0 10px var(--neon);
+        }
+
+        .workout-item {
+            padding: 12px;
+            border-radius: 12px;
+            border: 1px solid var(--neon);
+            background: rgba(15,23,42,0.9);
+            margin-bottom: 10px;
+            box-shadow: 0 0 12px var(--neon);
+        }
+
+        .workout-item h4 {
+            margin: 0;
+            color: var(--neon);
+        }
+
+        .workout-meta {
+            font-size: 13px;
+            opacity: 0.85;
+            margin-top: 4px;
+        }
+
+        .summary-box {
+            padding: 12px;
+            border-radius: 12px;
+            border: 1px solid var(--neon);
+            box-shadow: 0 0 12px var(--neon);
+            margin-bottom: 14px;
+        }
+
+        .summary-box p {
+            margin: 4px 0;
+        }
+    </style>
+</head>
+
+<body class="dashboard-body">
+
+<!-- SIDEBAR -->
+<aside class="sidebar">
+    <div class="sidebar-logo">
+        <img src="assets/logo.png" alt="FitQuest Logo">
+    </div>
+
+    <ul class="sidebar-links">
+        <li class="neon-hover" onclick="window.location.href='dashboard.html'">🏠 Dashboard</li>
+        <li class="neon-hover" onclick="window.location.href='exercise.html'">💪 Workout Entry</li>
+        <li class="active neon-hover">📚 Workout History</li>
+        <li class="neon-hover" onclick="window.location.href='food.html'">🍽️ Food Intake</li>
+        <li class="neon-hover" onclick="window.location.href='meals.html'">🍱 Meals</li>
+        <li class="neon-hover" onclick="window.location.href='barcode.html'">📷 Barcode Scanner</li>
+        <li class="neon-hover" onclick="window.location.href='bmi.html'">📏 BMI Calculator</li>
+        <li class="neon-hover" onclick="window.location.href='profile.html'">👤 Profile</li>
+        <li class="neon-hover">⚙️ Settings</li>
+    </ul>
+
+    <button class="logout-btn neon-interactive" onclick="logoutUser()">Logout</button>
+</aside>
+
+<!-- MAIN -->
+<main class="main-content">
+    <h1 class="page-title">Workout History</h1>
+
+    <section class="history-layout">
+
+        <!-- LEFT: Filters + Summary -->
+        <div class="card neon-card history-card">
+            <h2 class="neon-text">Filters</h2>
+
+            <button class="filter-btn active" onclick="setRange('all')" id="btnAll">All</button>
+            <button class="filter-btn" onclick="setRange('day')" id="btnDay">Day</button>
+            <button class="filter-btn" onclick="setRange('week')" id="btnWeek">Week</button">
+            <button class="filter-btn" onclick="setRange('month')" id="btnMonth">Month</button>
+
+            <h2 class="neon-text" style="margin-top:20px;">Sort By</h2>
+
+            <button class="filter-btn active" onclick="setSort('newest')" id="sortNewest">Newest</button>
+            <button class="filter-btn" onclick="setSort('oldest')" id="sortOldest">Oldest</button>
+            <button class="filter-btn" onclick="setSort('calories')" id="sortCalories">Calories</button>
+            <button class="filter-btn" onclick="setSort('duration')" id="sortDuration">Duration</button>
+
+            <h2 class="neon-text" style="margin-top:20px;">Summary</h2>
+
+            <div class="summary-box">
+                <p id="sumSessions">Sessions: 0</p>
+                <p id="sumCalories">Calories Burned: 0 kcal</p>
+                <p id="sumMinutes">Minutes Trained: 0 min</p>
+            </div>
+
+            <h2 class="neon-text">Trend</h2>
+            <canvas id="historyTrend"></canvas>
+        </div>
+
+        <!-- RIGHT: Workout List -->
+        <div class="card neon-card history-card">
+            <h2 class="neon-text">All Workouts</h2>
+            <div id="workoutList"></div>
+        </div>
+
+    </section>
+</main>
+
+<script>
+let userRef = null;
+let allWorkouts = [];
+let currentRange = "all";
+let currentSort = "newest";
+let trendChart = null;
+
+auth.onAuthStateChanged(async user => {
+    if (!user) return window.location.href = "index.html";
+    userRef = db.collection("users").doc(user.uid);
+    loadWorkouts();
+});
+
+/* -----------------------------------------------------------
+   LOAD WORKOUTS
+----------------------------------------------------------- */
+async function loadWorkouts() {
+    const snap = await userRef.collection("workouts").orderBy("timestamp", "desc").get();
+    allWorkouts = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+    renderWorkouts();
+    updateSummary();
+    renderTrend();
+}
+
+/* -----------------------------------------------------------
+   FILTERING
+----------------------------------------------------------- */
+function setRange(r) {
+    currentRange = r;
+
+    ["btnAll","btnDay","btnWeek","btnMonth"].forEach(id =>
+        document.getElementById(id).classList.remove("active")
+    );
+    document.getElementById("btn" + r.charAt(0).toUpperCase() + r.slice(1)).classList.add("active");
+
+    renderWorkouts();
+    updateSummary();
+    renderTrend();
+}
+
+function filterByRange(list) {
+    if (currentRange === "all") return list;
+
+    const now = new Date();
+    return list.filter(w => {
+        const ts = new Date(w.timestamp);
+
+        if (currentRange === "day") {
+            return ts.toDateString() === now.toDateString();
+        }
+
+        if (currentRange === "week") {
+            const diff = (now - ts) / (1000 * 60 * 60 * 24);
+            return diff <= 7;
+        }
+
+        if (currentRange === "month") {
+            const diff = (now - ts) / (1000 * 60 * 60 * 24);
+            return diff <= 30;
+        }
+    });
+}
+
+/* -----------------------------------------------------------
+   SORTING
+----------------------------------------------------------- */
+function setSort(s) {
+    currentSort = s;
+
+    ["sortNewest","sortOldest","sortCalories","sortDuration"].forEach(id =>
+        document.getElementById(id).classList.remove("active")
+    );
+    document.getElementById("sort" + s.charAt(0).toUpperCase() + s.slice(1)).classList.add("active");
+
+    renderWorkouts();
+}
+
+function sortList(list) {
+    if (currentSort === "newest") return list.sort((a,b) => b.timestamp - a.timestamp);
+    if (currentSort === "oldest") return list.sort((a,b) => a.timestamp - b.timestamp);
+    if (currentSort === "calories") return list.sort((a,b) => (b.caloriesBurned||0) - (a.caloriesBurned||0));
+    if (currentSort === "duration") return list.sort((a,b) => (b.durationMinutes||0) - (a.durationMinutes||0));
+    return list;
+}
+
+/* -----------------------------------------------------------
+   RENDER WORKOUT LIST
+----------------------------------------------------------- */
+function renderWorkouts() {
+    const list = document.getElementById("workoutList");
+    list.innerHTML = "";
+
+    let filtered = filterByRange([...allWorkouts]);
+    filtered = sortList(filtered);
+
+    if (filtered.length === 0) {
+        list.innerHTML = "<p>No workouts found.</p>";
+        return;
+    }
+
+    filtered.forEach(w => {
+        const div = document.createElement("div");
+        div.className = "workout-item";
+
+        const date = new Date(w.timestamp).toLocaleString();
+
+        div.innerHTML = `
+            <h4>${w.type.toUpperCase()}</h4>
+            <div class="workout-meta">
+                <p>${date}</p>
+                <p>Calories: ${w.caloriesBurned || 0} kcal</p>
+                <p>Duration: ${w.durationMinutes || 0} min</p>
+                <p>XP: ${w.xpAwarded ? "✔ Earned" : "—"}</p>
+            </div>
+        `;
+
+        list.appendChild(div);
+    });
+}
+
+/* -----------------------------------------------------------
+   SUMMARY BOX
+----------------------------------------------------------- */
+function updateSummary() {
+    const filtered = filterByRange([...allWorkouts]);
+
+    const sessions = filtered.length;
+    const calories = filtered.reduce((a,b) => a + (b.caloriesBurned||0), 0);
+    const minutes = filtered.reduce((a,b) => a + (b.durationMinutes||0), 0);
+
+    document.getElementById("sumSessions").innerText = `Sessions: ${sessions}`;
+    document.getElementById("sumCalories").innerText = `Calories Burned: ${calories} kcal`;
+    document.getElementById("sumMinutes").innerText = `Minutes Trained: ${minutes} min`;
+}
+
+/* -----------------------------------------------------------
+   TREND CHART
+----------------------------------------------------------- */
+function renderTrend() {
+    const canvas = document.getElementById("historyTrend");
+    if (!canvas) return;
+
+    const ctx = canvas.getContext("2d");
+
+    const filtered = filterByRange([...allWorkouts]);
+
+    const labels = filtered.map(w =>
+        new Date(w.timestamp).toLocaleDateString()
+    );
+
+    const data = filtered.map(w => w.caloriesBurned || 0);
+
+    if (trendChart) trendChart.destroy();
+
+    trendChart = new Chart(ctx, {
+        type: "line",
+        data: {
+            labels,
+            datasets: [{
+                label: "Calories Burned",
+                data,
+                borderColor: "#38bdf8",
+                borderWidth: 3,
+                pointRadius: 4,
+                pointBackgroundColor: "#38bdf8",
+                fill: true,
+                backgroundColor: "rgba(56,189,248,0.25)",
+                tension: 0.35
+            }]
+        },
+        options: {
+            plugins: { legend: { display: false } }
+        }
+    });
+}
+</script>
+
+</body>
+</html>
