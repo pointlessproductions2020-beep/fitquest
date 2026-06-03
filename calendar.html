@@ -815,7 +815,7 @@ async function loadMonthData(date) {
 }
 
 /* -----------------------------------------------------------
-   WEEKLY SUMMARY
+   WEEKLY SUMMARY HELPERS
 ----------------------------------------------------------- */
 function getWeekBounds(date) {
     const monday = new Date(date);
@@ -914,10 +914,10 @@ async function updateWeeklySummary() {
     const streakPill = document.getElementById("summaryStreakPill");
     const gapsPill = document.getElementById("summaryGapsPill");
 
-    const { monday } = getWeekBounds(today);
-    const weekStartStr = monday.toLocaleDateString(undefined, { month: "short", day: "numeric" });
-    const weekEnd = new Date(monday);
-    weekEnd.setDate(monday.getDate() + 6);
+    const { monday: weekStart } = getWeekBounds(today);
+    const weekStartStr = weekStart.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+    const weekEnd = new Date(weekStart);
+    weekEnd.setDate(weekStart.getDate() + 6);
     const weekEndStr = weekEnd.toLocaleDateString(undefined, { month: "short", day: "numeric" });
 
     weekLabel.textContent = `This week • ${weekStartStr} – ${weekEndStr}`;
@@ -930,8 +930,8 @@ async function updateWeeklySummary() {
     let totalXPDelta = 0;
 
     for (let i = 0; i < 7; i++) {
-        const d = new Date(monday);
-        d.setDate(monday.getDate() + i);
+        const d = new Date(weekStart);
+        d.setDate(weekStart.getDate() + i);
         const key = formatDateKey(d);
         const monthKey = formatMonthKey(d);
         const monthData = monthDataCache[monthKey] || {};
@@ -958,7 +958,6 @@ async function updateWeeklySummary() {
         }
 
         if (dayData.xp && dayData.xp.length > 0) {
-            // assume xpHistory entries are deltas or values; we’ll just sum deltas if present
             dayData.xp.forEach(x => {
                 if (typeof x.delta === "number") totalXPDelta += x.delta;
             });
@@ -1322,6 +1321,7 @@ async function goToToday() {
     await updateWeeklySummary();
     renderCalendar();
 }
+    
 </script>
 
 </body>
