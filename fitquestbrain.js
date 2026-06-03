@@ -7,6 +7,7 @@
    - XP Engine
    - Insights Engine
    - Adaptive Goals
+   - Global Theme Engine (UI settings)
 ----------------------------------------------------------- */
 
 const FitQuestBrain = {
@@ -189,7 +190,75 @@ const FitQuestBrain = {
 };
 
 /* -----------------------------------------------------------
+   7. GLOBAL THEME ENGINE
+   Loads + applies user UI settings on every page
+----------------------------------------------------------- */
+
+async function applyUserTheme() {
+    // auth & db come from firebase.js (already loaded on every page)
+    const user = auth.currentUser;
+    if (!user) return;
+
+    const userRef = db.collection("users").doc(user.uid);
+    const doc = await userRef.get();
+    const s = doc.data()?.settings || {};
+
+    const root = document.documentElement;
+
+    // THEME MODE
+    const mode = s.themeMode || "single";
+
+    if (mode === "off") {
+        root.style.setProperty("--neon", "#00000000");
+    } else if (mode === "single") {
+        root.style.setProperty("--neon", s.singleColour || "#00eaff");
+    } else if (mode === "gradient") {
+        const c1 = s.grad1 || "#00eaff";
+        // you can later add a real gradient var; for now we drive main neon
+        root.style.setProperty("--neon", c1);
+    } else if (mode === "palette") {
+        const c1 = s.pal1 || "#00eaff";
+        root.style.setProperty("--neon", c1);
+    } else if (mode === "ambient") {
+        const c1 = s.pal1 || s.singleColour || "#00eaff";
+        root.style.setProperty("--neon", c1);
+        // you could add fancier ambient behaviour later
+    } else if (mode === "random") {
+        const base = s.singleColour || "#00eaff";
+        root.style.setProperty("--neon", base);
+        setInterval(() => {
+            const random = "#" + Math.floor(Math.random() * 16777215).toString(16).padStart(6, "0");
+            root.style.setProperty("--neon", random);
+        }, 5000);
+    }
+
+    // GLOW
+    root.style.setProperty("--glow-strength", s.glowStrength || 1);
+
+    // ANIMATION SPEED
+    root.style.setProperty("--animation-speed", s.animSpeed || 1);
+
+    // UI SCALE
+    root.style.setProperty("--ui-scale", s.uiScale || 1);
+
+    // REDUCED MOTION
+    if (s.reducedMotion) {
+        document.body.style.animation = "none";
+    } else {
+        document.body.style.animation = "";
+    }
+
+    // MINIMAL MODE
+    if (s.minimalMode) {
+        document.body.classList.add("minimal");
+    } else {
+        document.body.classList.remove("minimal");
+    }
+}
+
+/* -----------------------------------------------------------
    EXPORT
 ----------------------------------------------------------- */
 
 window.FitQuestBrain = FitQuestBrain;
+window.applyUserTheme = applyUserTheme;
