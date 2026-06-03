@@ -432,6 +432,9 @@ Chart.defaults.plugins.tooltip.borderWidth = 1;
 ----------------------------------------------------------- */
 auth.onAuthStateChanged(async user => {
     if (!user) return window.location.href = "index.html";
+
+    await applyUserTheme();
+    
     userRef = db.collection("users").doc(user.uid);
     loadProgressPage();
 });
