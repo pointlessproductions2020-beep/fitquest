@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FitQuest — Progress Analytics</title>
+    <link rel="stylesheet" href="styles.css">
+
+    <!-- Firebase -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
+
+    <script src="firebase.js"></script>
+    <script src="fitquestbrain.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <style>
+        :root { --neon: #00eaff; }
+
+        .progress-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .progress-card {
+            padding: 16px;
+            border-radius: 16px;
+            border: 1px solid var(--neon);
+            box-shadow: 0 0 14px var(--neon), inset 0 0 6px var(--neon);
+            animation: neonBreath 6s ease-in-out infinite;
+        }
+
+        .progress-card h2 {
+            margin-bottom: 10px;
+        }
+
+        .chart-container {
+            width: 100%;
+            height: 260px;
+        }
+    </style>
+</head>
+
+<body class="dashboard-body">
+
+<!-- SIDEBAR -->
+<aside class="sidebar">
+    <div class="sidebar-logo">
+        <img src="assets/logo.png" alt="FitQuest Logo">
+    </div>
+
+    <ul class="sidebar-links">
+        <li class="neon-hover" onclick="window.location.href='dashboard.html'">🏠 Dashboard</li>
+        <li class="neon-hover" onclick="window.location.href='exercise.html'">💪 Workout Entry</li>
+        <li class="neon-hover" onclick="window.location.href='exercise-history.html'">📚 Workout History</li>
+        <li class="neon-hover" onclick="window.location.href='food.html'">🍽️ Food Intake</li>
+        <li class="neon-hover" onclick="window.location.href='meals.html'">🍱 Meals</li>
+        <li class="neon-hover" onclick="window.location.href='barcode.html'">📷 Barcode Scanner</li>
+        <li class="neon-hover" onclick="window.location.href='bmi.html'">📏 BMI Calculator</li>
+        <li class="active neon-hover">📊 Progress</li>
+        <li class="neon-hover" onclick="window.location.href='profile.html'">👤 Profile</li>
+        <li class="neon-hover">⚙️ Settings</li>
+    </ul>
+
+    <button class="logout-btn neon-interactive" onclick="logoutUser()">Logout</button>
+</aside>
+
+<!-- MAIN -->
+<main class="main-content">
+    <h1 class="page-title">Progress & Analytics</h1>
+    <p class="subtitle">Your long‑term fitness journey, visualised in neon.</p>
+
+    <section class="progress-grid">
+
+        <!-- Calories Intake -->
+        <div class="progress-card neon-card">
+            <h2 class="neon-text">Calories Intake (Weekly)</h2>
+            <canvas id="caloriesWeekly"></canvas>
+        </div>
+
+        <div class="progress-card neon-card">
+            <h2 class="neon-text">Calories Intake (Monthly)</h2>
+            <canvas id="caloriesMonthly"></canvas>
+        </div>
+
+        <!-- Calories Burned -->
+        <div class="progress-card neon-card">
+            <h2 class="neon-text">Calories Burned (Weekly)</h2>
+            <canvas id="burnWeekly"></canvas>
+        </div>
+
+        <div class="progress-card neon-card">
+            <h2 class="neon-text">Calories Burned (Monthly)</h2>
+            <canvas id="burnMonthly"></canvas>
+        </div>
+
+        <!-- Workout Analytics -->
+        <div class="progress-card neon-card">
+            <h2 class="neon-text">Workout Sessions (Weekly)</h2>
+            <canvas id="workoutSessionsWeekly"></canvas>
+        </div>
+
+        <div class="progress-card neon-card">
+            <h2 class="neon-text">Workout Minutes (Weekly)</h2>
+            <canvas id="workoutMinutesWeekly"></canvas>
+        </div>
+
+        <div class="progress-card neon-card">
+            <h2 class="neon-text">Workout Calories (Weekly)</h2>
+            <canvas id="workoutCaloriesWeekly"></canvas>
+        </div>
+
+        <!-- Weight Trend -->
+        <div class="progress-card neon-card">
+            <h2 class="neon-text">Weight Trend</h2>
+            <canvas id="weightTrendChart"></canvas>
+        </div>
+
+        <!-- BMI Trend -->
+        <div class="progress-card neon-card">
+            <h2 class="neon-text">BMI Trend</h2>
+            <canvas id="bmiTrendChart"></canvas>
+        </div>
+
+        <!-- XP Progress -->
+        <div class="progress-card neon-card">
+            <h2 class="neon-text">XP Progression</h2>
+            <canvas id="xpTrendChart"></canvas>
+        </div>
+
+    </section>
+</main>
+
+<script>
+let userRef = null;
+
+auth.onAuthStateChanged(async user => {
+    if (!user) return window.location.href = "index.html";
+    userRef = db.collection("users").doc(user.uid);
+    loadAllAnalytics();
+});
+
+/* -----------------------------------------------------------
+   LOAD ALL ANALYTICS
+----------------------------------------------------------- */
+async function loadAllAnalytics() {
+    const userDoc = await userRef.get();
+    const user = userDoc.data() || {};
+
+    const foodSnap = await userRef.collection("food").get();
+    const workoutsSnap = await userRef.collection("workouts").get();
+
+    const food = foodSnap.docs.map(d => d.data());
+    const workouts = workoutsSnap.docs.map(d => d.data());
+
+    renderCaloriesIntake(food);
+    renderCaloriesBurned(workouts);
+    renderWorkoutAnalytics(workouts);
+    renderWeightTrend(user.weightHistory || []);
+    renderBMITrend(user.bmiHistory || []);
+    renderXPTrend(user.xpHistory || []);
+}
+
+/* -----------------------------------------------------------
+   CALORIES INTAKE
+----------------------------------------------------------- */
+function renderCaloriesIntake(food) {
+    const weekly = [0,0,0,0,0,0,0];
+    const monthly = [0,0,0,0];
+
+    food.forEach(f => {
+        const ts = new Date(f.timestamp);
+        const day = ts.getDay();
+        const week = Math.floor((ts.getDate() - 1) / 7);
+
+        weekly[day === 0 ? 6 : day - 1] += f.totalCalories || f.calories || 0;
+        monthly[week] += f.totalCalories || f.calories || 0;
+    });
+
+    new Chart(document.getElementById("caloriesWeekly"), {
+        type: "bar",
+        data: {
+            labels: ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"],
+            datasets: [{
+                data: weekly,
+                backgroundColor: "rgba(56,189,248,0.6)",
+                borderColor: "#38bdf8",
+                borderWidth: 2,
+                borderRadius: 6
+            }]
+        },
+        options: { plugins: { legend: { display: false } } }
+    });
+
+    new Chart(document.getElementById("caloriesMonthly"), {
+        type: "line",
+        data: {
+            labels: ["Week 1","Week 2","Week 3","Week 4"],
+            datasets: [{
+                data: monthly,
+                borderColor: "#38bdf8",
+                borderWidth: 3,
+                fill: true,
+                backgroundColor: "rgba(56,189,248,0.25)",
+                tension: 0.35
+            }]
+        },
+        options: { plugins: { legend: { display: false } } }
+    });
+}
+
+/* -----------------------------------------------------------
+   CALORIES BURNED
+----------------------------------------------------------- */
+function renderCaloriesBurned(workouts) {
+    const weekly = [0,0,0,0,0,0,0];
+    const monthly = [0,0,0,0];
+
+    workouts.forEach(w => {
+        const ts = new Date(w.timestamp);
+        const day = ts.getDay();
+        const week = Math.floor((ts.getDate() - 1) / 7);
+
+        weekly[day === 0 ? 6 : day - 1] += w.caloriesBurned || 0;
+        monthly[week] += w.caloriesBurned || 0;
+    });
+
+    new Chart(document.getElementById("burnWeekly"), {
+        type: "bar",
+        data: {
+            labels: ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"],
+            datasets: [{
+                data: weekly,
+                backgroundColor: "rgba(255,123,84,0.6)",
+                borderColor: "#ff7b54",
+                borderWidth: 2,
+                borderRadius: 6
+            }]
+        },
+        options: { plugins: { legend: { display: false } } }
+    });
+
+    new Chart(document.getElementById("burnMonthly"), {
+        type: "line",
+        data: {
+            labels: ["Week 1","Week 2","Week 3","Week 4"],
+            datasets: [{
+                data: monthly,
+                borderColor: "#ff7b54",
+                borderWidth: 3,
+                fill: true,
+                backgroundColor: "rgba(255,123,84,0.25)",
+                tension: 0.35
+            }]
+        },
+        options: { plugins: { legend: { display: false } } }
+    });
+}
+
+/* -----------------------------------------------------------
+   WORKOUT ANALYTICS
+----------------------------------------------------------- */
+function renderWorkoutAnalytics(workouts) {
+    const sessions = [0,0,0,0,0,0,0];
+    const minutes = [0,0,0,0,0,0,0];
+    const calories = [0,0,0,0,0,0,0];
+
+    workouts.forEach(w => {
+        const ts = new Date(w.timestamp);
+        const day = ts.getDay();
+        const index = day === 0 ? 6 : day - 1;
+
+        sessions[index] += 1;
+        minutes[index] += w.durationMinutes || 0;
+        calories[index] += w.caloriesBurned || 0;
+    });
+
+    new Chart(document.getElementById("workoutSessionsWeekly"), {
+        type: "bar",
+        data: {
+            labels: ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"],
+            datasets: [{
+                data: sessions,
+                backgroundColor: "rgba(129,140,248,0.8)",
+                borderColor: "#818cf8",
+                borderWidth: 2,
+                borderRadius: 6
+            }]
+        },
+        options: { plugins: { legend: { display: false } } }
+    });
+
+    new Chart(document.getElementById("workoutMinutesWeekly"), {
+        type: "line",
+        data: {
+            labels: ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"],
+            datasets: [{
+                data: minutes,
+                borderColor: "#4cc95b",
+                borderWidth: 3,
+                fill: true,
+                backgroundColor: "rgba(76,201,91,0.25)",
+                tension: 0.35
+            }]
+        },
+        options: { plugins: { legend: { display: false } } }
+    });
+
+    new Chart(document.getElementById("workoutCaloriesWeekly"), {
+        type: "line",
+        data: {
+            labels: ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"],
+            datasets: [{
+                data: calories,
+                borderColor: "#ff00ff",
+                borderWidth: 3,
+                fill: true,
+                backgroundColor: "rgba(255,0,255,0.25)",
+                tension: 0.35
+            }]
+        },
+        options: { plugins: { legend: { display: false } } }
+    });
+}
+
+/* -----------------------------------------------------------
+   WEIGHT TREND
+----------------------------------------------------------- */
+function renderWeightTrend(history) {
+    const labels = history.map(h => new Date(h.timestamp).toLocaleDateString());
+    const values = history.map(h => h.value);
+
+    new Chart(document.getElementById("weightTrendChart"), {
+        type: "line",
+        data: {
+            labels,
+            datasets: [{
+                data: values,
+                borderColor: "#38bdf8",
+                borderWidth: 3,
+                fill: true,
+                backgroundColor: "rgba(56,189,248,0.25)",
+                tension: 0.35
+            }]
+        },
+        options: { plugins: { legend: { display: false } } }
+    });
+}
+
+/* -----------------------------------------------------------
+   BMI TREND
+----------------------------------------------------------- */
+function renderBMITrend(history) {
+    const labels = history.map(h => new Date(h.timestamp).toLocaleDateString());
+    const values = history.map(h => h.value);
+
+    new Chart(document.getElementById("bmiTrendChart"), {
+        type: "line",
+        data: {
+            labels,
+            datasets: [{
+                data: values,
+                borderColor: "#4da3ff",
+                borderWidth: 3,
+                fill: true,
+                backgroundColor: "rgba(77,163,255,0.25)",
+                tension: 0.35
+            }]
+        },
+        options: { plugins: { legend: { display: false } } }
+    });
+}
+
+/* -----------------------------------------------------------
+   XP TREND
+----------------------------------------------------------- */
+function renderXPTrend(history) {
+    const labels = history.map(h => new Date(h.timestamp).toLocaleDateString());
+    const values = history.map(h => h.value);
+
+    new Chart(document.getElementById("xpTrendChart"), {
+        type: "line",
+        data: {
+            labels,
+            datasets: [{
+                data: values,
+                borderColor: "#7b2fff",
+                borderWidth: 3,
+                fill: true,
+                backgroundColor: "rgba(123,47,255,0.25)",
+                tension: 0.35
+            }]
+        },
+        options: { plugins: { legend: { display: false } } }
+    });
+}
+</script>
+
+</body>
+</html>
