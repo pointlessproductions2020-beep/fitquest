@@ -15,6 +15,8 @@ auth.onAuthStateChanged(async user => {
         return;
     }
 
+    await applyUserTheme();   // ⭐ THE MAGIC LINE
+
     currentUser = user;
     userRef = db.collection("users").doc(user.uid);
 
@@ -29,6 +31,7 @@ auth.onAuthStateChanged(async user => {
         initProfileView(data);
     }
 });
+
 
 /* ---------------------------------------------------------
    SHARED HELPERS
