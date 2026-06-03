@@ -211,18 +211,32 @@ function selectExercise(type) {
 }
 
 /* -----------------------------------------------------------
-   CALCULATE CALORIES
+   CALCULATE CALORIES + STEPS (TREADMILL UPGRADE)
 ----------------------------------------------------------- */
 function calculateBurn() {
     const duration = parseFloat(document.getElementById("duration").value);
     if (!duration) return alert("Enter duration");
 
     let MET = 5;
+    let distance = 0;
+    let steps = 0;
+    let pace = 0;
 
     if (selectedExercise === "treadmill") {
         const speed = parseFloat(document.getElementById("speed").value);
         if (!speed) return alert("Enter speed");
+
+        // MET based on speed
         MET = speed < 5 ? 4 : speed < 7 ? 6 : 9;
+
+        // Distance (km)
+        distance = speed * (duration / 60);
+
+        // Steps (estimate)
+        steps = Math.round(distance * 1312);
+
+        // Pace (min per km)
+        pace = distance > 0 ? (duration / distance).toFixed(2) : 0;
     }
 
     if (selectedExercise === "bike") {
@@ -245,23 +259,29 @@ function calculateBurn() {
 
     const calories = (MET * 3.5 * userWeight / 200) * duration;
 
-    document.getElementById("burnResult").innerText =
-        `Estimated Burn: ${Math.round(calories)} kcal`;
+    // Display results
+    let result = `Estimated Burn: ${Math.round(calories)} kcal`;
 
+    if (selectedExercise === "treadmill") {
+        result += `\nDistance: ${distance.toFixed(2)} km`;
+        result += `\nSteps: ${steps}`;
+        result += `\nPace: ${pace} min/km`;
+    }
+
+    document.getElementById("burnResult").innerText = result;
     document.getElementById("saveBtn").style.display = "block";
 
     // Auto-save (Option C)
-    autoSaveWorkout(duration, Math.round(calories));
+    autoSaveWorkout(duration, Math.round(calories), distance, steps);
 }
 
 /* -----------------------------------------------------------
    AUTO-SAVE WORKOUT (Option C)
 ----------------------------------------------------------- */
-async function autoSaveWorkout(duration, calories) {
+async function autoSaveWorkout(duration, calories, distance = 0, steps = 0) {
     if (!userRef) return;
 
-    // Prevent duplicate auto-saves
-    const signature = `${selectedExercise}_${duration}_${calories}`;
+    const signature = `${selectedExercise}_${duration}_${calories}_${steps}`;
     if (lastAutoSave === signature) return;
     lastAutoSave = signature;
 
@@ -269,11 +289,13 @@ async function autoSaveWorkout(duration, calories) {
         type: selectedExercise,
         durationMinutes: duration,
         caloriesBurned: calories,
+        distanceKm: distance,
+        steps: steps,
         timestamp: Date.now(),
         xpAwarded: true
     });
 
-    FitQuestBrain.awardXp(userRef, 1, "workout_session"); // 1 XP per session
+    FitQuestBrain.awardXp(userRef, 1, "workout_session");
 }
 
 /* -----------------------------------------------------------
@@ -284,12 +306,20 @@ async function saveExercise() {
 
     const duration = parseFloat(document.getElementById("duration").value);
     const burnText = document.getElementById("burnResult").innerText;
+
     const calories = parseInt(burnText.replace(/\D/g, ""));
+    const distanceMatch = burnText.match(/Distance: ([0-9.]+)/);
+    const stepsMatch = burnText.match(/Steps: (\d+)/);
+
+    const distance = distanceMatch ? parseFloat(distanceMatch[1]) : 0;
+    const steps = stepsMatch ? parseInt(stepsMatch[1]) : 0;
 
     await userRef.collection("workouts").add({
         type: selectedExercise,
         durationMinutes: duration,
         caloriesBurned: calories,
+        distanceKm: distance,
+        steps: steps,
         timestamp: Date.now(),
         xpAwarded: true
     });
@@ -298,6 +328,7 @@ async function saveExercise() {
 
     alert("Workout saved!");
 }
+
 </script>
 
 </body>
