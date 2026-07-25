@@ -1,13 +1,33 @@
 /* ---------------------------------------------------------
-   PROFILE LOGIC FOR BOTH profile-edit.html AND profile.html
-   Firebase v8 — Corrected for new bucket domain
+   FITQUEST PROFILE LOGIC
+   Used by:
+   - profile.html
+   - profile-edit.html
+
+   Firebase v8
 --------------------------------------------------------- */
+
+"use strict";
 
 let currentUser = null;
 let userRef = null;
 
-// ⭐ Correct: use the default bucket from firebase.js
-const storageRef = storage.ref();
+/*
+ * Storage safety:
+ * profile.js will no longer crash if Firebase Storage
+ * is temporarily unavailable or not loaded.
+ */
+const storageRef =
+    typeof storage !== "undefined" &&
+    storage &&
+    typeof storage.ref === "function"
+        ? storage.ref()
+        : null;
+
+
+/* ---------------------------------------------------------
+   AUTHENTICATION + INITIALISATION
+--------------------------------------------------------- */
 
 auth.onAuthStateChanged(async user => {
     if (!user) {
@@ -15,20 +35,54 @@ auth.onAuthStateChanged(async user => {
         return;
     }
 
-    await applyUserTheme();   // ⭐ THE MAGIC LINE
+    /*
+     * This uses the compatibility function provided by theme.js.
+     * Do not add another theme auth listener elsewhere.
+     */
+    if (typeof applyUserTheme === "function") {
+        await applyUserTheme();
+    }
 
     currentUser = user;
-    userRef = db.collection("users").doc(user.uid);
+    userRef = db
+        .collection("users")
+        .doc(user.uid);
 
-    const doc = await userRef.get();
-    const data = doc.exists ? doc.data() : {};
+    try {
+        const documentSnapshot =
+            await userRef.get();
 
-    const path = window.location.pathname;
+        const data =
+            documentSnapshot.exists
+                ? documentSnapshot.data()
+                : {};
 
-    if (path.includes("profile-edit.html")) {
-        initProfileEdit(data);
-    } else if (path.includes("profile.html")) {
-        initProfileView(data);
+        const currentPage =
+            window.location.pathname
+                .split("/")
+                .pop()
+                .toLowerCase();
+
+        if (currentPage === "profile-edit.html") {
+            initProfileEdit(data);
+            return;
+        }
+
+        if (
+            currentPage === "profile.html" ||
+            currentPage === ""
+        ) {
+            initProfileView(data);
+        }
+    } catch (error) {
+        console.error(
+            "FitQuest could not load the profile:",
+            error
+        );
+
+        alert(
+            "FitQuest could not load your profile. Please refresh the page."
+        );
     }
 });
 
@@ -38,6 +92,17 @@ auth.onAuthStateChanged(async user => {
 --------------------------------------------------------- */
 
 function computeTargetsFromData(data) {
+    if (
+        !window.FitQuestBrain ||
+        typeof FitQuestBrain.calculateTargets !== "function"
+    ) {
+        console.warn(
+            "FitQuestBrain.calculateTargets is unavailable."
+        );
+
+        return null;
+    }
+
     const profile = {
         sex: data.sex,
         weightKg: data.weightKg,
@@ -48,290 +113,1268 @@ function computeTargetsFromData(data) {
         goalPace: data.goalPace
     };
 
-    const targets = FitQuestBrain.calculateTargets(profile);
+    const targets =
+        FitQuestBrain.calculateTargets(profile);
+
     return targets || null;
 }
 
+
 function computeBMI(weightKg, heightCm) {
-    if (!weightKg || !heightCm) return null;
-    const hM = heightCm / 100;
-    return weightKg / (hM * hM);
+    const weight =
+        Number(weightKg);
+
+    const height =
+        Number(heightCm);
+
+    if (
+        !Number.isFinite(weight) ||
+        !Number.isFinite(height) ||
+        weight <= 0 ||
+        height <= 0
+    ) {
+        return null;
+    }
+
+    const heightMetres =
+        height / 100;
+
+    return weight /
+        (heightMetres * heightMetres);
 }
 
+
+function formatDisplayValue(value) {
+    if (
+        value === null ||
+        value === undefined ||
+        value === ""
+    ) {
+        return "–";
+    }
+
+    return String(value)
+        .replace(/_/g, " ")
+        .replace(/\b\w/g, letter =>
+            letter.toUpperCase()
+        );
+}
+
+
+function setText(element, value) {
+    if (element) {
+        element.textContent = value;
+    }
+}
+
+
+function showProfileStatus(message, isError = false) {
+    const existingStatus =
+        document.getElementById(
+            "profileSaveStatus"
+        );
+
+    if (existingStatus) {
+        existingStatus.textContent = message;
+        existingStatus.style.color =
+            isError
+                ? "#ff6685"
+                : "var(--neon)";
+        return;
+    }
+
+    if (isError) {
+        alert(message);
+    }
+}
+
+
 /* ---------------------------------------------------------
-   EDIT PAGE
+   PROFILE EDIT PAGE
 --------------------------------------------------------- */
 
 function initProfileEdit(data) {
-    const fullName = document.getElementById("fullName");
-    const age = document.getElementById("age");
-    const sex = document.getElementById("sex");
-    const heightCm = document.getElementById("heightCm");
-    const weightKg = document.getElementById("weightKg");
-    const activityLevel = document.getElementById("activityLevel");
-    const goal = document.getElementById("goal");
-    const goalPace = document.getElementById("goalPace");
+    const fullName =
+        document.getElementById("fullName");
 
-    const snapshotBMI = document.getElementById("snapshotBMI");
-    const snapshotTDEE = document.getElementById("snapshotTDEE");
-    const snapshotTarget = document.getElementById("snapshotTarget");
+    const age =
+        document.getElementById("age");
 
-    const profileNameDisplay = document.getElementById("profileNameDisplay");
-    const profileMeta = document.getElementById("profileMeta");
-    const profileAvatar = document.getElementById("profileAvatar");
-    const profileLevelBadge = document.getElementById("profileLevelBadge");
-    const xpFillProfile = document.getElementById("xpFillProfile");
-    const profileTone = document.getElementById("profileTone");
+    const sex =
+        document.getElementById("sex");
 
-    const changePhotoBtn = document.getElementById("changePhotoBtn");
-    const photoInput = document.getElementById("photoInput");
-    const saveProfileBtn = document.getElementById("saveProfileBtn");
+    const heightCm =
+        document.getElementById("heightCm");
 
-    // Populate fields
-    fullName.value = data.name || "";
-    age.value = data.age || "";
-    sex.value = data.sex || "";
-    heightCm.value = data.heightCm || "";
-    weightKg.value = data.weightKg || "";
-    activityLevel.value = data.activityLevel || "";
-    goal.value = data.goal || "";
-    goalPace.value = data.goalPace || "";
+    const weightKg =
+        document.getElementById("weightKg");
 
-    // Avatar
-    if (data.avatarUrl) {
-        profileAvatar.src = data.avatarUrl + "?t=" + Date.now();
+    const activityLevel =
+        document.getElementById(
+            "activityLevel"
+        );
+
+    const goal =
+        document.getElementById("goal");
+
+    const goalPace =
+        document.getElementById(
+            "goalPace"
+        );
+
+    const snapshotBMI =
+        document.getElementById(
+            "snapshotBMI"
+        );
+
+    const snapshotTDEE =
+        document.getElementById(
+            "snapshotTDEE"
+        );
+
+    const snapshotTarget =
+        document.getElementById(
+            "snapshotTarget"
+        );
+
+    const profileNameDisplay =
+        document.getElementById(
+            "profileNameDisplay"
+        );
+
+    const profileMeta =
+        document.getElementById(
+            "profileMeta"
+        );
+
+    const profileAvatar =
+        document.getElementById(
+            "profileAvatar"
+        );
+
+    const profileLevelBadge =
+        document.getElementById(
+            "profileLevelBadge"
+        );
+
+    const xpFillProfile =
+        document.getElementById(
+            "xpFillProfile"
+        );
+
+    const profileTone =
+        document.getElementById(
+            "profileTone"
+        );
+
+    const changePhotoBtn =
+        document.getElementById(
+            "changePhotoBtn"
+        );
+
+    const photoInput =
+        document.getElementById(
+            "photoInput"
+        );
+
+    const saveProfileBtn =
+        document.getElementById(
+            "saveProfileBtn"
+        );
+
+
+    /*
+     * Stop safely if this script is accidentally loaded
+     * on a page without the profile-edit form.
+     */
+    if (
+        !fullName ||
+        !age ||
+        !sex ||
+        !heightCm ||
+        !weightKg ||
+        !activityLevel ||
+        !goal ||
+        !goalPace
+    ) {
+        console.warn(
+            "Profile edit fields were not found."
+        );
+
+        return;
     }
 
-    // Name + meta
-    profileNameDisplay.innerText = data.name || "Your Name";
-    profileMeta.innerText = `Age: ${data.age || "–"} • Sex: ${data.sex || "–"}`;
 
-    // XP + level
-    const xp = data.xp || 0;
-    const level = data.level || (Math.floor(xp / 100) + 1);
-    profileLevelBadge.innerText = "Lv " + level;
-    xpFillProfile.style.width = (xp % 100) + "%";
+    /* -----------------------------------------------------
+       POPULATE FORM
+    ----------------------------------------------------- */
 
-    // Targets + BMI
-    const bmi = computeBMI(data.weightKg, data.heightCm);
-    const targets = computeTargetsFromData(data);
+    fullName.value =
+        data.name || "";
 
-    if (bmi) snapshotBMI.innerText = bmi.toFixed(1);
-    if (targets) {
-        snapshotTDEE.innerText = Math.round(targets.tdee) + " kcal";
-        snapshotTarget.innerText = Math.round(targets.targetCalories) + " kcal";
+    age.value =
+        data.age ?? "";
+
+    sex.value =
+        data.sex || "";
+
+    heightCm.value =
+        data.heightCm ?? "";
+
+    weightKg.value =
+        data.weightKg ?? "";
+
+    activityLevel.value =
+        data.activityLevel || "";
+
+    goal.value =
+        data.goal || "";
+
+    goalPace.value =
+        data.goalPace || "";
+
+
+    /* -----------------------------------------------------
+       AVATAR
+    ----------------------------------------------------- */
+
+    if (
+        profileAvatar &&
+        data.avatarUrl
+    ) {
+        profileAvatar.src =
+            `${data.avatarUrl}&t=${Date.now()}`;
     }
 
-    // Tone
-    const tone = FitQuestBrain.toneEngine({
-        bmi: bmi,
-        trend: null,
-        goal: data.goal,
-        pace: data.goalPace
+
+    /* -----------------------------------------------------
+       NAME + META
+    ----------------------------------------------------- */
+
+    setText(
+        profileNameDisplay,
+        data.name || "Your Name"
+    );
+
+    setText(
+        profileMeta,
+        `Age: ${data.age || "–"} • Sex: ${formatDisplayValue(data.sex)}`
+    );
+
+
+    /* -----------------------------------------------------
+       XP + LEVEL
+    ----------------------------------------------------- */
+
+    const xp =
+        Number(data.xp) || 0;
+
+    const level =
+        Number(data.level) ||
+        Math.floor(xp / 100) + 1;
+
+    setText(
+        profileLevelBadge,
+        `Lv ${level}`
+    );
+
+    if (xpFillProfile) {
+        xpFillProfile.style.width =
+            `${xp % 100}%`;
+    }
+
+
+    /* -----------------------------------------------------
+       CURRENT HEALTH SNAPSHOT
+    ----------------------------------------------------- */
+
+    const bmi =
+        computeBMI(
+            data.weightKg,
+            data.heightCm
+        );
+
+    const targets =
+        computeTargetsFromData(data);
+
+    setText(
+        snapshotBMI,
+        bmi
+            ? bmi.toFixed(1)
+            : "–"
+    );
+
+    setText(
+        snapshotTDEE,
+        targets &&
+        Number.isFinite(targets.tdee)
+            ? `${Math.round(targets.tdee)} kcal`
+            : "– kcal"
+    );
+
+    setText(
+        snapshotTarget,
+        targets &&
+        Number.isFinite(
+            targets.targetCalories
+        )
+            ? `${Math.round(
+                targets.targetCalories
+            )} kcal`
+            : "– kcal"
+    );
+
+
+    /* -----------------------------------------------------
+       SUPPORTIVE TONE
+    ----------------------------------------------------- */
+
+    updateProfileTone(
+        profileTone,
+        {
+            bmi,
+            goal: data.goal,
+            goalPace: data.goalPace
+        }
+    );
+
+
+    /* -----------------------------------------------------
+       LIVE SNAPSHOT UPDATE
+    ----------------------------------------------------- */
+
+    [
+        age,
+        sex,
+        heightCm,
+        weightKg,
+        activityLevel,
+        goal,
+        goalPace
+    ].forEach(element => {
+        element.addEventListener(
+            "input",
+            updateLiveProfileSnapshot
+        );
+
+        element.addEventListener(
+            "change",
+            updateLiveProfileSnapshot
+        );
     });
-    profileTone.innerText = `${tone.headline} — ${tone.subline}`;
 
-    // Live update snapshot
-    [age, sex, heightCm, weightKg, activityLevel, goal, goalPace].forEach(el => {
-        el.addEventListener("input", () => {
-            const tempData = {
-                sex: sex.value || null,
-                weightKg: weightKg.value ? parseFloat(weightKg.value) : null,
-                heightCm: heightCm.value ? parseFloat(heightCm.value) : null,
-                age: age.value ? parseInt(age.value) : null,
-                activityLevel: activityLevel.value || null,
-                goal: goal.value || null,
-                goalPace: goalPace.value || null
-            };
 
-            const tempBMI = computeBMI(tempData.weightKg, tempData.heightCm);
-            const tempTargets = computeTargetsFromData(tempData);
+    function getTemporaryProfileData() {
+        return {
+            sex:
+                sex.value || null,
 
-            snapshotBMI.innerText = tempBMI ? tempBMI.toFixed(1) : "–";
-            snapshotTDEE.innerText = tempTargets ? Math.round(tempTargets.tdee) + " kcal" : "– kcal";
-            snapshotTarget.innerText = tempTargets ? Math.round(tempTargets.targetCalories) + " kcal" : "– kcal";
-        });
-    });
+            weightKg:
+                weightKg.value
+                    ? Number(weightKg.value)
+                    : null,
 
-    /* ---------------------------------------------------------
-       ⭐ AVATAR UPLOAD WITH CLIENT-SIDE VALIDATION
-    --------------------------------------------------------- */
-    changePhotoBtn.addEventListener("click", () => photoInput.click());
+            heightCm:
+                heightCm.value
+                    ? Number(heightCm.value)
+                    : null,
 
-    photoInput.addEventListener("change", async e => {
-        const file = e.target.files[0];
-        if (!file || !currentUser) return;
+            age:
+                age.value
+                    ? Number(age.value)
+                    : null,
 
-        // Allowed MIME types
-        const allowedTypes = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
+            activityLevel:
+                activityLevel.value || null,
 
-        // Max size 2MB
-        const maxSize = 2 * 1024 * 1024;
+            goal:
+                goal.value || null,
 
-        // Validate type
-        if (!allowedTypes.includes(file.type)) {
-            alert("Please upload a JPG, JPEG, PNG, or WEBP image.");
-            return;
-        }
-
-        // Validate size
-        if (file.size > maxSize) {
-            alert("Image must be under 2MB.");
-            return;
-        }
-
-        // Determine correct extension
-        let ext = "jpg";
-        if (file.type === "image/jpeg") ext = "jpeg";
-        if (file.type === "image/png") ext = "png";
-        if (file.type === "image/webp") ext = "webp";
-
-        // Build correct filename
-        const avatarRef = storageRef.child(`avatars/${currentUser.uid}.${ext}`);
-
-        try {
-            await avatarRef.put(file);
-            const url = await avatarRef.getDownloadURL();
-
-            await userRef.set({ avatarUrl: url }, { merge: true });
-            profileAvatar.src = url + "?t=" + Date.now();
-        } catch (err) {
-            console.error(err);
-            alert("Upload failed. Please try again.");
-        }
-    });
-
-    // Save profile
-    saveProfileBtn.addEventListener("click", async () => {
-        if (!currentUser) return;
-
-        const newName = fullName.value.trim();
-        const newAge = age.value ? parseInt(age.value) : null;
-        const newSex = sex.value || null;
-        const newHeight = heightCm.value ? parseFloat(heightCm.value) : null;
-        const newWeight = weightKg.value ? parseFloat(weightKg.value) : null;
-        const newActivity = activityLevel.value || null;
-        const newGoal = goal.value || null;
-        const newGoalPace = goalPace.value || null;
-
-        const newBMI = computeBMI(newWeight, newHeight);
-        const newTargets = computeTargetsFromData({
-            sex: newSex,
-            weightKg: newWeight,
-            heightCm: newHeight,
-            age: newAge,
-            activityLevel: newActivity,
-            goal: newGoal,
-            goalPace: newGoalPace
-        });
-
-        // Weight history update
-        let weightHistory = data.weightHistory || [];
-        if (newWeight && newWeight !== data.weightKg) {
-            weightHistory = weightHistory.concat([{
-                date: new Date().toISOString(),
-                weight: newWeight
-            }]);
-        }
-
-        const payload = {
-            name: newName || null,
-            age: newAge,
-            sex: newSex,
-            heightCm: newHeight,
-            weightKg: newWeight,
-            activityLevel: newActivity,
-            goal: newGoal,
-            goalPace: newGoalPace,
-            bmi: newBMI || null,
-            weightHistory: weightHistory
+            goalPace:
+                goalPace.value || null
         };
+    }
 
-        if (newTargets) {
-            payload.tdee = newTargets.tdee;
-            payload.targetCalories = newTargets.targetCalories;
-        }
 
-        await userRef.set(payload, { merge: true });
+    function updateLiveProfileSnapshot() {
+        const temporaryData =
+            getTemporaryProfileData();
 
-        FitQuestBrain.awardXp(userRef, 30, "profile_update");
+        const temporaryBMI =
+            computeBMI(
+                temporaryData.weightKg,
+                temporaryData.heightCm
+            );
 
-        profileNameDisplay.innerText = newName || "Your Name";
-        profileMeta.innerText = `Age: ${newAge || "–"} • Sex: ${newSex || "–"}`;
-        snapshotBMI.innerText = newBMI ? newBMI.toFixed(1) : "–";
-        snapshotTDEE.innerText = newTargets ? Math.round(newTargets.tdee) + " kcal" : "– kcal";
-        snapshotTarget.innerText = newTargets ? Math.round(newTargets.targetCalories) + " kcal" : "– kcal";
+        const temporaryTargets =
+            computeTargetsFromData(
+                temporaryData
+            );
 
-        alert("Profile saved successfully.");
-    });
+        setText(
+            snapshotBMI,
+            temporaryBMI
+                ? temporaryBMI.toFixed(1)
+                : "–"
+        );
+
+        setText(
+            snapshotTDEE,
+            temporaryTargets &&
+            Number.isFinite(
+                temporaryTargets.tdee
+            )
+                ? `${Math.round(
+                    temporaryTargets.tdee
+                )} kcal`
+                : "– kcal"
+        );
+
+        setText(
+            snapshotTarget,
+            temporaryTargets &&
+            Number.isFinite(
+                temporaryTargets.targetCalories
+            )
+                ? `${Math.round(
+                    temporaryTargets.targetCalories
+                )} kcal`
+                : "– kcal"
+        );
+
+        updateProfileTone(
+            profileTone,
+            {
+                bmi: temporaryBMI,
+                goal: temporaryData.goal,
+                goalPace:
+                    temporaryData.goalPace
+            }
+        );
+    }
+
+
+    /* -----------------------------------------------------
+       AVATAR UPLOAD
+    ----------------------------------------------------- */
+
+    if (
+        changePhotoBtn &&
+        photoInput
+    ) {
+        changePhotoBtn.addEventListener(
+            "click",
+            () => {
+                photoInput.click();
+            }
+        );
+
+        photoInput.addEventListener(
+            "change",
+            async event => {
+                const file =
+                    event.target.files[0];
+
+                if (
+                    !file ||
+                    !currentUser
+                ) {
+                    return;
+                }
+
+                if (!storageRef) {
+                    alert(
+                        "Photo storage is currently unavailable. Please try again later."
+                    );
+
+                    photoInput.value = "";
+                    return;
+                }
+
+                const allowedTypes = [
+                    "image/jpeg",
+                    "image/jpg",
+                    "image/png",
+                    "image/webp"
+                ];
+
+                const maximumSize =
+                    2 * 1024 * 1024;
+
+                if (
+                    !allowedTypes.includes(
+                        file.type
+                    )
+                ) {
+                    alert(
+                        "Please upload a JPG, JPEG, PNG or WEBP image."
+                    );
+
+                    photoInput.value = "";
+                    return;
+                }
+
+                if (
+                    file.size > maximumSize
+                ) {
+                    alert(
+                        "Your profile image must be smaller than 2 MB."
+                    );
+
+                    photoInput.value = "";
+                    return;
+                }
+
+                let extension = "jpg";
+
+                if (
+                    file.type === "image/jpeg"
+                ) {
+                    extension = "jpeg";
+                }
+
+                if (
+                    file.type === "image/png"
+                ) {
+                    extension = "png";
+                }
+
+                if (
+                    file.type === "image/webp"
+                ) {
+                    extension = "webp";
+                }
+
+                const avatarReference =
+                    storageRef.child(
+                        `avatars/${currentUser.uid}.${extension}`
+                    );
+
+                changePhotoBtn.disabled = true;
+                changePhotoBtn.textContent =
+                    "Uploading...";
+
+                try {
+                    await avatarReference.put(file);
+
+                    const url =
+                        await avatarReference
+                            .getDownloadURL();
+
+                    await userRef.set(
+                        {
+                            avatarUrl: url,
+                            avatarUpdatedAt:
+                                firebase.firestore
+                                    .FieldValue
+                                    .serverTimestamp()
+                        },
+                        {
+                            merge: true
+                        }
+                    );
+
+                    if (profileAvatar) {
+                        profileAvatar.src =
+                            `${url}&t=${Date.now()}`;
+                    }
+
+                    alert(
+                        "Profile photo updated successfully."
+                    );
+                } catch (error) {
+                    console.error(
+                        "Avatar upload failed:",
+                        error
+                    );
+
+                    alert(
+                        "The profile photo could not be uploaded. Please try again."
+                    );
+                } finally {
+                    changePhotoBtn.disabled = false;
+                    changePhotoBtn.textContent =
+                        "Change Photo";
+
+                    photoInput.value = "";
+                }
+            }
+        );
+    }
+
+
+    /* -----------------------------------------------------
+       SAVE PROFILE
+    ----------------------------------------------------- */
+
+    if (saveProfileBtn) {
+        saveProfileBtn.addEventListener(
+            "click",
+            async () => {
+                if (!currentUser) {
+                    return;
+                }
+
+                const newName =
+                    fullName.value
+                        .trim()
+                        .replace(/\s+/g, " ");
+
+                const newAge =
+                    age.value
+                        ? Number(age.value)
+                        : null;
+
+                const newSex =
+                    sex.value || null;
+
+                const newHeight =
+                    heightCm.value
+                        ? Number(heightCm.value)
+                        : null;
+
+                const newWeight =
+                    weightKg.value
+                        ? Number(weightKg.value)
+                        : null;
+
+                const newActivity =
+                    activityLevel.value || null;
+
+                const newGoal =
+                    goal.value || null;
+
+                const newGoalPace =
+                    goalPace.value || null;
+
+
+                /* -----------------------------------------
+                   VALIDATION
+                ----------------------------------------- */
+
+                if (
+                    newName.length < 2
+                ) {
+                    alert(
+                        "Please enter your name."
+                    );
+
+                    fullName.focus();
+                    return;
+                }
+
+                if (
+                    !newAge ||
+                    newAge < 16 ||
+                    newAge > 120
+                ) {
+                    alert(
+                        "Please enter a valid age between 16 and 120."
+                    );
+
+                    age.focus();
+                    return;
+                }
+
+                if (
+                    !newHeight ||
+                    newHeight < 100 ||
+                    newHeight > 250
+                ) {
+                    alert(
+                        "Please enter a valid height in centimetres."
+                    );
+
+                    heightCm.focus();
+                    return;
+                }
+
+                if (
+                    !newWeight ||
+                    newWeight < 30 ||
+                    newWeight > 400
+                ) {
+                    alert(
+                        "Please enter a valid weight in kilograms."
+                    );
+
+                    weightKg.focus();
+                    return;
+                }
+
+
+                const newBMI =
+                    computeBMI(
+                        newWeight,
+                        newHeight
+                    );
+
+                const newTargets =
+                    computeTargetsFromData({
+                        sex: newSex,
+                        weightKg: newWeight,
+                        heightCm: newHeight,
+                        age: newAge,
+                        activityLevel: newActivity,
+                        goal: newGoal,
+                        goalPace: newGoalPace
+                    });
+
+
+                /* -----------------------------------------
+                   WEIGHT HISTORY
+                ----------------------------------------- */
+
+                let weightHistory =
+                    Array.isArray(
+                        data.weightHistory
+                    )
+                        ? [...data.weightHistory]
+                        : [];
+
+                const previousWeight =
+                    Number(data.weightKg);
+
+                if (
+                    newWeight &&
+                    (
+                        !Number.isFinite(
+                            previousWeight
+                        ) ||
+                        newWeight !==
+                            previousWeight
+                    )
+                ) {
+                    weightHistory.push({
+                        date:
+                            new Date()
+                                .toISOString(),
+
+                        timestamp:
+                            Date.now(),
+
+                        weight:
+                            newWeight,
+
+                        weightKg:
+                            newWeight
+                    });
+                }
+
+
+                const payload = {
+                    name: newName,
+                    age: newAge,
+                    sex: newSex,
+                    heightCm: newHeight,
+                    weightKg: newWeight,
+                    activityLevel:
+                        newActivity,
+                    goal: newGoal,
+                    goalPace:
+                        newGoalPace,
+
+                    bmi:
+                        newBMI || null,
+
+                    weightHistory,
+
+                    profileUpdatedAt:
+                        firebase.firestore
+                            .FieldValue
+                            .serverTimestamp()
+                };
+
+                if (newTargets) {
+                    payload.bmr =
+                        Number.isFinite(
+                            newTargets.bmr
+                        )
+                            ? newTargets.bmr
+                            : null;
+
+                    payload.tdee =
+                        Number.isFinite(
+                            newTargets.tdee
+                        )
+                            ? newTargets.tdee
+                            : null;
+
+                    payload.targetCalories =
+                        Number.isFinite(
+                            newTargets.targetCalories
+                        )
+                            ? newTargets.targetCalories
+                            : null;
+                }
+
+
+                saveProfileBtn.disabled = true;
+                saveProfileBtn.textContent =
+                    "Saving...";
+
+                try {
+                    await userRef.set(
+                        payload,
+                        {
+                            merge: true
+                        }
+                    );
+
+                    /*
+                     * Update the local copy so another save
+                     * does not duplicate the same weight entry.
+                     */
+                    data = {
+                        ...data,
+                        ...payload
+                    };
+
+                    if (
+                        window.FitQuestBrain &&
+                        typeof FitQuestBrain.awardXp ===
+                            "function"
+                    ) {
+                        await FitQuestBrain.awardXp(
+                            userRef,
+                            30,
+                            "profile_update"
+                        );
+                    }
+
+                    setText(
+                        profileNameDisplay,
+                        newName
+                    );
+
+                    setText(
+                        profileMeta,
+                        `Age: ${newAge} • Sex: ${formatDisplayValue(newSex)}`
+                    );
+
+                    setText(
+                        snapshotBMI,
+                        newBMI
+                            ? newBMI.toFixed(1)
+                            : "–"
+                    );
+
+                    setText(
+                        snapshotTDEE,
+                        newTargets &&
+                        Number.isFinite(
+                            newTargets.tdee
+                        )
+                            ? `${Math.round(
+                                newTargets.tdee
+                            )} kcal`
+                            : "– kcal"
+                    );
+
+                    setText(
+                        snapshotTarget,
+                        newTargets &&
+                        Number.isFinite(
+                            newTargets.targetCalories
+                        )
+                            ? `${Math.round(
+                                newTargets.targetCalories
+                            )} kcal`
+                            : "– kcal"
+                    );
+
+                    updateProfileTone(
+                        profileTone,
+                        {
+                            bmi: newBMI,
+                            goal: newGoal,
+                            goalPace:
+                                newGoalPace
+                        }
+                    );
+
+                    showProfileStatus(
+                        "Profile saved successfully."
+                    );
+
+                    alert(
+                        "Profile saved successfully."
+                    );
+                } catch (error) {
+                    console.error(
+                        "Profile save failed:",
+                        error
+                    );
+
+                    showProfileStatus(
+                        "FitQuest could not save your profile.",
+                        true
+                    );
+                } finally {
+                    saveProfileBtn.disabled = false;
+                    saveProfileBtn.textContent =
+                        "Save Profile";
+                }
+            }
+        );
+    }
 }
 
+
 /* ---------------------------------------------------------
-   VIEW PAGE
+   PROFILE VIEW PAGE
 --------------------------------------------------------- */
 
 function initProfileView(data) {
-    const viewProfileAvatar = document.getElementById("viewProfileAvatar");
-    const viewProfileLevelBadge = document.getElementById("viewProfileLevelBadge");
-    const xpFillView = document.getElementById("xpFillView");
-    const viewProfileName = document.getElementById("viewProfileName");
-    const viewProfileMeta = document.getElementById("viewProfileMeta");
-    const viewProfileTone = document.getElementById("viewProfileTone");
+    const viewProfileAvatar =
+        document.getElementById(
+            "viewProfileAvatar"
+        );
 
-    const viewFullName = document.getElementById("viewFullName");
-    const viewAge = document.getElementById("viewAge");
-    const viewSex = document.getElementById("viewSex");
-    const viewHeight = document.getElementById("viewHeight");
-    const viewWeight = document.getElementById("viewWeight");
-    const viewActivity = document.getElementById("viewActivity");
-    const viewGoal = document.getElementById("viewGoal");
-    const viewGoalPace = document.getElementById("viewGoalPace");
+    const viewProfileLevelBadge =
+        document.getElementById(
+            "viewProfileLevelBadge"
+        );
 
-    const viewBMI = document.getElementById("viewBMI");
-    const viewTDEE = document.getElementById("viewTDEE");
-    const viewTarget = document.getElementById("viewTarget");
+    const xpFillView =
+        document.getElementById(
+            "xpFillView"
+        );
 
-    if (data.avatarUrl) {
-        viewProfileAvatar.src = data.avatarUrl + "?t=" + Date.now();
+    const viewProfileName =
+        document.getElementById(
+            "viewProfileName"
+        );
+
+    const viewProfileMeta =
+        document.getElementById(
+            "viewProfileMeta"
+        );
+
+    const viewProfileTone =
+        document.getElementById(
+            "viewProfileTone"
+        );
+
+    const viewFullName =
+        document.getElementById(
+            "viewFullName"
+        );
+
+    const viewAge =
+        document.getElementById(
+            "viewAge"
+        );
+
+    const viewSex =
+        document.getElementById(
+            "viewSex"
+        );
+
+    const viewHeight =
+        document.getElementById(
+            "viewHeight"
+        );
+
+    const viewWeight =
+        document.getElementById(
+            "viewWeight"
+        );
+
+    const viewActivity =
+        document.getElementById(
+            "viewActivity"
+        );
+
+    const viewGoal =
+        document.getElementById(
+            "viewGoal"
+        );
+
+    const viewGoalPace =
+        document.getElementById(
+            "viewGoalPace"
+        );
+
+    const viewBMI =
+        document.getElementById(
+            "viewBMI"
+        );
+
+    const viewTDEE =
+        document.getElementById(
+            "viewTDEE"
+        );
+
+    const viewTarget =
+        document.getElementById(
+            "viewTarget"
+        );
+
+
+    if (
+        !viewProfileName ||
+        !viewFullName
+    ) {
+        console.warn(
+            "Profile view fields were not found."
+        );
+
+        return;
     }
 
-    viewProfileName.innerText = data.name || "Your Name";
-    viewProfileMeta.innerText = `Age: ${data.age || "–"} • Sex: ${data.sex || "–"}`;
 
-    const xp = data.xp || 0;
-    const level = data.level || (Math.floor(xp / 100) + 1);
-    viewProfileLevelBadge.innerText = "Lv " + level;
-    xpFillView.style.width = (xp % 100) + "%";
+    /* -----------------------------------------------------
+       AVATAR
+    ----------------------------------------------------- */
 
-    viewFullName.innerText = data.name || "–";
-    viewAge.innerText = data.age || "–";
-    viewSex.innerText = data.sex || "–";
-    viewHeight.innerText = data.heightCm ? `${data.heightCm} cm` : "–";
-    viewWeight.innerText = data.weightKg ? `${data.weightKg} kg` : "–";
-    viewActivity.innerText = data.activityLevel || "–";
-    viewGoal.innerText = data.goal || "–";
-    viewGoalPace.innerText = data.goalPace || "–";
+    if (
+        viewProfileAvatar &&
+        data.avatarUrl
+    ) {
+        viewProfileAvatar.src =
+            `${data.avatarUrl}&t=${Date.now()}`;
+    }
 
-    const bmi = data.bmi || computeBMI(data.weightKg, data.heightCm);
-    const targets = computeTargetsFromData(data);
 
-    viewBMI.innerText = bmi ? bmi.toFixed(1) : "–";
-    viewTDEE.innerText = targets ? Math.round(targets.tdee) + " kcal" : "– kcal";
-    viewTarget.innerText = targets ? Math.round(targets.targetCalories) + " kcal" : "– kcal";
+    /* -----------------------------------------------------
+       NAME + META
+    ----------------------------------------------------- */
 
-    const tone = FitQuestBrain.toneEngine({
-        bmi: bmi,
-        trend: null,
-        goal: data.goal,
-        pace: data.goalPace
-    });
-    viewProfileTone.innerText = `${tone.headline} — ${tone.subline}`;
+    setText(
+        viewProfileName,
+        data.name || "Your Name"
+    );
 
-    const tdeeExplain = document.createElement("p");
-    tdeeExplain.style.marginTop = "10px";
-    tdeeExplain.style.opacity = "0.85";
-    tdeeExplain.style.fontSize = "0.85rem";
-    tdeeExplain.innerText =
-        "TDEE = Total Daily Energy Expenditure — the number of calories your body burns each day including movement, exercise, and basic functions.";
-    viewProfileTone.insertAdjacentElement("afterend", tdeeExplain);
+    setText(
+        viewProfileMeta,
+        `Age: ${data.age || "–"} • Sex: ${formatDisplayValue(data.sex)}`
+    );
+
+
+    /* -----------------------------------------------------
+       XP + LEVEL
+    ----------------------------------------------------- */
+
+    const xp =
+        Number(data.xp) || 0;
+
+    const level =
+        Number(data.level) ||
+        Math.floor(xp / 100) + 1;
+
+    setText(
+        viewProfileLevelBadge,
+        `Lv ${level}`
+    );
+
+    if (xpFillView) {
+        xpFillView.style.width =
+            `${xp % 100}%`;
+    }
+
+
+    /* -----------------------------------------------------
+       PROFILE VALUES
+    ----------------------------------------------------- */
+
+    setText(
+        viewFullName,
+        data.name || "–"
+    );
+
+    setText(
+        viewAge,
+        data.age || "–"
+    );
+
+    setText(
+        viewSex,
+        formatDisplayValue(data.sex)
+    );
+
+    setText(
+        viewHeight,
+        data.heightCm
+            ? `${data.heightCm} cm`
+            : "–"
+    );
+
+    setText(
+        viewWeight,
+        data.weightKg
+            ? `${data.weightKg} kg`
+            : "–"
+    );
+
+    setText(
+        viewActivity,
+        formatDisplayValue(
+            data.activityLevel
+        )
+    );
+
+    setText(
+        viewGoal,
+        formatDisplayValue(data.goal)
+    );
+
+    setText(
+        viewGoalPace,
+        formatDisplayValue(
+            data.goalPace
+        )
+    );
+
+
+    /* -----------------------------------------------------
+       HEALTH SNAPSHOT
+    ----------------------------------------------------- */
+
+    const bmi =
+        Number(data.bmi) ||
+        computeBMI(
+            data.weightKg,
+            data.heightCm
+        );
+
+    const targets =
+        computeTargetsFromData(data);
+
+    setText(
+        viewBMI,
+        bmi
+            ? bmi.toFixed(1)
+            : "–"
+    );
+
+    setText(
+        viewTDEE,
+        targets &&
+        Number.isFinite(targets.tdee)
+            ? `${Math.round(
+                targets.tdee
+            )} kcal`
+            : (
+                Number.isFinite(
+                    Number(data.tdee)
+                )
+                    ? `${Math.round(
+                        Number(data.tdee)
+                    )} kcal`
+                    : "– kcal"
+            )
+    );
+
+    setText(
+        viewTarget,
+        targets &&
+        Number.isFinite(
+            targets.targetCalories
+        )
+            ? `${Math.round(
+                targets.targetCalories
+            )} kcal`
+            : (
+                Number.isFinite(
+                    Number(
+                        data.targetCalories
+                    )
+                )
+                    ? `${Math.round(
+                        Number(
+                            data.targetCalories
+                        )
+                    )} kcal`
+                    : "– kcal"
+            )
+    );
+
+
+    /* -----------------------------------------------------
+       SUPPORTIVE TONE
+    ----------------------------------------------------- */
+
+    updateProfileTone(
+        viewProfileTone,
+        {
+            bmi,
+            goal: data.goal,
+            goalPace: data.goalPace
+        }
+    );
+
+    /*
+     * No TDEE paragraph is created here.
+     * profile.html already contains the explanation,
+     * preventing it from appearing twice.
+     */
+}
+
+
+/* ---------------------------------------------------------
+   SHARED TONE HANDLER
+--------------------------------------------------------- */
+
+function updateProfileTone(
+    element,
+    {
+        bmi,
+        goal,
+        goalPace
+    }
+) {
+    if (!element) {
+        return;
+    }
+
+    if (
+        !window.FitQuestBrain ||
+        typeof FitQuestBrain.toneEngine !==
+            "function"
+    ) {
+        element.textContent =
+            "Your stats help FitQuest build guidance around your current journey.";
+
+        return;
+    }
+
+    try {
+        const tone =
+            FitQuestBrain.toneEngine({
+                bmi,
+                trend: null,
+                goal,
+                pace: goalPace
+            });
+
+        if (
+            tone &&
+            (
+                tone.headline ||
+                tone.subline
+            )
+        ) {
+            element.textContent =
+                [
+                    tone.headline,
+                    tone.subline
+                ]
+                    .filter(Boolean)
+                    .join(" — ");
+
+            return;
+        }
+
+        element.textContent =
+            "Your stats help FitQuest build guidance around your current journey.";
+    } catch (error) {
+        console.warn(
+            "FitQuest tone engine failed:",
+            error
+        );
+
+        element.textContent =
+            "Your stats help FitQuest build guidance around your current journey.";
+    }
 }
