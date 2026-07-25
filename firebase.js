@@ -178,3 +178,365 @@ function saveProfile() {
         })
         .catch(err => alert(err.message));
 }
+
+/* ---------------------------------------------------
+   FITQUEST THEME ENGINE
+   Loads saved settings from users/{uid}.settings
+   and applies them across old and new pages
+--------------------------------------------------- */
+
+let fitQuestThemeInterval = null;
+
+function normaliseThemeSettings(settings = {}) {
+    return {
+        themeMode: settings.themeMode || "single",
+
+        singleColour:
+            settings.singleColour || "#00eaff",
+
+        grad1:
+            settings.grad1 || "#00eaff",
+
+        grad2:
+            settings.grad2 || "#ff00ff",
+
+        pal1:
+            settings.pal1 || "#00eaff",
+
+        pal2:
+            settings.pal2 || "#7b2fff",
+
+        pal3:
+            settings.pal3 || "#ff00ff",
+
+        pal4:
+            settings.pal4 || "#ff8800",
+
+        glowStrength:
+            Number(settings.glowStrength ?? 1),
+
+        animSpeed:
+            Number(settings.animSpeed ?? 1),
+
+        uiScale:
+            Number(settings.uiScale ?? 1),
+
+        reducedMotion:
+            Boolean(settings.reducedMotion),
+
+        minimalMode:
+            Boolean(settings.minimalMode)
+    };
+}
+
+function setFitQuestColourVariables(primary, secondary = primary) {
+    const root = document.documentElement;
+
+    /*
+     * Old FitQuest pages
+     */
+    root.style.setProperty("--neon", primary);
+
+    /*
+     * New FitQuest pages use different variable names.
+     * Setting all aliases keeps every page compatible.
+     */
+    root.style.setProperty("--primary", primary);
+    root.style.setProperty("--secondary", secondary);
+
+    root.style.setProperty("--fq-primary", primary);
+    root.style.setProperty("--fq-secondary", secondary);
+
+    root.style.setProperty("--accent", secondary);
+    root.style.setProperty("--fq-accent", secondary);
+}
+
+function stopFitQuestThemeRotation() {
+    if (fitQuestThemeInterval) {
+        clearInterval(fitQuestThemeInterval);
+        fitQuestThemeInterval = null;
+    }
+}
+
+function applyFitQuestThemeSettings(rawSettings = {}) {
+    const settings =
+        normaliseThemeSettings(rawSettings);
+
+    const root = document.documentElement;
+    const body = document.body;
+
+    stopFitQuestThemeRotation();
+
+    root.style.setProperty(
+        "--glow-strength",
+        String(settings.glowStrength)
+    );
+
+    root.style.setProperty(
+        "--animation-speed",
+        String(settings.animSpeed)
+    );
+
+    root.style.setProperty(
+        "--ui-scale",
+        String(settings.uiScale)
+    );
+
+    /*
+     * Store scale as a variable rather than forcing every page
+     * through a body transform. Individual upgraded pages can use
+     * the variable safely.
+     */
+    root.style.setProperty(
+        "--fitquest-ui-scale",
+        String(settings.uiScale)
+    );
+
+    body.classList.toggle(
+        "reduced-motion",
+        settings.reducedMotion
+    );
+
+    body.classList.toggle(
+        "minimal",
+        settings.minimalMode
+    );
+
+    if (settings.reducedMotion) {
+        root.style.setProperty(
+            "--animation-speed",
+            "0"
+        );
+    }
+
+    switch (settings.themeMode) {
+        case "single":
+            setFitQuestColourVariables(
+                settings.singleColour,
+                settings.singleColour
+            );
+            break;
+
+        case "gradient":
+            setFitQuestColourVariables(
+                settings.grad1,
+                settings.grad2
+            );
+
+            root.style.setProperty(
+                "--fitquest-gradient",
+                `linear-gradient(
+                    100deg,
+                    ${settings.grad1},
+                    ${settings.grad2}
+                )`
+            );
+            break;
+
+        case "palette":
+            setFitQuestColourVariables(
+                settings.pal1,
+                settings.pal2
+            );
+
+            root.style.setProperty(
+                "--fitquest-palette-1",
+                settings.pal1
+            );
+
+            root.style.setProperty(
+                "--fitquest-palette-2",
+                settings.pal2
+            );
+
+            root.style.setProperty(
+                "--fitquest-palette-3",
+                settings.pal3
+            );
+
+            root.style.setProperty(
+                "--fitquest-palette-4",
+                settings.pal4
+            );
+            break;
+
+        case "ambient": {
+            const ambientColours = [
+                settings.pal1,
+                settings.pal2,
+                settings.pal3,
+                settings.pal4
+            ];
+
+            let ambientIndex = 0;
+
+            setFitQuestColourVariables(
+                ambientColours[0],
+                ambientColours[1]
+            );
+
+            if (!settings.reducedMotion) {
+                const intervalMs =
+                    Math.max(
+                        1500,
+                        5000 / Math.max(
+                            settings.animSpeed,
+                            0.5
+                        )
+                    );
+
+                fitQuestThemeInterval =
+                    setInterval(() => {
+                        ambientIndex =
+                            (
+                                ambientIndex + 1
+                            ) % ambientColours.length;
+
+                        const nextIndex =
+                            (
+                                ambientIndex + 1
+                            ) % ambientColours.length;
+
+                        setFitQuestColourVariables(
+                            ambientColours[
+                                ambientIndex
+                            ],
+                            ambientColours[
+                                nextIndex
+                            ]
+                        );
+                    }, intervalMs);
+            }
+
+            break;
+        }
+
+        case "random": {
+            function createRandomColour() {
+                return `#${Math.floor(
+                    Math.random() * 16777215
+                )
+                    .toString(16)
+                    .padStart(6, "0")}`;
+            }
+
+            setFitQuestColourVariables(
+                createRandomColour(),
+                createRandomColour()
+            );
+
+            if (!settings.reducedMotion) {
+                fitQuestThemeInterval =
+                    setInterval(() => {
+                        setFitQuestColourVariables(
+                            createRandomColour(),
+                            createRandomColour()
+                        );
+                    }, 5000);
+            }
+
+            break;
+        }
+
+        case "off":
+            setFitQuestColourVariables(
+                "#64748b",
+                "#94a3b8"
+            );
+
+            root.style.setProperty(
+                "--glow-strength",
+                "0"
+            );
+
+            body.classList.add(
+                "fitquest-neon-off"
+            );
+            break;
+
+        default:
+            setFitQuestColourVariables(
+                settings.singleColour,
+                settings.singleColour
+            );
+    }
+
+    if (settings.themeMode !== "off") {
+        body.classList.remove(
+            "fitquest-neon-off"
+        );
+    }
+
+    /*
+     * Keep a local copy so the selected theme can appear quickly
+     * before Firestore finishes loading next time.
+     */
+    try {
+        localStorage.setItem(
+            "fitquest_theme_settings",
+            JSON.stringify(settings)
+        );
+    } catch (error) {
+        console.warn(
+            "Could not cache FitQuest theme:",
+            error
+        );
+    }
+
+    return settings;
+}
+
+async function applyUserTheme() {
+    /*
+     * Apply the locally cached theme immediately to avoid a flash
+     * of the default cyan colour.
+     */
+    try {
+        const cached =
+            localStorage.getItem(
+                "fitquest_theme_settings"
+            );
+
+        if (cached) {
+            applyFitQuestThemeSettings(
+                JSON.parse(cached)
+            );
+        }
+    } catch (error) {
+        console.warn(
+            "Could not read cached FitQuest theme:",
+            error
+        );
+    }
+
+    const user =
+        auth.currentUser;
+
+    if (!user) {
+        return null;
+    }
+
+    try {
+        const userDocument =
+            await db
+                .collection("users")
+                .doc(user.uid)
+                .get();
+
+        const settings =
+            userDocument.exists
+                ? userDocument.data().settings || {}
+                : {};
+
+        return applyFitQuestThemeSettings(
+            settings
+        );
+    } catch (error) {
+        console.error(
+            "FitQuest theme could not be loaded:",
+            error
+        );
+
+        return null;
+    }
+}
