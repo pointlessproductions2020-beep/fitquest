@@ -2,9 +2,20 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FitQuest — Login</title>
-    <link rel="stylesheet" href="loginstyles.css">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1, viewport-fit=cover"
+    >
+
+    <meta
+        name="description"
+        content="Sign in to FitQuest and continue your personalised health and fitness journey."
+    >
+
+    <meta name="theme-color" content="#050816">
+
+    <title>FitQuest — Welcome Back</title>
 
     <!-- Firebase v8 -->
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
@@ -12,58 +23,1868 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-storage.js"></script>
 
+    <!-- Existing Firebase configuration -->
     <script defer src="firebase.js"></script>
+
+    <style>
+        :root {
+            --fq-bg: #050816;
+            --fq-bg-deep: #02040d;
+
+            --fq-surface: rgba(10, 17, 38, 0.78);
+            --fq-surface-strong: rgba(12, 20, 44, 0.94);
+            --fq-surface-soft: rgba(255, 255, 255, 0.045);
+
+            --fq-primary: #00eaff;
+            --fq-secondary: #a855f7;
+            --fq-accent: #ff2bd6;
+            --fq-success: #35f0a1;
+            --fq-warning: #ffcc66;
+            --fq-danger: #ff6685;
+
+            --fq-text: #f8fbff;
+            --fq-muted: #aab6ce;
+            --fq-subtle: #74809a;
+
+            --fq-border: rgba(132, 167, 255, 0.16);
+            --fq-border-bright: rgba(0, 234, 255, 0.38);
+
+            --fq-radius-sm: 12px;
+            --fq-radius-md: 18px;
+            --fq-radius-lg: 28px;
+
+            --fq-shadow:
+                0 24px 80px rgba(0, 0, 0, 0.48),
+                0 0 50px rgba(0, 234, 255, 0.06);
+
+            --fq-transition: 180ms ease;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        html {
+            min-height: 100%;
+            background: var(--fq-bg-deep);
+        }
+
+        body {
+            min-height: 100vh;
+            min-height: 100dvh;
+            margin: 0;
+            overflow-x: hidden;
+
+            color: var(--fq-text);
+            background:
+                radial-gradient(
+                    circle at 14% 16%,
+                    rgba(0, 234, 255, 0.13),
+                    transparent 29rem
+                ),
+                radial-gradient(
+                    circle at 84% 82%,
+                    rgba(168, 85, 247, 0.16),
+                    transparent 32rem
+                ),
+                linear-gradient(
+                    145deg,
+                    var(--fq-bg-deep),
+                    var(--fq-bg) 48%,
+                    #09051a
+                );
+
+            font-family:
+                Inter,
+                ui-sans-serif,
+                system-ui,
+                -apple-system,
+                BlinkMacSystemFont,
+                "Segoe UI",
+                sans-serif;
+
+            -webkit-font-smoothing: antialiased;
+            text-rendering: optimizeLegibility;
+        }
+
+        button,
+        input {
+            font: inherit;
+        }
+
+        button,
+        a {
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        a {
+            color: var(--fq-primary);
+            text-decoration: none;
+        }
+
+        a:hover {
+            text-decoration: underline;
+        }
+
+        .skip-link {
+            position: fixed;
+            top: 12px;
+            left: 12px;
+            z-index: 1000;
+            padding: 10px 14px;
+            border-radius: 10px;
+            color: #001014;
+            background: var(--fq-primary);
+            transform: translateY(-150%);
+            transition: transform var(--fq-transition);
+        }
+
+        .skip-link:focus {
+            transform: translateY(0);
+        }
+
+        .auth-page {
+            position: relative;
+            display: grid;
+            min-height: 100vh;
+            min-height: 100dvh;
+            isolation: isolate;
+        }
+
+        .ambient-orb {
+            position: fixed;
+            z-index: -2;
+            width: 24rem;
+            height: 24rem;
+            border-radius: 999px;
+            filter: blur(80px);
+            opacity: 0.22;
+            pointer-events: none;
+        }
+
+        .ambient-orb--one {
+            top: -8rem;
+            left: -7rem;
+            background: var(--fq-primary);
+        }
+
+        .ambient-orb--two {
+            right: -9rem;
+            bottom: -8rem;
+            background: var(--fq-secondary);
+        }
+
+        .grid-overlay {
+            position: fixed;
+            inset: 0;
+            z-index: -1;
+            pointer-events: none;
+            opacity: 0.22;
+
+            background-image:
+                linear-gradient(
+                    rgba(83, 122, 189, 0.09) 1px,
+                    transparent 1px
+                ),
+                linear-gradient(
+                    90deg,
+                    rgba(83, 122, 189, 0.09) 1px,
+                    transparent 1px
+                );
+
+            background-size: 42px 42px;
+
+            mask-image:
+                linear-gradient(
+                    to bottom,
+                    rgba(0, 0, 0, 0.82),
+                    transparent 88%
+                );
+        }
+
+        .auth-shell {
+            display: grid;
+            grid-template-columns: minmax(0, 1.08fr) minmax(420px, 0.92fr);
+            min-height: 100vh;
+            min-height: 100dvh;
+        }
+
+        /* HERO */
+
+        .auth-hero {
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100%;
+            padding: clamp(42px, 7vw, 100px);
+            overflow: hidden;
+        }
+
+        .auth-hero::after {
+            content: "";
+            position: absolute;
+            top: 8%;
+            right: 0;
+            bottom: 8%;
+            width: 1px;
+
+            background:
+                linear-gradient(
+                    transparent,
+                    rgba(0, 234, 255, 0.42),
+                    rgba(168, 85, 247, 0.32),
+                    transparent
+                );
+        }
+
+        .hero-inner {
+            width: min(100%, 720px);
+        }
+
+        .brand-lockup {
+            display: flex;
+            align-items: center;
+            gap: 18px;
+            margin-bottom: 54px;
+        }
+
+        .logo-frame {
+            position: relative;
+            display: grid;
+            place-items: center;
+            flex: 0 0 auto;
+            width: 92px;
+            height: 92px;
+            border-radius: 50%;
+
+            background:
+                linear-gradient(
+                    145deg,
+                    rgba(0, 234, 255, 0.16),
+                    rgba(168, 85, 247, 0.12)
+                );
+
+            border: 1px solid rgba(0, 234, 255, 0.28);
+
+            box-shadow:
+                0 0 28px rgba(0, 234, 255, 0.18),
+                0 0 54px rgba(168, 85, 247, 0.11),
+                inset 0 0 24px rgba(255, 255, 255, 0.05);
+        }
+
+        .logo-frame::before {
+            content: "";
+            position: absolute;
+            inset: -7px;
+            border-radius: inherit;
+            border: 1px solid rgba(255, 43, 214, 0.18);
+        }
+
+        .brand-logo {
+            display: block;
+            width: 70px;
+            height: 70px;
+            object-fit: contain;
+            filter:
+                drop-shadow(0 0 10px rgba(0, 234, 255, 0.38))
+                drop-shadow(0 0 18px rgba(255, 43, 214, 0.22));
+        }
+
+        .brand-name {
+            margin: 0;
+            font-size: clamp(2rem, 4vw, 3.45rem);
+            line-height: 0.95;
+            letter-spacing: -0.055em;
+
+            background:
+                linear-gradient(
+                    100deg,
+                    #ffffff,
+                    var(--fq-primary) 42%,
+                    #c998ff 72%,
+                    var(--fq-accent)
+                );
+
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+
+        .brand-kicker {
+            margin: 9px 0 0;
+            color: var(--fq-muted);
+            font-size: 0.82rem;
+            font-weight: 700;
+            letter-spacing: 0.16em;
+            text-transform: uppercase;
+        }
+
+        .hero-eyebrow {
+            display: inline-flex;
+            align-items: center;
+            gap: 9px;
+            margin-bottom: 18px;
+            padding: 8px 12px;
+            border: 1px solid rgba(0, 234, 255, 0.18);
+            border-radius: 999px;
+            color: #c7faff;
+            background: rgba(0, 234, 255, 0.07);
+            font-size: 0.77rem;
+            font-weight: 800;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+        }
+
+        .hero-eyebrow-dot {
+            width: 7px;
+            height: 7px;
+            border-radius: 999px;
+            background: var(--fq-success);
+            box-shadow: 0 0 12px rgba(53, 240, 161, 0.8);
+        }
+
+        .hero-heading {
+            max-width: 760px;
+            margin: 0;
+
+            font-size: clamp(2.7rem, 5.9vw, 6.1rem);
+            line-height: 0.95;
+            letter-spacing: -0.07em;
+        }
+
+        .hero-heading span {
+            display: block;
+
+            background:
+                linear-gradient(
+                    95deg,
+                    var(--fq-primary),
+                    #7da7ff 44%,
+                    var(--fq-secondary),
+                    var(--fq-accent)
+                );
+
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+
+        .hero-copy {
+            max-width: 650px;
+            margin: 28px 0 0;
+            color: var(--fq-muted);
+            font-size: clamp(1rem, 1.55vw, 1.2rem);
+            line-height: 1.75;
+        }
+
+        .hero-copy strong {
+            color: var(--fq-text);
+            font-weight: 700;
+        }
+
+        .hero-features {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 14px;
+            margin-top: 38px;
+        }
+
+        .hero-feature {
+            min-height: 132px;
+            padding: 18px;
+            border: 1px solid var(--fq-border);
+            border-radius: var(--fq-radius-md);
+            background: rgba(255, 255, 255, 0.035);
+            backdrop-filter: blur(14px);
+        }
+
+        .hero-feature-icon {
+            display: grid;
+            place-items: center;
+            width: 36px;
+            height: 36px;
+            margin-bottom: 14px;
+            border-radius: 11px;
+            color: var(--fq-primary);
+            background: rgba(0, 234, 255, 0.09);
+            font-size: 1.08rem;
+        }
+
+        .hero-feature h3 {
+            margin: 0 0 7px;
+            font-size: 0.93rem;
+        }
+
+        .hero-feature p {
+            margin: 0;
+            color: var(--fq-subtle);
+            font-size: 0.79rem;
+            line-height: 1.5;
+        }
+
+        .hero-quote {
+            max-width: 620px;
+            margin: 38px 0 0;
+            padding-left: 18px;
+            border-left: 2px solid var(--fq-primary);
+            color: #dcecff;
+            font-size: 0.94rem;
+            line-height: 1.7;
+        }
+
+        /* AUTH PANEL */
+
+        .auth-panel {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100%;
+            padding: clamp(24px, 5vw, 72px);
+        }
+
+        .auth-card {
+            width: min(100%, 500px);
+            padding: clamp(26px, 4vw, 42px);
+            border: 1px solid var(--fq-border);
+            border-radius: var(--fq-radius-lg);
+
+            background:
+                linear-gradient(
+                    155deg,
+                    rgba(15, 25, 52, 0.94),
+                    rgba(6, 11, 27, 0.9)
+                );
+
+            box-shadow: var(--fq-shadow);
+            backdrop-filter: blur(24px);
+        }
+
+        .auth-card-header {
+            margin-bottom: 31px;
+        }
+
+        .auth-status-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 17px;
+            padding: 7px 10px;
+            border-radius: 999px;
+
+            color: #c9faff;
+            background: rgba(0, 234, 255, 0.075);
+            border: 1px solid rgba(0, 234, 255, 0.15);
+
+            font-size: 0.73rem;
+            font-weight: 800;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+        }
+
+        .auth-title {
+            margin: 0;
+            font-size: clamp(2rem, 4vw, 2.75rem);
+            line-height: 1.05;
+            letter-spacing: -0.045em;
+        }
+
+        .auth-subtitle {
+            margin: 12px 0 0;
+            color: var(--fq-muted);
+            line-height: 1.65;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .field-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            margin-bottom: 9px;
+        }
+
+        .field-label {
+            color: #eaf3ff;
+            font-size: 0.85rem;
+            font-weight: 750;
+        }
+
+        .field-hint {
+            color: var(--fq-subtle);
+            font-size: 0.72rem;
+        }
+
+        .input-wrap {
+            position: relative;
+        }
+
+        .input-icon {
+            position: absolute;
+            top: 50%;
+            left: 15px;
+            display: grid;
+            place-items: center;
+            width: 20px;
+            color: var(--fq-subtle);
+            transform: translateY(-50%);
+            pointer-events: none;
+        }
+
+        .auth-input {
+            width: 100%;
+            min-height: 54px;
+            padding: 13px 48px 13px 47px;
+
+            color: var(--fq-text);
+            background: rgba(1, 6, 19, 0.64);
+
+            border: 1px solid rgba(130, 161, 220, 0.19);
+            border-radius: var(--fq-radius-sm);
+            outline: none;
+
+            transition:
+                border-color var(--fq-transition),
+                box-shadow var(--fq-transition),
+                background var(--fq-transition);
+        }
+
+        .auth-input::placeholder {
+            color: #64708a;
+        }
+
+        .auth-input:hover {
+            border-color: rgba(0, 234, 255, 0.25);
+        }
+
+        .auth-input:focus {
+            border-color: var(--fq-border-bright);
+            background: rgba(3, 11, 29, 0.84);
+
+            box-shadow:
+                0 0 0 4px rgba(0, 234, 255, 0.075),
+                0 0 22px rgba(0, 234, 255, 0.07);
+        }
+
+        .password-toggle {
+            position: absolute;
+            top: 50%;
+            right: 8px;
+            min-width: 40px;
+            min-height: 40px;
+            padding: 0;
+            border: 0;
+            border-radius: 10px;
+            color: var(--fq-muted);
+            background: transparent;
+            cursor: pointer;
+            transform: translateY(-50%);
+        }
+
+        .password-toggle:hover,
+        .password-toggle:focus-visible {
+            color: var(--fq-primary);
+            background: rgba(0, 234, 255, 0.075);
+            outline: none;
+        }
+
+        .form-options {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            margin: 4px 0 25px;
+        }
+
+        .remember-control {
+            display: inline-flex;
+            align-items: center;
+            gap: 9px;
+            color: var(--fq-muted);
+            font-size: 0.82rem;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .remember-control input {
+            width: 17px;
+            height: 17px;
+            margin: 0;
+            accent-color: var(--fq-primary);
+        }
+
+        .text-button {
+            padding: 5px 0;
+            border: 0;
+            color: var(--fq-primary);
+            background: transparent;
+            font-size: 0.82rem;
+            font-weight: 750;
+            cursor: pointer;
+        }
+
+        .text-button:hover {
+            text-decoration: underline;
+        }
+
+        .primary-button {
+            position: relative;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            width: 100%;
+            min-height: 55px;
+            padding: 13px 20px;
+            overflow: hidden;
+
+            color: #001216;
+            background:
+                linear-gradient(
+                    100deg,
+                    var(--fq-primary),
+                    #64d9ff 45%,
+                    #bd8cff
+                );
+
+            border: 0;
+            border-radius: 14px;
+
+            box-shadow:
+                0 12px 30px rgba(0, 234, 255, 0.16),
+                0 0 28px rgba(168, 85, 247, 0.08);
+
+            font-weight: 900;
+            cursor: pointer;
+
+            transition:
+                transform var(--fq-transition),
+                box-shadow var(--fq-transition),
+                filter var(--fq-transition);
+        }
+
+        .primary-button::after {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background:
+                linear-gradient(
+                    110deg,
+                    transparent 30%,
+                    rgba(255, 255, 255, 0.34),
+                    transparent 70%
+                );
+            transform: translateX(-120%);
+            transition: transform 500ms ease;
+        }
+
+        .primary-button:hover:not(:disabled) {
+            transform: translateY(-2px);
+            filter: brightness(1.06);
+
+            box-shadow:
+                0 16px 35px rgba(0, 234, 255, 0.22),
+                0 0 32px rgba(168, 85, 247, 0.12);
+        }
+
+        .primary-button:hover:not(:disabled)::after {
+            transform: translateX(120%);
+        }
+
+        .primary-button:active:not(:disabled) {
+            transform: translateY(0);
+        }
+
+        .primary-button:disabled {
+            opacity: 0.68;
+            cursor: wait;
+        }
+
+        .button-spinner {
+            display: none;
+            width: 18px;
+            height: 18px;
+            border: 2px solid rgba(0, 18, 22, 0.28);
+            border-top-color: #001216;
+            border-radius: 999px;
+            animation: spin 700ms linear infinite;
+        }
+
+        .primary-button.is-loading .button-spinner {
+            display: inline-block;
+        }
+
+        .primary-button.is-loading .button-icon {
+            display: none;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .message-box {
+            display: none;
+            margin-bottom: 20px;
+            padding: 13px 14px;
+            border-radius: 12px;
+            font-size: 0.83rem;
+            line-height: 1.55;
+        }
+
+        .message-box.is-visible {
+            display: block;
+        }
+
+        .message-box.is-error {
+            color: #ffdce4;
+            border: 1px solid rgba(255, 102, 133, 0.28);
+            background: rgba(255, 102, 133, 0.09);
+        }
+
+        .message-box.is-success {
+            color: #d9ffef;
+            border: 1px solid rgba(53, 240, 161, 0.27);
+            background: rgba(53, 240, 161, 0.085);
+        }
+
+        .message-box.is-info {
+            color: #d8faff;
+            border: 1px solid rgba(0, 234, 255, 0.23);
+            background: rgba(0, 234, 255, 0.075);
+        }
+
+        .auth-divider {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin: 26px 0;
+            color: var(--fq-subtle);
+            font-size: 0.74rem;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+        }
+
+        .auth-divider::before,
+        .auth-divider::after {
+            content: "";
+            flex: 1;
+            height: 1px;
+            background: var(--fq-border);
+        }
+
+        .register-prompt {
+            margin: 0;
+            color: var(--fq-muted);
+            text-align: center;
+            font-size: 0.88rem;
+            line-height: 1.65;
+        }
+
+        .register-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            margin-left: 3px;
+            color: var(--fq-primary);
+            font-weight: 850;
+        }
+
+        .privacy-note {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            margin-top: 28px;
+            padding-top: 21px;
+            border-top: 1px solid var(--fq-border);
+            color: var(--fq-subtle);
+            font-size: 0.73rem;
+            line-height: 1.55;
+        }
+
+        .privacy-note-icon {
+            flex: 0 0 auto;
+            color: var(--fq-success);
+        }
+
+        /* MODAL */
+
+        .modal-backdrop {
+            position: fixed;
+            inset: 0;
+            z-index: 100;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            background: rgba(0, 3, 12, 0.78);
+            backdrop-filter: blur(14px);
+        }
+
+        .modal-backdrop.is-open {
+            display: flex;
+        }
+
+        .modal-card {
+            width: min(100%, 480px);
+            padding: clamp(24px, 4vw, 36px);
+            border: 1px solid var(--fq-border-bright);
+            border-radius: 24px;
+
+            background:
+                linear-gradient(
+                    150deg,
+                    rgba(16, 28, 57, 0.98),
+                    rgba(5, 10, 25, 0.98)
+                );
+
+            box-shadow:
+                0 30px 100px rgba(0, 0, 0, 0.68),
+                0 0 60px rgba(0, 234, 255, 0.11);
+        }
+
+        .modal-header {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 18px;
+            margin-bottom: 25px;
+        }
+
+        .modal-icon {
+            display: grid;
+            place-items: center;
+            width: 48px;
+            height: 48px;
+            margin-bottom: 16px;
+            border-radius: 15px;
+            color: var(--fq-primary);
+            background: rgba(0, 234, 255, 0.085);
+            border: 1px solid rgba(0, 234, 255, 0.17);
+            font-size: 1.25rem;
+        }
+
+        .modal-title {
+            margin: 0;
+            font-size: 1.7rem;
+            letter-spacing: -0.035em;
+        }
+
+        .modal-copy {
+            margin: 9px 0 0;
+            color: var(--fq-muted);
+            line-height: 1.65;
+        }
+
+        .modal-close {
+            flex: 0 0 auto;
+            display: grid;
+            place-items: center;
+            width: 42px;
+            height: 42px;
+            padding: 0;
+            border: 1px solid var(--fq-border);
+            border-radius: 12px;
+            color: var(--fq-muted);
+            background: rgba(255, 255, 255, 0.035);
+            cursor: pointer;
+        }
+
+        .modal-close:hover {
+            color: var(--fq-text);
+            border-color: rgba(0, 234, 255, 0.26);
+            background: rgba(0, 234, 255, 0.06);
+        }
+
+        .modal-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 11px;
+            margin-top: 24px;
+        }
+
+        .secondary-button {
+            min-height: 48px;
+            padding: 11px 17px;
+            border: 1px solid var(--fq-border);
+            border-radius: 12px;
+            color: var(--fq-text);
+            background: rgba(255, 255, 255, 0.035);
+            font-weight: 750;
+            cursor: pointer;
+        }
+
+        .secondary-button:hover {
+            border-color: rgba(0, 234, 255, 0.28);
+            background: rgba(0, 234, 255, 0.055);
+        }
+
+        .modal-primary {
+            width: auto;
+            min-width: 155px;
+            min-height: 48px;
+        }
+
+        /* RESPONSIVE */
+
+        @media (max-width: 1060px) {
+            .auth-shell {
+                grid-template-columns: 1fr;
+            }
+
+            .auth-hero {
+                min-height: auto;
+                padding-bottom: 34px;
+            }
+
+            .auth-hero::after {
+                top: auto;
+                right: 8%;
+                bottom: 0;
+                left: 8%;
+                width: auto;
+                height: 1px;
+
+                background:
+                    linear-gradient(
+                        90deg,
+                        transparent,
+                        rgba(0, 234, 255, 0.42),
+                        rgba(168, 85, 247, 0.32),
+                        transparent
+                    );
+            }
+
+            .hero-inner {
+                width: min(100%, 800px);
+            }
+
+            .hero-heading {
+                max-width: 800px;
+            }
+
+            .auth-panel {
+                padding-top: 44px;
+                padding-bottom: 70px;
+            }
+        }
+
+        @media (max-width: 720px) {
+            .auth-hero {
+                padding: 32px 20px 38px;
+            }
+
+            .brand-lockup {
+                margin-bottom: 36px;
+            }
+
+            .logo-frame {
+                width: 73px;
+                height: 73px;
+            }
+
+            .brand-logo {
+                width: 55px;
+                height: 55px;
+            }
+
+            .hero-heading {
+                font-size: clamp(2.55rem, 14vw, 4.3rem);
+            }
+
+            .hero-features {
+                grid-template-columns: 1fr;
+            }
+
+            .hero-feature {
+                display: grid;
+                grid-template-columns: 40px 1fr;
+                min-height: 0;
+                column-gap: 12px;
+            }
+
+            .hero-feature-icon {
+                grid-row: span 2;
+                margin: 0;
+            }
+
+            .hero-feature h3 {
+                align-self: end;
+            }
+
+            .auth-panel {
+                padding: 26px 14px 54px;
+            }
+
+            .auth-card {
+                padding: 26px 20px;
+                border-radius: 22px;
+            }
+
+            .form-options {
+                align-items: flex-start;
+                flex-direction: column;
+                gap: 10px;
+            }
+
+            .modal-actions {
+                flex-direction: column-reverse;
+            }
+
+            .secondary-button,
+            .modal-primary {
+                width: 100%;
+            }
+        }
+
+        @media (max-width: 430px) {
+            .brand-name {
+                font-size: 2.15rem;
+            }
+
+            .brand-kicker {
+                font-size: 0.66rem;
+            }
+
+            .hero-quote {
+                display: none;
+            }
+
+            .auth-title {
+                font-size: 2rem;
+            }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            *,
+            *::before,
+            *::after {
+                scroll-behavior: auto !important;
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.01ms !important;
+            }
+        }
+    </style>
 </head>
 
-<body class="auth-body">
+<body>
+<a class="skip-link" href="#loginForm">Skip to login</a>
 
-<div class="auth-shell">
+<div class="auth-page">
+    <div class="ambient-orb ambient-orb--one"></div>
+    <div class="ambient-orb ambient-orb--two"></div>
+    <div class="grid-overlay" aria-hidden="true"></div>
 
-    <!-- LEFT HERO -->
-    <section class="auth-hero">
-        <div class="hero-inner">
+    <main class="auth-shell">
+        <!-- LEFT: BRAND / PURPOSE -->
+        <section class="auth-hero" aria-labelledby="fitquestHeading">
+            <div class="hero-inner">
+                <div class="brand-lockup">
+                    <div class="logo-frame">
+                        <img
+                            class="brand-logo"
+                            src="assets/logo.png"
+                            alt="FitQuest running Q logo"
+                        >
+                    </div>
 
-            <!-- DUAL-LAYER NEON LOGO RING -->
-            <div class="logo-ring">
-                <div class="logo-ring-inner"></div>
-                <img src="assets/logo.png" class="logo">
+                    <div>
+                        <h1 class="brand-name" id="fitquestHeading">
+                            FitQuest
+                        </h1>
+
+                        <p class="brand-kicker">
+                            Understand your journey
+                        </p>
+                    </div>
+                </div>
+
+                <div class="hero-eyebrow">
+                    <span class="hero-eyebrow-dot"></span>
+                    Your health. Your pace. Your quest.
+                </div>
+
+                <h2 class="hero-heading">
+                    Feel better.
+                    <span>One decision at a time.</span>
+                </h2>
+
+                <p class="hero-copy">
+                    FitQuest does more than record numbers. It helps you
+                    <strong>understand what they mean</strong>, build habits
+                    that fit your life and continue making progress without
+                    guilt, pressure or impossible expectations.
+                </p>
+
+                <div class="hero-features">
+                    <article class="hero-feature">
+                        <div class="hero-feature-icon" aria-hidden="true">
+                            ◎
+                        </div>
+
+                        <h3>Understand your body</h3>
+
+                        <p>
+                            See trends and context instead of judging your
+                            progress by one number.
+                        </p>
+                    </article>
+
+                    <article class="hero-feature">
+                        <div class="hero-feature-icon" aria-hidden="true">
+                            ◈
+                        </div>
+
+                        <h3>Built around your life</h3>
+
+                        <p>
+                            Guidance adapts to your routine, availability,
+                            goals and current ability.
+                        </p>
+                    </article>
+
+                    <article class="hero-feature">
+                        <div class="hero-feature-icon" aria-hidden="true">
+                            ✦
+                        </div>
+
+                        <h3>Progress without pressure</h3>
+
+                        <p>
+                            FitQuest celebrates consistency and helps you
+                            recover from setbacks.
+                        </p>
+                    </article>
+                </div>
+
+                <p class="hero-quote">
+                    Your body is not the enemy. FitQuest helps you understand
+                    what it is telling you.
+                </p>
             </div>
+        </section>
 
-            <h1 class="hero-title">FitQuest</h1>
-            <p class="hero-subtitle">
-                Turn your training into a quest. Track, level up, and keep your streak alive.
-            </p>
+        <!-- RIGHT: LOGIN -->
+        <section class="auth-panel" aria-labelledby="loginHeading">
+            <div class="auth-card">
+                <header class="auth-card-header">
+                    <div class="auth-status-pill">
+                        <span aria-hidden="true">✦</span>
+                        Continue your journey
+                    </div>
 
-            <ul class="hero-points">
-                <li>Track your progress with precision</li>
-                <li>Build streaks that fuel momentum</li>
-                <li>Turn your fitness routine into a FitQuest</li>
-            </ul>
-        </div>
-    </section>
+                    <h2 class="auth-title" id="loginHeading">
+                        Welcome back
+                    </h2>
 
-    <!-- RIGHT AUTH PANEL -->
-    <section class="auth-panel">
-        <div class="form-card glass-card">
-            <h2 class="form-title">Welcome back</h2>
-            <p class="form-subtitle">Log in to continue your journey.</p>
+                    <p class="auth-subtitle">
+                        Sign in to see today's progress, guidance and next
+                        steps.
+                    </p>
+                </header>
 
-            <label class="field-label" for="loginEmail">Email</label>
-            <input type="email" id="loginEmail" placeholder="you@example.com">
+                <div
+                    id="loginMessage"
+                    class="message-box"
+                    role="status"
+                    aria-live="polite"
+                ></div>
 
-            <label class="field-label" for="loginPassword">Password</label>
-            <input type="password" id="loginPassword" placeholder="••••••••">
+                <form id="loginForm" novalidate>
+                    <div class="form-group">
+                        <div class="field-row">
+                            <label class="field-label" for="loginEmail">
+                                Email address
+                            </label>
+                        </div>
 
-            <button class="primary-btn" onclick="loginUser()">Login</button>
+                        <div class="input-wrap">
+                            <span class="input-icon" aria-hidden="true">
+                                @
+                            </span>
 
-            <p class="small-text"><a href="#">Forgot password?</a></p>
-            <p class="small-text">Don't have an account? <a href="register.html">Create one</a></p>
-        </div>
-    </section>
+                            <input
+                                class="auth-input"
+                                type="email"
+                                id="loginEmail"
+                                name="email"
+                                placeholder="you@example.com"
+                                autocomplete="email"
+                                inputmode="email"
+                                spellcheck="false"
+                                required
+                            >
+                        </div>
+                    </div>
 
+                    <div class="form-group">
+                        <div class="field-row">
+                            <label class="field-label" for="loginPassword">
+                                Password
+                            </label>
+
+                            <span class="field-hint">
+                                At least 6 characters
+                            </span>
+                        </div>
+
+                        <div class="input-wrap">
+                            <span class="input-icon" aria-hidden="true">
+                                ●
+                            </span>
+
+                            <input
+                                class="auth-input"
+                                type="password"
+                                id="loginPassword"
+                                name="password"
+                                placeholder="Enter your password"
+                                autocomplete="current-password"
+                                required
+                            >
+
+                            <button
+                                class="password-toggle"
+                                type="button"
+                                id="togglePassword"
+                                aria-label="Show password"
+                                aria-pressed="false"
+                                title="Show password"
+                            >
+                                ◉
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="form-options">
+                        <label class="remember-control">
+                            <input
+                                type="checkbox"
+                                id="rememberMe"
+                                checked
+                            >
+
+                            <span>Keep me signed in</span>
+                        </label>
+
+                        <button
+                            class="text-button"
+                            type="button"
+                            id="forgotPasswordButton"
+                        >
+                            Forgot password?
+                        </button>
+                    </div>
+
+                    <button
+                        class="primary-button"
+                        type="submit"
+                        id="loginButton"
+                    >
+                        <span class="button-spinner" aria-hidden="true"></span>
+
+                        <span class="button-label">
+                            Enter FitQuest
+                        </span>
+
+                        <span class="button-icon" aria-hidden="true">
+                            →
+                        </span>
+                    </button>
+                </form>
+
+                <div class="auth-divider">
+                    New to FitQuest?
+                </div>
+
+                <p class="register-prompt">
+                    Build a health journey that fits your life.
+
+                    <a class="register-link" href="register.html">
+                        Create your account
+                        <span aria-hidden="true">→</span>
+                    </a>
+                </p>
+
+                <div class="privacy-note">
+                    <span class="privacy-note-icon" aria-hidden="true">
+                        ◇
+                    </span>
+
+                    <span>
+                        Your information is used to personalise your FitQuest
+                        experience. Your health journey belongs to you.
+                    </span>
+                </div>
+            </div>
+        </section>
+    </main>
 </div>
 
-<div class="auth-grid-overlay"></div>
+<!-- PASSWORD RECOVERY MODAL -->
+<div
+    class="modal-backdrop"
+    id="passwordResetModal"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="resetTitle"
+    aria-hidden="true"
+>
+    <div class="modal-card">
+        <div class="modal-header">
+            <div>
+                <div class="modal-icon" aria-hidden="true">
+                    ↻
+                </div>
 
+                <h2 class="modal-title" id="resetTitle">
+                    Reset your password
+                </h2>
+
+                <p class="modal-copy">
+                    Enter the email address connected to your FitQuest
+                    account. Firebase will send you a secure password-reset
+                    link.
+                </p>
+            </div>
+
+            <button
+                class="modal-close"
+                type="button"
+                id="closeResetModal"
+                aria-label="Close password reset"
+            >
+                ×
+            </button>
+        </div>
+
+        <div
+            id="resetMessage"
+            class="message-box"
+            role="status"
+            aria-live="polite"
+        ></div>
+
+        <form id="passwordResetForm" novalidate>
+            <div class="form-group">
+                <label class="field-label" for="resetEmail">
+                    Email address
+                </label>
+
+                <div class="input-wrap" style="margin-top: 9px;">
+                    <span class="input-icon" aria-hidden="true">
+                        @
+                    </span>
+
+                    <input
+                        class="auth-input"
+                        type="email"
+                        id="resetEmail"
+                        placeholder="you@example.com"
+                        autocomplete="email"
+                        inputmode="email"
+                        spellcheck="false"
+                        required
+                    >
+                </div>
+            </div>
+
+            <div class="modal-actions">
+                <button
+                    class="secondary-button"
+                    type="button"
+                    id="cancelResetButton"
+                >
+                    Cancel
+                </button>
+
+                <button
+                    class="primary-button modal-primary"
+                    type="submit"
+                    id="sendResetButton"
+                >
+                    <span
+                        class="button-spinner"
+                        aria-hidden="true"
+                    ></span>
+
+                    <span class="button-label">
+                        Send reset link
+                    </span>
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    "use strict";
+
+    const loginForm = document.getElementById("loginForm");
+    const loginEmail = document.getElementById("loginEmail");
+    const loginPassword = document.getElementById("loginPassword");
+    const rememberMe = document.getElementById("rememberMe");
+    const loginButton = document.getElementById("loginButton");
+    const loginMessage = document.getElementById("loginMessage");
+
+    const togglePassword =
+        document.getElementById("togglePassword");
+
+    const passwordResetModal =
+        document.getElementById("passwordResetModal");
+
+    const forgotPasswordButton =
+        document.getElementById("forgotPasswordButton");
+
+    const closeResetModal =
+        document.getElementById("closeResetModal");
+
+    const cancelResetButton =
+        document.getElementById("cancelResetButton");
+
+    const passwordResetForm =
+        document.getElementById("passwordResetForm");
+
+    const resetEmail =
+        document.getElementById("resetEmail");
+
+    const resetMessage =
+        document.getElementById("resetMessage");
+
+    const sendResetButton =
+        document.getElementById("sendResetButton");
+
+    /**
+     * Wait until firebase.js has initialised Firebase.
+     */
+    function waitForFirebase(timeoutMs = 10000) {
+        return new Promise((resolve, reject) => {
+            const startedAt = Date.now();
+
+            const checkFirebase = () => {
+                const isReady =
+                    window.firebase &&
+                    firebase.apps &&
+                    firebase.apps.length > 0;
+
+                if (isReady) {
+                    resolve();
+                    return;
+                }
+
+                if (Date.now() - startedAt >= timeoutMs) {
+                    reject(
+                        new Error(
+                            "FitQuest could not connect to Firebase."
+                        )
+                    );
+                    return;
+                }
+
+                window.setTimeout(checkFirebase, 100);
+            };
+
+            checkFirebase();
+        });
+    }
+
+    function normaliseEmail(value) {
+        return String(value || "")
+            .trim()
+            .toLowerCase();
+    }
+
+    function isValidEmail(email) {
+        return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+    }
+
+    function setButtonLoading(button, isLoading, label) {
+        button.disabled = isLoading;
+        button.classList.toggle("is-loading", isLoading);
+
+        const buttonLabel =
+            button.querySelector(".button-label");
+
+        if (buttonLabel && label) {
+            buttonLabel.textContent = label;
+        }
+    }
+
+    function clearMessage(element) {
+        element.textContent = "";
+        element.className = "message-box";
+    }
+
+    function showMessage(element, message, type = "info") {
+        element.textContent = message;
+        element.className =
+            `message-box is-visible is-${type}`;
+    }
+
+    function getFriendlyAuthError(error) {
+        const errorCode = error && error.code
+            ? error.code
+            : "";
+
+        const messages = {
+            "auth/invalid-email":
+                "Please enter a valid email address.",
+
+            "auth/user-disabled":
+                "This account has been disabled. Please contact FitQuest support.",
+
+            "auth/user-not-found":
+                "We could not find a FitQuest account using those details.",
+
+            "auth/wrong-password":
+                "The email address or password is incorrect.",
+
+            "auth/invalid-login-credentials":
+                "The email address or password is incorrect.",
+
+            "auth/too-many-requests":
+                "Too many unsuccessful attempts have been made. Please wait a little while or reset your password.",
+
+            "auth/network-request-failed":
+                "FitQuest could not connect. Check your internet connection and try again.",
+
+            "auth/operation-not-allowed":
+                "Email and password login is not currently enabled.",
+
+            "auth/internal-error":
+                "Something went wrong while signing you in. Please try again."
+        };
+
+        return messages[errorCode] ||
+            "FitQuest could not sign you in. Please check your details and try again.";
+    }
+
+    async function chooseDestination(user) {
+        /*
+         * Existing accounts should continue opening dashboard.html.
+         *
+         * New register.html will later create:
+         * onboardingCompleted: false
+         *
+         * Those accounts will then be sent to onboarding.html.
+         */
+        try {
+            const userDocument = await firebase
+                .firestore()
+                .collection("users")
+                .doc(user.uid)
+                .get();
+
+            if (
+                userDocument.exists &&
+                userDocument.data().onboardingCompleted === false
+            ) {
+                return "onboarding.html";
+            }
+        } catch (error) {
+            console.warn(
+                "Could not check onboarding status:",
+                error
+            );
+        }
+
+        return "dashboard.html";
+    }
+
+    async function handleLogin(event) {
+        event.preventDefault();
+        clearMessage(loginMessage);
+
+        const email = normaliseEmail(loginEmail.value);
+        const password = loginPassword.value;
+
+        if (!isValidEmail(email)) {
+            showMessage(
+                loginMessage,
+                "Enter the email address connected to your FitQuest account.",
+                "error"
+            );
+
+            loginEmail.focus();
+            return;
+        }
+
+        if (!password) {
+            showMessage(
+                loginMessage,
+                "Enter your password to continue.",
+                "error"
+            );
+
+            loginPassword.focus();
+            return;
+        }
+
+        setButtonLoading(
+            loginButton,
+            true,
+            "Opening FitQuest..."
+        );
+
+        try {
+            await waitForFirebase();
+
+            const persistence = rememberMe.checked
+                ? firebase.auth.Auth.Persistence.LOCAL
+                : firebase.auth.Auth.Persistence.SESSION;
+
+            await firebase
+                .auth()
+                .setPersistence(persistence);
+
+            const credential = await firebase
+                .auth()
+                .signInWithEmailAndPassword(email, password);
+
+            showMessage(
+                loginMessage,
+                "Welcome back. Preparing your dashboard...",
+                "success"
+            );
+
+            const destination =
+                await chooseDestination(credential.user);
+
+            window.location.replace(destination);
+        } catch (error) {
+            console.error("FitQuest login error:", error);
+
+            showMessage(
+                loginMessage,
+                getFriendlyAuthError(error),
+                "error"
+            );
+
+            setButtonLoading(
+                loginButton,
+                false,
+                "Enter FitQuest"
+            );
+        }
+    }
+
+    function openResetModal() {
+        clearMessage(resetMessage);
+
+        resetEmail.value =
+            normaliseEmail(loginEmail.value);
+
+        passwordResetModal.classList.add("is-open");
+        passwordResetModal.setAttribute(
+            "aria-hidden",
+            "false"
+        );
+
+        document.body.style.overflow = "hidden";
+
+        window.setTimeout(() => {
+            resetEmail.focus();
+        }, 50);
+    }
+
+    function closePasswordResetModal() {
+        passwordResetModal.classList.remove("is-open");
+        passwordResetModal.setAttribute(
+            "aria-hidden",
+            "true"
+        );
+
+        document.body.style.overflow = "";
+
+        setButtonLoading(
+            sendResetButton,
+            false,
+            "Send reset link"
+        );
+    }
+
+    async function handlePasswordReset(event) {
+        event.preventDefault();
+        clearMessage(resetMessage);
+
+        const email = normaliseEmail(resetEmail.value);
+
+        if (!isValidEmail(email)) {
+            showMessage(
+                resetMessage,
+                "Enter a valid email address.",
+                "error"
+            );
+
+            resetEmail.focus();
+            return;
+        }
+
+        setButtonLoading(
+            sendResetButton,
+            true,
+            "Sending..."
+        );
+
+        try {
+            await waitForFirebase();
+
+            await firebase
+                .auth()
+                .sendPasswordResetEmail(email);
+
+            showMessage(
+                resetMessage,
+                "Password-reset email sent. Check your inbox and junk folder, then follow the secure link.",
+                "success"
+            );
+
+            setButtonLoading(
+                sendResetButton,
+                false,
+                "Email sent"
+            );
+        } catch (error) {
+            console.error(
+                "FitQuest password-reset error:",
+                error
+            );
+
+            /*
+             * Avoid revealing whether an account exists when Firebase
+             * uses email-enumeration protection.
+             */
+            const resetErrorMessages = {
+                "auth/invalid-email":
+                    "Enter a valid email address.",
+
+                "auth/too-many-requests":
+                    "Too many reset attempts have been made. Please wait before trying again.",
+
+                "auth/network-request-failed":
+                    "FitQuest could not connect. Check your internet connection and try again."
+            };
+
+            const message =
+                resetErrorMessages[error.code] ||
+                "We could not send the reset email. Please check the address and try again.";
+
+            showMessage(
+                resetMessage,
+                message,
+                "error"
+            );
+
+            setButtonLoading(
+                sendResetButton,
+                false,
+                "Send reset link"
+            );
+        }
+    }
+
+    function handlePasswordVisibility() {
+        const isPasswordVisible =
+            loginPassword.type === "text";
+
+        loginPassword.type =
+            isPasswordVisible
+                ? "password"
+                : "text";
+
+        togglePassword.setAttribute(
+            "aria-pressed",
+            String(!isPasswordVisible)
+        );
+
+        togglePassword.setAttribute(
+            "aria-label",
+            isPasswordVisible
+                ? "Show password"
+                : "Hide password"
+        );
+
+        togglePassword.title =
+            isPasswordVisible
+                ? "Show password"
+                : "Hide password";
+
+        togglePassword.textContent =
+            isPasswordVisible
+                ? "◉"
+                : "⊘";
+    }
+
+    loginForm.addEventListener(
+        "submit",
+        handleLogin
+    );
+
+    togglePassword.addEventListener(
+        "click",
+        handlePasswordVisibility
+    );
+
+    forgotPasswordButton.addEventListener(
+        "click",
+        openResetModal
+    );
+
+    closeResetModal.addEventListener(
+        "click",
+        closePasswordResetModal
+    );
+
+    cancelResetButton.addEventListener(
+        "click",
+        closePasswordResetModal
+    );
+
+    passwordResetForm.addEventListener(
+        "submit",
+        handlePasswordReset
+    );
+
+    passwordResetModal.addEventListener(
+        "click",
+        event => {
+            if (event.target === passwordResetModal) {
+                closePasswordResetModal();
+            }
+        }
+    );
+
+    document.addEventListener(
+        "keydown",
+        event => {
+            if (
+                event.key === "Escape" &&
+                passwordResetModal.classList.contains("is-open")
+            ) {
+                closePasswordResetModal();
+            }
+        }
+    );
+
+    /*
+     * Prevent the browser from showing Firebase's raw error after a
+     * previous failed attempt once the user starts correcting it.
+     */
+    loginEmail.addEventListener(
+        "input",
+        () => clearMessage(loginMessage)
+    );
+
+    loginPassword.addEventListener(
+        "input",
+        () => clearMessage(loginMessage)
+    );
+</script>
 </body>
 </html>
