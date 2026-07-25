@@ -2,137 +2,1035 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FitQuest — Dashboard</title>
-    <link rel="stylesheet" href="styles.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <meta name="description" content="Your personalised FitQuest health and fitness hub.">
+    <meta name="theme-color" content="#050816">
+    <title>FitQuest — Your Journey</title>
 
-    <!-- Firebase v8 -->
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-storage.js"></script>
-
-    <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-    <!-- Firebase config + globals (auth, db, storage) -->
     <script src="firebase.js"></script>
-
-    <!-- FitQuest Brain -->
     <script src="fitquestbrain.js"></script>
 
     <style>
         :root {
-            --neon: #00eaff;
+            --fq-bg: #050816;
+            --fq-bg-deep: #02040d;
+            --fq-panel: rgba(10, 17, 38, 0.84);
+            --fq-primary: #00eaff;
+            --fq-secondary: #8b5cf6;
+            --fq-accent: #ff2bd6;
+            --fq-success: #35f0a1;
+            --fq-danger: #ff6685;
+            --fq-text: #f8fbff;
+            --fq-muted: #aab6ce;
+            --fq-subtle: #74809a;
+            --fq-border: rgba(132, 167, 255, 0.15);
+            --fq-border-bright: rgba(0, 234, 255, 0.35);
+            --fq-radius-md: 19px;
+            --fq-radius-lg: 28px;
+            --fq-sidebar-width: 238px;
+            --fq-right-width: 292px;
+            --neon: var(--fq-primary);
+            --fq-transition: 180ms ease;
         }
 
-        @keyframes neonBreath {
-            0% { box-shadow: 0 0 10px var(--neon), inset 0 0 4px var(--neon); }
-            50% { box-shadow: 0 0 18px var(--neon), inset 0 0 8px var(--neon); }
-            100% { box-shadow: 0 0 10px var(--neon), inset 0 0 4px var(--neon); }
+        * { box-sizing: border-box; }
+
+        html {
+            min-height: 100%;
+            background: var(--fq-bg-deep);
         }
 
-        .neon-card, .card, .summary-card, .class-card, .analytics-panel {
-            border: 1px solid var(--neon);
-            box-shadow: 0 0 12px var(--neon), inset 0 0 6px var(--neon);
-            animation: neonBreath 6s ease-in-out infinite;
-            transition: border-color 4s linear, box-shadow 4s linear, background 0.8s ease;
+        body {
+            min-height: 100vh;
+            margin: 0;
+            overflow-x: hidden;
+            color: var(--fq-text);
+            background:
+                radial-gradient(circle at 8% 8%, rgba(0, 234, 255, 0.10), transparent 28rem),
+                radial-gradient(circle at 88% 80%, rgba(139, 92, 246, 0.12), transparent 32rem),
+                linear-gradient(145deg, var(--fq-bg-deep), var(--fq-bg) 52%, #09051a);
+            font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            -webkit-font-smoothing: antialiased;
         }
 
-        .xp-bar-container {
-            margin-top: 6px;
-            width: 100%;
-            max-width: 260px;
-            height: 8px;
-            border-radius: 999px;
-            background: rgba(15,23,42,0.9);
-            overflow: hidden;
-            border: 1px solid var(--neon);
-            box-shadow: 0 0 10px var(--neon);
+        button, input { font: inherit; }
+        button, a, [role="button"] { -webkit-tap-highlight-color: transparent; }
+        a { color: inherit; text-decoration: none; }
+
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: var(--fq-sidebar-width) minmax(0, 1fr) var(--fq-right-width);
+            min-height: 100vh;
         }
 
-        .xp-bar-fill {
-            height: 100%;
-            width: 0%;
-            background: linear-gradient(90deg, #22c55e, #00eaff, #7b2fff);
-            transition: width 0.6s ease-out;
+        .ambient-grid {
+            position: fixed;
+            inset: 0;
+            z-index: -1;
+            pointer-events: none;
+            opacity: 0.18;
+            background-image:
+                linear-gradient(rgba(83, 122, 189, 0.08) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(83, 122, 189, 0.08) 1px, transparent 1px);
+            background-size: 42px 42px;
+            mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.8), transparent 92%);
         }
 
-        .hero-top {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 16px;
-            margin-bottom: 10px;
-        }
-
-        .hero-left {
+        .sidebar {
+            position: sticky;
+            top: 0;
             display: flex;
             flex-direction: column;
-            gap: 4px;
+            min-height: 100vh;
+            padding: 22px 16px;
+            border-right: 1px solid var(--fq-border);
+            background: rgba(3, 7, 19, 0.82);
+            backdrop-filter: blur(22px);
         }
 
-        .hero-right {
+        .sidebar-brand {
             display: flex;
             align-items: center;
             gap: 12px;
+            padding: 6px 8px 24px;
         }
 
-        .avatar-ring {
-            width: 110px;
-            height: 110px;
+        .sidebar-logo {
+            display: grid;
+            place-items: center;
+            width: 48px;
+            height: 48px;
             border-radius: 50%;
-            border: 3px solid var(--neon);
-            box-shadow: 0 0 14px var(--neon);
+            border: 1px solid rgba(0, 234, 255, 0.26);
+            background: linear-gradient(145deg, rgba(0, 234, 255, 0.12), rgba(139, 92, 246, 0.10));
+            box-shadow: 0 0 24px rgba(0, 234, 255, 0.12);
+        }
+
+        .sidebar-logo img {
+            width: 37px;
+            height: 37px;
+            object-fit: contain;
+            filter: drop-shadow(0 0 9px rgba(0, 234, 255, 0.38));
+        }
+
+        .sidebar-brand-text strong {
+            display: block;
+            font-size: 1.15rem;
+            letter-spacing: -0.035em;
+        }
+
+        .sidebar-brand-text span {
+            display: block;
+            margin-top: 3px;
+            color: var(--fq-subtle);
+            font-size: 0.66rem;
+            font-weight: 800;
+            letter-spacing: 0.11em;
+            text-transform: uppercase;
+        }
+
+        .nav-caption {
+            margin: 5px 11px 9px;
+            color: #56637c;
+            font-size: 0.64rem;
+            font-weight: 850;
+            letter-spacing: 0.13em;
+            text-transform: uppercase;
+        }
+
+        .sidebar-links {
+            display: grid;
+            gap: 5px;
+            margin: 0;
+            padding: 0;
+            list-style: none;
+        }
+
+        .nav-link {
             display: flex;
             align-items: center;
-            justify-content: center;
-            position: relative;
-            overflow: hidden;
-            transition: transform 0.25s ease-out;
+            gap: 12px;
+            min-height: 45px;
+            padding: 10px 12px;
+            border: 1px solid transparent;
+            border-radius: 13px;
+            color: var(--fq-muted);
+            font-size: 0.84rem;
+            font-weight: 720;
+            cursor: pointer;
+            transition: color var(--fq-transition), background var(--fq-transition), border-color var(--fq-transition), transform var(--fq-transition);
+        }
+
+        .nav-link:hover {
+            color: var(--fq-text);
+            border-color: rgba(0, 234, 255, 0.14);
+            background: rgba(0, 234, 255, 0.045);
+            transform: translateX(2px);
+        }
+
+        .nav-link.active {
+            color: #dffcff;
+            border-color: rgba(0, 234, 255, 0.23);
+            background: linear-gradient(90deg, rgba(0, 234, 255, 0.11), rgba(139, 92, 246, 0.045));
+            box-shadow: inset 3px 0 0 var(--fq-primary);
+        }
+
+        .nav-icon {
+            display: grid;
+            place-items: center;
+            width: 22px;
+            color: var(--fq-primary);
+            font-size: 1rem;
+        }
+
+        .sidebar-spacer { flex: 1; }
+
+        .sidebar-foot {
+            display: grid;
+            gap: 10px;
+            padding-top: 18px;
+        }
+
+        .privacy-mini {
+            padding: 12px;
+            border: 1px solid var(--fq-border);
+            border-radius: 13px;
+            color: var(--fq-subtle);
+            background: rgba(255, 255, 255, 0.025);
+            font-size: 0.69rem;
+            line-height: 1.5;
+        }
+
+        .logout-btn {
+            min-height: 43px;
+            border: 1px solid rgba(255, 102, 133, 0.20);
+            border-radius: 12px;
+            color: #ffdce4;
+            background: rgba(255, 102, 133, 0.06);
+            font-weight: 800;
             cursor: pointer;
         }
 
-        .avatar-ring:hover {
-            transform: scale(1.06);
+        .logout-btn:hover {
+            border-color: rgba(255, 102, 133, 0.40);
+            background: rgba(255, 102, 133, 0.11);
         }
+
+        .main-content {
+            min-width: 0;
+            padding: 24px clamp(18px, 3vw, 42px) 70px;
+        }
+
+        .topbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 18px;
+            margin-bottom: 24px;
+        }
+
+        .today-label {
+            color: var(--fq-subtle);
+            font-size: 0.72rem;
+            font-weight: 850;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+        }
+
+        .topbar-actions {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .icon-button {
+            display: grid;
+            place-items: center;
+            width: 42px;
+            height: 42px;
+            padding: 0;
+            border: 1px solid var(--fq-border);
+            border-radius: 12px;
+            color: var(--fq-muted);
+            background: rgba(255, 255, 255, 0.03);
+            cursor: pointer;
+        }
+
+        .icon-button:hover {
+            color: var(--fq-primary);
+            border-color: rgba(0, 234, 255, 0.26);
+            background: rgba(0, 234, 255, 0.055);
+        }
+
+        .hero {
+            position: relative;
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) auto;
+            gap: 28px;
+            overflow: hidden;
+            margin-bottom: 18px;
+            padding: clamp(24px, 3.5vw, 38px);
+            border: 1px solid var(--fq-border);
+            border-radius: var(--fq-radius-lg);
+            background:
+                radial-gradient(circle at 86% 15%, rgba(0, 234, 255, 0.11), transparent 18rem),
+                linear-gradient(145deg, rgba(14, 25, 53, 0.94), rgba(7, 12, 29, 0.88));
+            box-shadow: 0 24px 70px rgba(0, 0, 0, 0.34), 0 0 45px rgba(0, 234, 255, 0.045);
+        }
+
+        .hero::after {
+            content: "";
+            position: absolute;
+            right: -70px;
+            bottom: -95px;
+            width: 280px;
+            height: 280px;
+            border-radius: 50%;
+            border: 1px solid rgba(139, 92, 246, 0.14);
+            box-shadow: 0 0 0 32px rgba(0, 234, 255, 0.025), 0 0 0 64px rgba(139, 92, 246, 0.02);
+            pointer-events: none;
+        }
+
+        .hero-copy {
+            position: relative;
+            z-index: 1;
+        }
+
+        .hero-kicker {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 13px;
+            padding: 7px 10px;
+            border: 1px solid rgba(53, 240, 161, 0.17);
+            border-radius: 999px;
+            color: #d8ffef;
+            background: rgba(53, 240, 161, 0.065);
+            font-size: 0.69rem;
+            font-weight: 850;
+            letter-spacing: 0.09em;
+            text-transform: uppercase;
+        }
+
+        .hero-kicker-dot {
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background: var(--fq-success);
+            box-shadow: 0 0 12px rgba(53, 240, 161, 0.8);
+        }
+
+        .hero-title {
+            margin: 0;
+            font-size: clamp(2.1rem, 4.8vw, 4.35rem);
+            line-height: 1;
+            letter-spacing: -0.065em;
+        }
+
+        .hero-title span {
+            background: linear-gradient(95deg, var(--fq-primary), #9e8cff, var(--fq-accent));
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+
+        .hero-message {
+            max-width: 720px;
+            margin: 17px 0 0;
+            color: var(--fq-muted);
+            font-size: clamp(0.95rem, 1.4vw, 1.08rem);
+            line-height: 1.7;
+        }
+
+        .hero-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-top: 23px;
+        }
+
+        .meta-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            min-height: 36px;
+            padding: 8px 11px;
+            border: 1px solid var(--fq-border);
+            border-radius: 999px;
+            color: #dbe8f8;
+            background: rgba(255, 255, 255, 0.035);
+            font-size: 0.76rem;
+            font-weight: 750;
+        }
+
+        .hero-profile {
+            position: relative;
+            z-index: 2;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-width: 155px;
+        }
+
+        .avatar-ring {
+            position: relative;
+            display: grid;
+            place-items: center;
+            width: 118px;
+            height: 118px;
+            overflow: hidden;
+            border: 3px solid var(--fq-primary);
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.035);
+            box-shadow: 0 0 24px rgba(0, 234, 255, 0.25), 0 0 48px rgba(139, 92, 246, 0.10);
+            cursor: pointer;
+            transition: transform var(--fq-transition);
+        }
+
+        .avatar-ring:hover { transform: scale(1.04); }
 
         .avatar-ring img {
             width: 100%;
             height: 100%;
-            border-radius: 50%;
             object-fit: cover;
         }
 
         .level-badge {
             position: absolute;
-            bottom: -4px;
             right: -4px;
-            background: #0f172a;
+            bottom: 4px;
+            padding: 4px 9px;
+            border: 1px solid var(--fq-primary);
             border-radius: 999px;
-            padding: 2px 8px;
-            font-size: 11px;
-            border: 1px solid var(--neon);
-            box-shadow: 0 0 8px var(--neon);
+            color: var(--fq-text);
+            background: #07101f;
+            box-shadow: 0 0 11px rgba(0, 234, 255, 0.28);
+            font-size: 0.72rem;
+            font-weight: 900;
         }
 
-        #insightsBox {
+        .xp-wrap {
+            width: 145px;
             margin-top: 14px;
         }
 
-        #insightsList {
+        .xp-label-row {
+            display: flex;
+            justify-content: space-between;
+            gap: 8px;
+            margin-bottom: 7px;
+            color: var(--fq-subtle);
+            font-size: 0.67rem;
+            font-weight: 800;
+            text-transform: uppercase;
+        }
+
+        .xp-bar-container {
+            width: 100%;
+            height: 8px;
+            overflow: hidden;
+            border: 1px solid rgba(0, 234, 255, 0.22);
+            border-radius: 999px;
+            background: rgba(2, 6, 18, 0.9);
+        }
+
+        .xp-bar-fill {
+            width: 0;
+            height: 100%;
+            border-radius: inherit;
+            background: linear-gradient(90deg, var(--fq-success), var(--fq-primary), var(--fq-secondary));
+            transition: width 600ms ease-out;
+        }
+
+        .section-heading {
+            display: flex;
+            align-items: flex-end;
+            justify-content: space-between;
+            gap: 16px;
+            margin: 28px 0 13px;
+        }
+
+        .section-heading h2 {
+            margin: 0;
+            font-size: 1.15rem;
+            letter-spacing: -0.025em;
+        }
+
+        .section-heading p {
+            margin: 5px 0 0;
+            color: var(--fq-subtle);
+            font-size: 0.76rem;
+        }
+
+        .view-link {
+            border: 0;
+            color: var(--fq-primary);
+            background: transparent;
+            font-size: 0.76rem;
+            font-weight: 850;
+            cursor: pointer;
+        }
+
+        .metric-grid {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 13px;
+        }
+
+        .metric-card, .card, .class-card, .analytics-panel {
+            border: 1px solid var(--fq-border);
+            box-shadow: none;
+            animation: none;
+        }
+
+        .metric-card {
+            position: relative;
+            overflow: hidden;
+            min-height: 150px;
+            padding: 18px;
+            border-radius: var(--fq-radius-md);
+            background: linear-gradient(150deg, rgba(14, 24, 50, 0.89), rgba(7, 12, 29, 0.83));
+            cursor: pointer;
+            transition: transform var(--fq-transition), border-color var(--fq-transition), box-shadow var(--fq-transition);
+        }
+
+        .metric-card:hover {
+            transform: translateY(-3px);
+            border-color: rgba(0, 234, 255, 0.28);
+            box-shadow: 0 14px 32px rgba(0, 0, 0, 0.22);
+        }
+
+        .metric-card::after {
+            content: "";
+            position: absolute;
+            top: -44px;
+            right: -44px;
+            width: 110px;
+            height: 110px;
+            border-radius: 50%;
+            background: rgba(0, 234, 255, 0.055);
+        }
+
+        .metric-top {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+        }
+
+        .metric-icon {
+            display: grid;
+            place-items: center;
+            width: 38px;
+            height: 38px;
+            border-radius: 12px;
+            color: var(--fq-primary);
+            background: rgba(0, 234, 255, 0.075);
+            font-size: 1rem;
+        }
+
+        .metric-status {
+            color: var(--fq-success);
+            font-size: 0.68rem;
+            font-weight: 850;
+        }
+
+        .metric-card h3 {
+            margin: 16px 0 7px;
+            color: var(--fq-muted);
+            font-size: 0.76rem;
+            font-weight: 800;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+        }
+
+        .metric-value {
+            margin: 0;
+            font-size: clamp(1.6rem, 3vw, 2.25rem);
+            font-weight: 900;
+            letter-spacing: -0.05em;
+        }
+
+        .metric-sub {
+            display: block;
+            margin-top: 7px;
+            color: var(--fq-subtle);
+            font-size: 0.72rem;
+        }
+
+        .focus-grid {
+            display: grid;
+            grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr);
+            gap: 14px;
+        }
+
+        .card {
+            min-width: 0;
+            padding: 19px;
+            border-radius: var(--fq-radius-md);
+            background: linear-gradient(150deg, rgba(13, 23, 48, 0.88), rgba(6, 11, 27, 0.82));
+        }
+
+        .card-header {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 14px;
+            margin-bottom: 15px;
+        }
+
+        .card-header h2 {
+            margin: 0;
+            font-size: 1rem;
+            letter-spacing: -0.02em;
+        }
+
+        .card-header p {
+            margin: 5px 0 0;
+            color: var(--fq-subtle);
+            font-size: 0.73rem;
+            line-height: 1.45;
+        }
+
+        .card-badge {
+            flex: 0 0 auto;
+            padding: 6px 9px;
+            border: 1px solid rgba(0, 234, 255, 0.17);
+            border-radius: 999px;
+            color: #d7fbff;
+            background: rgba(0, 234, 255, 0.06);
+            font-size: 0.66rem;
+            font-weight: 850;
+            text-transform: uppercase;
+        }
+
+        .journey-score-layout {
+            display: grid;
+            grid-template-columns: 150px minmax(0, 1fr);
+            align-items: center;
+            gap: 20px;
+        }
+
+        .score-ring {
+            position: relative;
+            display: grid;
+            place-items: center;
+            width: 140px;
+            height: 140px;
+            border-radius: 50%;
+            background:
+                radial-gradient(circle closest-side, #091024 76%, transparent 77% 99%),
+                conic-gradient(var(--fq-primary) calc(var(--score, 0) * 1%), rgba(255, 255, 255, 0.07) 0);
+            box-shadow: inset 0 0 28px rgba(0, 234, 255, 0.08), 0 0 26px rgba(0, 234, 255, 0.07);
+        }
+
+        .score-ring strong {
+            font-size: 2rem;
+            letter-spacing: -0.06em;
+        }
+
+        .score-ring span {
+            display: block;
+            margin-top: 2px;
+            color: var(--fq-subtle);
+            font-size: 0.62rem;
+            font-weight: 850;
+            letter-spacing: 0.10em;
+            text-transform: uppercase;
+        }
+
+        .focus-list {
+            display: grid;
+            gap: 12px;
+        }
+
+        .focus-row {
+            display: grid;
+            grid-template-columns: 86px minmax(0, 1fr) 38px;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .focus-row span {
+            color: var(--fq-muted);
+            font-size: 0.74rem;
+            font-weight: 750;
+        }
+
+        .focus-track {
+            height: 7px;
+            overflow: hidden;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.06);
+        }
+
+        .focus-fill {
+            height: 100%;
+            border-radius: inherit;
+            background: linear-gradient(90deg, var(--fq-primary), var(--fq-secondary));
+        }
+
+        .focus-value {
+            color: var(--fq-text) !important;
+            text-align: right;
+            font-size: 0.70rem !important;
+            font-weight: 850 !important;
+        }
+
+        .coach-card {
+            position: relative;
+            overflow: hidden;
+        }
+
+        .coach-card::before {
+            content: "";
+            position: absolute;
+            top: -70px;
+            right: -70px;
+            width: 190px;
+            height: 190px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(139, 92, 246, 0.13), transparent 70%);
+        }
+
+        .coach-head {
+            display: flex;
+            align-items: center;
+            gap: 13px;
+            margin-bottom: 17px;
+        }
+
+        .coach-avatar {
+            display: grid;
+            place-items: center;
+            width: 50px;
+            height: 50px;
+            border: 1px solid rgba(139, 92, 246, 0.25);
+            border-radius: 16px;
+            color: #d9c8ff;
+            background: linear-gradient(145deg, rgba(139, 92, 246, 0.14), rgba(0, 234, 255, 0.06));
+            font-size: 1.25rem;
+        }
+
+        .coach-head h3 { margin: 0; font-size: 1rem; }
+        .coach-head p { margin: 4px 0 0; color: var(--fq-subtle); font-size: 0.71rem; }
+
+        .coach-message {
+            position: relative;
+            z-index: 1;
+            margin: 0;
+            color: #dce9f9;
+            font-size: 0.91rem;
+            line-height: 1.72;
+        }
+
+        .coach-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 9px;
+            margin-top: 20px;
+        }
+
+        .small-button {
+            min-height: 38px;
+            padding: 8px 12px;
+            border: 1px solid var(--fq-border);
+            border-radius: 11px;
+            color: var(--fq-text);
+            background: rgba(255, 255, 255, 0.035);
+            font-size: 0.72rem;
+            font-weight: 800;
+            cursor: pointer;
+        }
+
+        .small-button.primary {
+            color: #001216;
+            border-color: transparent;
+            background: linear-gradient(95deg, var(--fq-primary), #8ee7ff);
+        }
+
+        .insights-list {
+            display: grid;
+            gap: 10px;
+            margin: 0;
+            padding: 0;
             list-style: none;
-            padding-left: 0;
-            margin-top: 8px;
         }
 
-        #insightsList li {
-            margin-bottom: 6px;
-            font-size: 0.9rem;
+        .insights-list li {
+            display: flex;
+            gap: 10px;
+            margin: 0;
+            padding: 11px 12px;
+            border: 1px solid rgba(0, 234, 255, 0.10);
+            border-radius: 12px;
+            color: var(--fq-muted);
+            background: rgba(0, 234, 255, 0.035);
+            font-size: 0.78rem;
+            line-height: 1.5;
         }
 
-        #adaptiveBox {
-            margin-top: 14px;
+        .insights-list li::before {
+            content: "✦";
+            flex: 0 0 auto;
+            color: var(--fq-primary);
+        }
+
+        .adaptive-actions {
+            display: flex;
+            gap: 9px;
+            margin-top: 15px;
+        }
+
+        .chart-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 14px;
+        }
+
+        .chart-card { min-height: 330px; }
+
+        .chart-body {
+            position: relative;
+            height: 235px;
+        }
+
+        .chart-toggle {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            padding: 3px;
+            border: 1px solid var(--fq-border);
+            border-radius: 999px;
+            background: rgba(3, 8, 21, 0.75);
+        }
+
+        .chart-toggle button {
+            min-width: 43px;
+            padding: 5px 8px;
+            border: 0;
+            border-radius: 999px;
+            color: var(--fq-subtle);
+            background: transparent;
+            font-size: 0.65rem;
+            font-weight: 800;
+            cursor: pointer;
+        }
+
+        .chart-toggle button.active {
+            color: #001216;
+            background: var(--fq-primary);
+        }
+
+        .ring-card-body {
+            display: grid;
+            place-items: center;
+            height: 230px;
+        }
+
+        .ring-card-body canvas {
+            max-width: 190px;
+            max-height: 190px;
+        }
+
+        .ring-label {
+            margin: 0;
+            color: var(--fq-muted);
+            text-align: center;
+            font-size: 0.78rem;
+        }
+
+        .right-panel {
+            position: sticky;
+            top: 0;
+            align-self: start;
+            min-height: 100vh;
+            padding: 24px 17px;
+            border-left: 1px solid var(--fq-border);
+            background: rgba(3, 7, 19, 0.72);
+            backdrop-filter: blur(20px);
+        }
+
+        .right-panel-header { margin-bottom: 16px; }
+        .right-panel-header h2 { margin: 0; font-size: 1rem; }
+        .right-panel-header p { margin: 5px 0 0; color: var(--fq-subtle); font-size: 0.69rem; }
+
+        .class-stack {
+            display: grid;
+            gap: 10px;
+        }
+
+        .class-card {
+            padding: 14px;
+            border-radius: 15px;
+            background: linear-gradient(145deg, rgba(13, 23, 47, 0.86), rgba(6, 11, 27, 0.80));
+        }
+
+        .class-card h4 { margin: 0 0 6px; font-size: 0.82rem; }
+        .class-card p { margin: 0; color: var(--fq-subtle); font-size: 0.70rem; }
+
+        .class-meta {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 9px;
+            margin-top: 13px;
+        }
+
+        .class-level {
+            color: #d8fbff;
+            font-size: 0.64rem;
+            font-weight: 800;
+        }
+
+        .join-btn {
+            min-height: 34px;
+            padding: 7px 11px;
+            border: 1px solid rgba(0, 234, 255, 0.20);
+            border-radius: 10px;
+            color: #dffcff;
+            background: rgba(0, 234, 255, 0.065);
+            font-size: 0.68rem;
+            font-weight: 850;
+            cursor: pointer;
+        }
+
+        .premium-preview {
+            margin-top: 16px;
+            padding: 16px;
+            border: 1px solid rgba(139, 92, 246, 0.19);
+            border-radius: 17px;
+            background: radial-gradient(circle at 90% 10%, rgba(139, 92, 246, 0.14), transparent 8rem), rgba(139, 92, 246, 0.055);
+        }
+
+        .premium-preview span {
+            color: #d9c8ff;
+            font-size: 0.65rem;
+            font-weight: 900;
+            letter-spacing: 0.09em;
+            text-transform: uppercase;
+        }
+
+        .premium-preview h3 { margin: 9px 0 7px; font-size: 0.91rem; }
+
+        .premium-preview p {
+            margin: 0;
+            color: var(--fq-subtle);
+            font-size: 0.69rem;
+            line-height: 1.55;
+        }
+
+        .premium-preview button {
+            width: 100%;
+            min-height: 38px;
+            margin-top: 13px;
+            border: 0;
+            border-radius: 10px;
+            color: #110525;
+            background: linear-gradient(95deg, #b895ff, #f09fff);
+            font-size: 0.70rem;
+            font-weight: 900;
+            cursor: pointer;
+        }
+
+        .analytics-panel, .mobile-panel {
+            position: fixed;
+            z-index: 100;
+            top: 0;
+            right: 0;
+            width: min(92vw, 560px);
+            height: 100vh;
+            overflow-y: auto;
+            padding: 24px;
+            transform: translateX(105%);
+            transition: transform 250ms ease;
+            border-left: 1px solid var(--fq-border-bright);
+            background: rgba(5, 10, 25, 0.98);
+            backdrop-filter: blur(22px);
+            box-shadow: -24px 0 70px rgba(0, 0, 0, 0.48);
+        }
+
+        .analytics-panel.open, .mobile-panel.open { transform: translateX(0); }
+
+        .panel-header, .mobile-panel-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 14px;
+            margin-bottom: 22px;
+        }
+
+        .panel-header h2, .mobile-panel-header h3 { margin: 0; }
+
+        .panel-close, .close-mobile {
+            display: grid;
+            place-items: center;
+            width: 40px;
+            height: 40px;
+            border: 1px solid var(--fq-border);
+            border-radius: 12px;
+            color: var(--fq-muted);
+            cursor: pointer;
+        }
+
+        .analytics-panel canvas { margin-bottom: 28px; }
+
+        .mobile-classes-btn {
+            position: fixed;
+            right: 16px;
+            bottom: 82px;
+            z-index: 70;
+            display: none;
+            min-height: 44px;
+            padding: 10px 15px;
+            border: 1px solid rgba(0, 234, 255, 0.25);
+            border-radius: 999px;
+            color: #dffcff;
+            background: rgba(5, 14, 32, 0.94);
+            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.32);
+            font-weight: 850;
+        }
+
+        .mobile-nav {
+            position: fixed;
+            right: 0;
+            bottom: 0;
+            left: 0;
+            z-index: 60;
+            display: none;
+            grid-template-columns: repeat(5, 1fr);
+            padding: 8px 7px calc(8px + env(safe-area-inset-bottom));
+            border-top: 1px solid var(--fq-border);
+            background: rgba(3, 7, 19, 0.95);
+            backdrop-filter: blur(20px);
+        }
+
+        .mobile-nav a {
+            display: grid;
+            place-items: center;
+            gap: 3px;
+            min-height: 48px;
+            border-radius: 11px;
+            color: var(--fq-subtle);
+            font-size: 0.61rem;
+            font-weight: 750;
+        }
+
+        .mobile-nav a span {
+            color: var(--fq-primary);
+            font-size: 1rem;
+        }
+
+        .mobile-nav a.active {
+            color: var(--fq-text);
+            background: rgba(0, 234, 255, 0.055);
         }
 
         .spark {
@@ -141,248 +1039,499 @@
             height: 6px;
             border-radius: 50%;
             pointer-events: none;
-            animation: sparkFly 0.45s ease-out forwards;
+            animation: sparkFly 450ms ease-out forwards;
         }
 
         @keyframes sparkFly {
-            0% { opacity: 1; transform: translate(0,0) scale(1); }
-            100% { opacity: 0; transform: translate(var(--x), var(--y)) scale(0.4); }
+            from { opacity: 1; transform: translate(0, 0) scale(1); }
+            to { opacity: 0; transform: translate(var(--x), var(--y)) scale(0.4); }
         }
 
-        /* Chart toggle buttons */
-        .chart-toggle {
-            display: flex;
-            gap: 6px;
-            align-items: center;
+        @media (max-width: 1280px) {
+            .dashboard-grid { grid-template-columns: 210px minmax(0, 1fr); }
+            .right-panel { display: none; }
+            .mobile-classes-btn { display: block; }
         }
 
-        .chart-toggle button {
-            padding: 4px 10px;
-            border-radius: 999px;
-            border: 1px solid rgba(148,163,184,0.6);
-            background: rgba(15,23,42,0.9);
-            color: #e5e7eb;
-            font-size: 11px;
-            cursor: pointer;
+        @media (max-width: 980px) {
+            .dashboard-grid { display: block; }
+            .sidebar { display: none; }
+            .main-content { padding: 18px 16px 92px; }
+            .mobile-nav { display: grid; }
+            .metric-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+            .focus-grid, .chart-grid { grid-template-columns: 1fr; }
         }
 
-        .chart-toggle button.active {
-            border-color: var(--neon);
-            color: #020617;
-            background: var(--neon);
-            box-shadow: 0 0 10px var(--neon);
+        @media (max-width: 680px) {
+            .topbar { margin-bottom: 14px; }
+            .today-label { font-size: 0.64rem; }
+
+            .hero {
+                grid-template-columns: 1fr;
+                padding: 23px 19px;
+            }
+
+            .hero-profile {
+                align-items: flex-start;
+                flex-direction: row;
+                justify-content: flex-start;
+                gap: 14px;
+                min-width: 0;
+            }
+
+            .avatar-ring {
+                width: 78px;
+                height: 78px;
+            }
+
+            .level-badge { font-size: 0.61rem; }
+
+            .xp-wrap {
+                align-self: center;
+                width: min(180px, calc(100vw - 145px));
+                margin-top: 0;
+            }
+
+            .metric-grid {
+                grid-template-columns: 1fr 1fr;
+                gap: 10px;
+            }
+
+            .metric-card {
+                min-height: 138px;
+                padding: 15px;
+            }
+
+            .journey-score-layout {
+                grid-template-columns: 1fr;
+                justify-items: center;
+            }
+
+            .focus-list { width: 100%; }
+            .section-heading { align-items: flex-start; }
+        }
+
+        @media (max-width: 430px) {
+            .metric-grid { grid-template-columns: 1fr; }
+            .metric-card { min-height: 124px; }
+            .hero-meta { gap: 7px; }
+            .meta-pill { font-size: 0.67rem; }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after {
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.01ms !important;
+            }
         }
     </style>
 </head>
 
-<body class="dashboard-body">
+<body>
+<div class="ambient-grid" aria-hidden="true"></div>
 
-<!-- SIDEBAR -->
-<aside class="sidebar">
-    <div class="sidebar-logo">
-        <img src="assets/logo.png" alt="FitQuest Logo">
-    </div>
-
-    <ul class="sidebar-links">
-        <li class="active neon-hover">🏠 Dashboard</li>
-
-        <li class="neon-hover" onclick="window.location.href='exercise.html'">💪 Workout</li>
-        <li class="neon-hover" onclick="window.location.href='food.html'">🍽️ Food Intake</li>
-        <li class="neon-hover" onclick="window.location.href='meals.html'">🍱 Meals</li>
-        <li class="neon-hover" onclick="window.location.href='barcode.html'">📷 Barcode Scanner</li>
-        <li class="neon-hover" onclick="window.location.href='bmi.html'">📏 BMI Calculator</li>
-        <li class="neon-hover" onclick="window.location.href='quests.html'"> 🔥Quests</li>
-        <li class="neon-hover" onclick="window.location.href='profile.html'">👤 Profile</li>
-        <li class="neon-hover" onclick="window.location.href='progress.html'">📊 Progress</li>
-        <li class="neon-hover" onclick="window.location.href='settings.html'">⚙️ Settings</li>
-    </ul>
-
-    <button class="logout-btn neon-interactive" onclick="logoutUser()">Logout</button>
-</aside>
-
-<!-- MAIN CONTENT -->
-<main class="main-content">
-
-    <!-- HERO -->
-    <section class="hero-top">
-        <div class="hero-left">
-            <h1 class="page-title">
-                Welcome Back, <span id="userName" class="neon-text">Adventurer</span>
-            </h1>
-            <p class="subtitle" id="brainMessage">Calibrating your fitness brain...</p>
-            <div class="xp-bar-container">
-                <div id="xpFill" class="xp-bar-fill"></div>
+<div class="dashboard-grid">
+    <aside class="sidebar">
+        <div class="sidebar-brand">
+            <div class="sidebar-logo">
+                <img src="assets/logo.png" alt="FitQuest">
+            </div>
+            <div class="sidebar-brand-text">
+                <strong>FitQuest</strong>
+                <span>Understand your journey</span>
             </div>
         </div>
 
-        <!-- Avatar clickable -->
-        <div class="hero-right">
-            <div class="avatar-ring neon-interactive" id="heroAvatarRing" onclick="window.location.href='profile.html'">
-                <img id="dashboardAvatar" src="assets/avatar-placeholder.png" alt="Avatar">
-                <span class="level-badge" id="heroLevelBadge">Lv 1</span>
+        <p class="nav-caption">Your journey</p>
+
+        <ul class="sidebar-links">
+            <li><a class="nav-link active" href="dashboard.html"><span class="nav-icon">⌂</span>Dashboard</a></li>
+            <li><a class="nav-link" href="exercise.html"><span class="nav-icon">◈</span>Track exercise</a></li>
+            <li><a class="nav-link" href="food.html"><span class="nav-icon">◉</span>Food intake</a></li>
+            <li><a class="nav-link" href="meals.html"><span class="nav-icon">◇</span>Meals</a></li>
+            <li><a class="nav-link" href="barcode.html"><span class="nav-icon">▣</span>Barcode scanner</a></li>
+            <li><a class="nav-link" href="progress.html"><span class="nav-icon">↗</span>Progress</a></li>
+            <li><a class="nav-link" href="quests.html"><span class="nav-icon">✦</span>Quests</a></li>
+        </ul>
+
+        <p class="nav-caption" style="margin-top: 20px;">Account</p>
+
+        <ul class="sidebar-links">
+            <li><a class="nav-link" href="profile.html"><span class="nav-icon">◎</span>Profile</a></li>
+            <li><a class="nav-link" href="settings.html"><span class="nav-icon">⚙</span>Settings</a></li>
+        </ul>
+
+        <div class="sidebar-spacer"></div>
+
+        <div class="sidebar-foot">
+            <div class="privacy-mini">
+                Your health journey belongs to you. FitQuest uses your data to personalise your experience.
             </div>
+            <button class="logout-btn" type="button" onclick="logoutUser()">Log out</button>
         </div>
-    </section>
+    </aside>
 
-    <!-- SUMMARY CARDS -->
-    <section class="top-summary-row">
-
-        <div id="calorieCard" class="summary-card neon-card neon-interactive">
-            <h3>Calories Intake</h3>
-            <p class="summary-number" id="calEaten">1,800 kcal</p>
-            <span class="summary-sub">Today</span>
-        </div>
-
-        <div id="burnCard" class="summary-card neon-card neon-interactive">
-            <h3>Calories Burned</h3>
-            <p class="summary-number" id="calBurned">520 kcal</p>
-            <span class="summary-sub">Today</span>
-        </div>
-
-        <div id="bmiCard" class="summary-card neon-card neon-interactive">
-            <h3>Current BMI</h3>
-            <p class="summary-number" id="currentBMI">23.4</p>
-            <span class="summary-sub">Healthy</span>
-        </div>
-
-        <div id="stepsCard" class="summary-card neon-card neon-interactive">
-            <h3>Steps Today</h3>
-            <p class="summary-number" id="stepsToday">7,450</p>
-            <span class="summary-sub">Steps</span>
-        </div>
-
-    </section>
-
-    <!-- INSIGHTS -->
-    <section id="insightsBox" class="card neon-card" style="margin-top:16px; display:none;">
-        <h2 class="neon-text">Daily Insights</h2>
-        <ul id="insightsList"></ul>
-    </section>
-
-    <!-- ADAPTIVE GOAL -->
-    <section id="adaptiveBox" class="card neon-card" style="margin-top:14px; display:none;">
-        <h2 class="neon-text">Smart Adjustment</h2>
-        <p id="adaptiveText"></p>
-        <button id="adaptiveYes" class="join-btn neon-interactive">Yes, adjust</button>
-        <button id="adaptiveNo" class="join-btn neon-interactive" style="background:#444;margin-left:10px;">Not now</button>
-    </section>
-
-    <!-- SECOND ROW -->
-    <section class="row-2">
-
-        <div id="workoutCard" class="card large-card neon-card neon-interactive">
-            <div class="card-header">
-                <h2 class="neon-text">Workout Progress</h2>
-            </div>
-            <div class="card-body center-flex">
-                <canvas id="workoutRing"></canvas>
-            </div>
-            <p class="ring-label">4 / 5 Workouts Completed</p>
-        </div>
-
-        <div id="weightCard" class="card large-card neon-card neon-interactive">
-            <div class="card-header">
-                <h2 class="neon-text">Weight Trend</h2>
-            </div>
-            <div class="card-body">
-                <canvas id="weightTrend"></canvas>
+    <main class="main-content">
+        <div class="topbar">
+            <div class="today-label" id="todayLabel">Today's journey</div>
+            <div class="topbar-actions">
+                <button class="icon-button" type="button" onclick="window.location.href='settings.html'" aria-label="Open settings">⚙</button>
+                <button class="icon-button" type="button" onclick="window.location.href='profile.html'" aria-label="Open profile">◎</button>
             </div>
         </div>
 
-    </section>
+        <section class="hero">
+            <div class="hero-copy">
+                <div class="hero-kicker">
+                    <span class="hero-kicker-dot"></span>
+                    Your journey is active
+                </div>
 
-    <!-- THIRD ROW: Intake chart + Workout tracker chart -->
-    <section class="row-3">
+                <h1 class="hero-title">
+                    Welcome back,
+                    <span id="userName">Adventurer</span>
+                </h1>
 
-        <div id="intakeChartCard" class="card neon-card neon-interactive" onclick="openAnalyticsPanel('panel-calories')">
-            <div class="card-header" style="display:flex;justify-content:space-between;align-items:center;">
-                <h2 class="neon-text">Intake Chart</h2>
-                <div class="chart-toggle">
-                    <button id="intakeDayBtn" class="active" onclick="setIntakeRange('day'); event.stopPropagation();">Day</button>
-                    <button id="intakeWeekBtn" onclick="setIntakeRange('week'); event.stopPropagation();">Week</button>
-                    <button id="intakeMonthBtn" onclick="setIntakeRange('month'); event.stopPropagation();">Month</button>
+                <p class="hero-message" id="brainMessage">
+                    FitQuest is reviewing your latest progress and preparing today's guidance.
+                </p>
+
+                <div class="hero-meta">
+                    <span class="meta-pill" id="goalPill">◎ Goal: Building healthier habits</span>
+                    <span class="meta-pill" id="streakPill">✦ 0 day streak</span>
+                    <span class="meta-pill" id="membershipPill">◇ Free member</span>
                 </div>
             </div>
-            <div class="card-body">
-                <canvas id="intakeChart"></canvas>
-            </div>
-        </div>
 
-        <div id="workoutTrackerCard" class="card neon-card neon-interactive" onclick="openAnalyticsPanel('panel-workouts')">
-            <div class="card-header" style="display:flex;justify-content:space-between;align-items:center;">
-                <h2 class="neon-text">Workout Tracker</h2>
-                <div class="chart-toggle">
-                    <button id="workoutDayBtn" class="active" onclick="setWorkoutRange('day'); event.stopPropagation();">Day</button>
-                    <button id="workoutWeekBtn" onclick="setWorkoutRange('week'); event.stopPropagation();">Week</button>
-                    <button id="workoutMonthBtn" onclick="setWorkoutRange('month'); event.stopPropagation();">Month</button>
+            <div class="hero-profile">
+                <div class="avatar-ring neon-interactive" id="heroAvatarRing" onclick="window.location.href='profile.html'" role="button" tabindex="0" aria-label="Open your profile">
+                    <img id="dashboardAvatar" src="assets/avatar-placeholder.png" alt="Your FitQuest profile picture">
+                    <span class="level-badge" id="heroLevelBadge">Lv 1</span>
+                </div>
+
+                <div class="xp-wrap">
+                    <div class="xp-label-row">
+                        <span>Level progress</span>
+                        <span id="xpText">0 / 100 XP</span>
+                    </div>
+                    <div class="xp-bar-container">
+                        <div id="xpFill" class="xp-bar-fill"></div>
+                    </div>
                 </div>
             </div>
-            <p id="stepTrackerLabel" class="step-label" style="margin:6px 0 0 0;">7,450 / 10,000 Steps</p>
-            <div class="card-body">
-                <!-- Reuse existing stepTracker canvas so current chart.js still works -->
-                <canvas id="stepTracker"></canvas>
+        </section>
+
+        <div class="section-heading">
+            <div>
+                <h2>Today at a glance</h2>
+                <p>Useful context, not just isolated numbers.</p>
             </div>
         </div>
 
-    </section>
+        <section class="metric-grid">
+            <article id="calorieCard" class="metric-card neon-interactive" onclick="window.location.href='food.html'">
+                <div class="metric-top">
+                    <span class="metric-icon">◉</span>
+                    <span class="metric-status">Today</span>
+                </div>
+                <h3>Calories eaten</h3>
+                <p class="metric-value" id="calEaten">0 kcal</p>
+                <span class="metric-sub" id="calorieRemainingText">Log food to begin today's picture</span>
+            </article>
 
-</main>
+            <article id="burnCard" class="metric-card neon-interactive">
+                <div class="metric-top">
+                    <span class="metric-icon">↗</span>
+                    <span class="metric-status">Movement</span>
+                </div>
+                <h3>Calories burned</h3>
+                <p class="metric-value" id="calBurned">0 kcal</p>
+                <span class="metric-sub">Estimated from today's activity</span>
+            </article>
 
-<!-- RIGHT SIDEBAR -->
-<aside class="right-panel">
-    <h2 class="neon-text">Upcoming Classes</h2>
+            <article id="bmiCard" class="metric-card neon-interactive" onclick="window.location.href='bmi.html'">
+                <div class="metric-top">
+                    <span class="metric-icon">◇</span>
+                    <span class="metric-status">Context</span>
+                </div>
+                <h3>Current BMI</h3>
+                <p class="metric-value" id="currentBMI">—</p>
+                <span class="metric-sub" id="bmiContext">One useful measure, not the whole story</span>
+            </article>
 
-    <div class="class-card neon-card neon-interactive">
-        <h4>HIIT Cardio Blast</h4>
-        <p>Today • 6:00 PM</p>
-        <button class="join-btn neon-interactive">Join</button>
-    </div>
+            <article id="stepsCard" class="metric-card neon-interactive" onclick="window.location.href='progress.html'">
+                <div class="metric-top">
+                    <span class="metric-icon">◎</span>
+                    <span class="metric-status">Live</span>
+                </div>
+                <h3>Steps today</h3>
+                <p class="metric-value" id="stepsToday">0</p>
+                <span class="metric-sub" id="stepTrackerLabel">0 / 10,000 steps</span>
+            </article>
+        </section>
 
-    <div class="class-card neon-card neon-interactive">
-        <h4>Mobility Flex Flow</h4>
-        <p>Tomorrow • 9:00 AM</p>
-        <button class="join-btn neon-interactive">Join</button>
-    </div>
+        <div class="section-heading">
+            <div>
+                <h2>Your daily guidance</h2>
+                <p>FitQuest explains what deserves your attention today.</p>
+            </div>
+        </div>
 
-    <div class="class-card neon-card neon-interactive">
-        <h4>Core Strength Session</h4>
-        <p>Apr 25 • 5:30 PM</p>
-        <button class="join-btn neon-interactive">Join</button>
-    </div>
-</aside>
+        <section class="focus-grid">
+            <article class="card">
+                <div class="card-header">
+                    <div>
+                        <h2>Journey score</h2>
+                        <p>A balanced view across nutrition, movement, hydration and consistency.</p>
+                    </div>
+                    <span class="card-badge">Today</span>
+                </div>
 
-<!-- MOBILE -->
-<button class="mobile-classes-btn neon-interactive" onclick="openClassesMobile()">Classes</button>
+                <div class="journey-score-layout">
+                    <div class="score-ring" id="journeyScoreRing" style="--score: 0;">
+                        <div>
+                            <strong id="journeyScore">0%</strong>
+                            <span>Journey</span>
+                        </div>
+                    </div>
+
+                    <div class="focus-list">
+                        <div class="focus-row">
+                            <span>Nutrition</span>
+                            <div class="focus-track"><div class="focus-fill" id="nutritionFill" style="width: 0%;"></div></div>
+                            <span class="focus-value" id="nutritionValue">0%</span>
+                        </div>
+
+                        <div class="focus-row">
+                            <span>Movement</span>
+                            <div class="focus-track"><div class="focus-fill" id="movementFill" style="width: 0%;"></div></div>
+                            <span class="focus-value" id="movementValue">0%</span>
+                        </div>
+
+                        <div class="focus-row">
+                            <span>Hydration</span>
+                            <div class="focus-track"><div class="focus-fill" id="hydrationFill" style="width: 0%;"></div></div>
+                            <span class="focus-value" id="hydrationValue">0%</span>
+                        </div>
+
+                        <div class="focus-row">
+                            <span>Consistency</span>
+                            <div class="focus-track"><div class="focus-fill" id="consistencyFill" style="width: 0%;"></div></div>
+                            <span class="focus-value" id="consistencyValue">0%</span>
+                        </div>
+                    </div>
+                </div>
+            </article>
+
+            <article class="card coach-card">
+                <div class="coach-head">
+                    <div class="coach-avatar">✦</div>
+                    <div>
+                        <h3>FitQuest Coach</h3>
+                        <p>Evidence-informed, calm and built around your life.</p>
+                    </div>
+                </div>
+
+                <p class="coach-message" id="coachMessage">
+                    Keep logging your day. The more complete your picture becomes, the more useful your guidance can be.
+                </p>
+
+                <div class="coach-actions">
+                    <button class="small-button primary" type="button" onclick="window.location.href='exercise.html'">Start movement</button>
+                    <button class="small-button" type="button" onclick="window.location.href='food.html'">Log food</button>
+                </div>
+            </article>
+        </section>
+
+        <section id="insightsBox" class="card" style="margin-top: 14px; display: none;">
+            <div class="card-header">
+                <div>
+                    <h2>What FitQuest noticed</h2>
+                    <p>Clear explanations based on the information currently available.</p>
+                </div>
+                <span class="card-badge">Insights</span>
+            </div>
+            <ul id="insightsList" class="insights-list"></ul>
+        </section>
+
+        <section id="adaptiveBox" class="card" style="margin-top: 14px; display: none;">
+            <div class="card-header">
+                <div>
+                    <h2>Suggested adjustment</h2>
+                    <p>Nothing changes unless you choose to accept it.</p>
+                </div>
+                <span class="card-badge">Your choice</span>
+            </div>
+
+            <p id="adaptiveText" style="margin: 0; color: var(--fq-muted); line-height: 1.65;"></p>
+
+            <div class="adaptive-actions">
+                <button id="adaptiveYes" class="small-button primary" type="button">Yes, adjust</button>
+                <button id="adaptiveNo" class="small-button" type="button">Not now</button>
+            </div>
+        </section>
+
+        <div class="section-heading">
+            <div>
+                <h2>Your progress story</h2>
+                <p>Look for trends over time rather than judging one day in isolation.</p>
+            </div>
+
+            <button class="view-link" type="button" onclick="window.location.href='progress.html'">
+                Open full progress →
+            </button>
+        </div>
+
+        <section class="chart-grid">
+            <article id="workoutCard" class="card chart-card neon-interactive">
+                <div class="card-header">
+                    <div>
+                        <h2>Workout progress</h2>
+                        <p>Sessions completed against your current plan.</p>
+                    </div>
+                    <span class="card-badge">This week</span>
+                </div>
+                <div class="ring-card-body"><canvas id="workoutRing"></canvas></div>
+                <p class="ring-label" id="workoutRingLabel">4 / 5 workouts completed</p>
+            </article>
+
+            <article id="weightCard" class="card chart-card neon-interactive">
+                <div class="card-header">
+                    <div>
+                        <h2>Weight trend</h2>
+                        <p>Daily changes can include water, food and recovery—not just body fat.</p>
+                    </div>
+                    <span class="card-badge">Trend</span>
+                </div>
+                <div class="chart-body"><canvas id="weightTrend"></canvas></div>
+            </article>
+
+            <article id="intakeChartCard" class="card chart-card neon-interactive" onclick="openAnalyticsPanel('panel-calories')">
+                <div class="card-header">
+                    <div>
+                        <h2>Nutrition pattern</h2>
+                        <p>Your recorded intake across the selected period.</p>
+                    </div>
+                    <div class="chart-toggle">
+                        <button id="intakeDayBtn" class="active" type="button" onclick="setIntakeRange('day'); event.stopPropagation();">Day</button>
+                        <button id="intakeWeekBtn" type="button" onclick="setIntakeRange('week'); event.stopPropagation();">Week</button>
+                        <button id="intakeMonthBtn" type="button" onclick="setIntakeRange('month'); event.stopPropagation();">Month</button>
+                    </div>
+                </div>
+                <div class="chart-body"><canvas id="intakeChart"></canvas></div>
+            </article>
+
+            <article id="workoutTrackerCard" class="card chart-card neon-interactive" onclick="openAnalyticsPanel('panel-workouts')">
+                <div class="card-header">
+                    <div>
+                        <h2>Movement pattern</h2>
+                        <p>Your steps and activity across the selected period.</p>
+                    </div>
+                    <div class="chart-toggle">
+                        <button id="workoutDayBtn" class="active" type="button" onclick="setWorkoutRange('day'); event.stopPropagation();">Day</button>
+                        <button id="workoutWeekBtn" type="button" onclick="setWorkoutRange('week'); event.stopPropagation();">Week</button>
+                        <button id="workoutMonthBtn" type="button" onclick="setWorkoutRange('month'); event.stopPropagation();">Month</button>
+                    </div>
+                </div>
+                <div class="chart-body"><canvas id="stepTracker"></canvas></div>
+            </article>
+        </section>
+    </main>
+
+    <aside class="right-panel">
+        <div class="right-panel-header">
+            <h2>Upcoming classes</h2>
+            <p>Future instructor sessions will appear here.</p>
+        </div>
+
+        <div class="class-stack">
+            <article class="class-card">
+                <h4>HIIT Cardio Blast</h4>
+                <p>Today · 6:00 pm</p>
+                <div class="class-meta">
+                    <span class="class-level">Intermediate</span>
+                    <button class="join-btn" type="button">Preview</button>
+                </div>
+            </article>
+
+            <article class="class-card">
+                <h4>Mobility Flex Flow</h4>
+                <p>Tomorrow · 9:00 am</p>
+                <div class="class-meta">
+                    <span class="class-level">All levels</span>
+                    <button class="join-btn" type="button">Preview</button>
+                </div>
+            </article>
+
+            <article class="class-card">
+                <h4>Core Strength Session</h4>
+                <p>Friday · 5:30 pm</p>
+                <div class="class-meta">
+                    <span class="class-level">Beginner</span>
+                    <button class="join-btn" type="button">Preview</button>
+                </div>
+            </article>
+        </div>
+
+        <div class="premium-preview">
+            <span>Plus preview</span>
+            <h3>See what FitQuest has learned</h3>
+            <p>Advanced insights will explain the patterns that could make the biggest difference to your journey.</p>
+            <button type="button" onclick="openUpgradeModal()">Preview Plus</button>
+        </div>
+    </aside>
+</div>
+
+<nav class="mobile-nav" aria-label="Main navigation">
+    <a class="active" href="dashboard.html"><span>⌂</span>Home</a>
+    <a href="exercise.html"><span>◈</span>Track</a>
+    <a href="progress.html"><span>↗</span>Progress</a>
+    <a href="quests.html"><span>✦</span>Quests</a>
+    <a href="profile.html"><span>◎</span>Profile</a>
+</nav>
+
+<button class="mobile-classes-btn" type="button" onclick="openClassesMobile()">Classes</button>
 
 <div id="mobileClassesPanel" class="mobile-panel">
     <div class="mobile-panel-header">
-        <h3 class="neon-text">Upcoming Classes</h3>
+        <h3>Upcoming classes</h3>
         <span class="close-mobile" onclick="closeClassesMobile()">✕</span>
     </div>
 
-    <div class="class-card neon-card neon-interactive">
-        <h4>HIIT Cardio Blast</h4>
-        <p>Today • 6:00 PM</p>
-        <button class="join-btn neon-interactive">Join</button>
-    </div>
+    <div class="class-stack">
+        <article class="class-card">
+            <h4>HIIT Cardio Blast</h4>
+            <p>Today · 6:00 pm</p>
+            <div class="class-meta">
+                <span class="class-level">Intermediate</span>
+                <button class="join-btn" type="button">Preview</button>
+            </div>
+        </article>
 
-    <div class="class-card neon-card neon-interactive">
-        <h4>Mobility Flex Flow</h4>
-        <p>Tomorrow • 9:00 AM</p>
-        <button class="join-btn neon-interactive">Join</button>
-    </div>
+        <article class="class-card">
+            <h4>Mobility Flex Flow</h4>
+            <p>Tomorrow · 9:00 am</p>
+            <div class="class-meta">
+                <span class="class-level">All levels</span>
+                <button class="join-btn" type="button">Preview</button>
+            </div>
+        </article>
 
-    <div class="class-card neon-card neon-interactive">
-        <h4>Core Strength Session</h4>
-        <p>Apr 25 • 5:30 PM</p>
-        <button class="join-btn neon-interactive">Join</button>
+        <article class="class-card">
+            <h4>Core Strength Session</h4>
+            <p>Friday · 5:30 pm</p>
+            <div class="class-meta">
+                <span class="class-level">Beginner</span>
+                <button class="join-btn" type="button">Preview</button>
+            </div>
+        </article>
     </div>
 </div>
 
-<!-- ANALYTICS PANELS -->
 <div id="panel-calories" class="analytics-panel">
     <div class="panel-header">
-        <h2 class="neon-text">Calories Intake</h2>
+        <h2>Calories intake</h2>
         <span class="panel-close" onclick="closePanel('panel-calories')">✕</span>
     </div>
     <canvas id="chartCaloriesWeekly"></canvas>
@@ -391,7 +1540,7 @@
 
 <div id="panel-burned" class="analytics-panel">
     <div class="panel-header">
-        <h2 class="neon-text">Calories Burned</h2>
+        <h2>Calories burned</h2>
         <span class="panel-close" onclick="closePanel('panel-burned')">✕</span>
     </div>
     <canvas id="chartBurnWeekly"></canvas>
@@ -400,7 +1549,7 @@
 
 <div id="panel-bmi" class="analytics-panel">
     <div class="panel-header">
-        <h2 class="neon-text">BMI History</h2>
+        <h2>BMI history</h2>
         <span class="panel-close" onclick="closePanel('panel-bmi')">✕</span>
     </div>
     <canvas id="chartBMIHistory"></canvas>
@@ -408,198 +1557,430 @@
 
 <div id="panel-workouts" class="analytics-panel">
     <div class="panel-header">
-        <h2 class="neon-text">Workout Trend</h2>
+        <h2>Workout trend</h2>
         <span class="panel-close" onclick="closePanel('panel-workouts')">✕</span>
     </div>
-    <!-- Reuse existing steps canvases for workout analytics for now -->
     <canvas id="chartStepsWeekly"></canvas>
     <canvas id="chartStepsMonthly"></canvas>
 </div>
 
-<!-- DASHBOARD LOGIC -->
 <script>
-auth.onAuthStateChanged(async user => {
-    if (!user) {
-        window.location.href = "index.html";
-        return;
+    "use strict";
+
+    let membership = "free";
+
+    function safeNumber(value, fallback = 0) {
+        const number = Number(value);
+        return Number.isFinite(number) ? number : fallback;
     }
 
-    await applyUserTheme();   // ⭐ THE FIX
-
-    const userRef = db.collection("users").doc(user.uid);
-    const doc = await userRef.get();
-    if (!doc.exists) return;
-
-    const data = doc.data();
-
-    const displayName = data.nickname || data.name || "Adventurer";
-    document.getElementById("userName").innerText = displayName;
-
-    if (data.avatarUrl) {
-        document.getElementById("dashboardAvatar").src = data.avatarUrl + "?t=" + Date.now();
+    function clamp(value, minimum = 0, maximum = 100) {
+        return Math.min(maximum, Math.max(minimum, value));
     }
 
-    const xp = data.xp || 0;
-    const level = data.level || (Math.floor(xp / 100) + 1);
-    document.getElementById("heroLevelBadge").innerText = "Lv " + level;
-    document.getElementById("xpFill").style.width = (xp % 100) + "%";
-
-    // Calories Burned → Workout page
-    document.getElementById("burnCard").onclick = () => {
-        window.location.href = "exercise.html";
-    };
-
-    // Summary BMI + steps
-    if (data.bmi) {
-        document.getElementById("currentBMI").innerText = data.bmi.toFixed(1);
-    }
-    if (data.stepsToday) {
-        document.getElementById("stepsToday").innerText = data.stepsToday;
-        document.getElementById("stepTrackerLabel").innerText =
-            `${data.stepsToday} / 10,000 Steps`;
+    function formatNumber(value) {
+        return new Intl.NumberFormat("en-GB").format(Math.round(safeNumber(value)));
     }
 
-    // Calorie brain
-    const profile = {
-        sex: data.sex,
-        weightKg: data.weightKg,
-        heightCm: data.heightCm,
-        age: data.age,
-        activityLevel: data.activityLevel,
-        goal: data.goal,
-        goalPace: data.goalPace
-    };
-
-    const targets = FitQuestBrain.calculateTargets(profile);
-
-    if (targets) {
-        userRef.set({
-            tdee: targets.tdee,
-            targetCalories: targets.targetCalories
-        }, { merge: true });
-
-        document.getElementById("brainMessage").innerText =
-            `Target: ${Math.round(targets.targetCalories)} kcal • TDEE: ${Math.round(targets.tdee)} kcal`;
-    }
-
-    const weightTrend = FitQuestBrain.calculateTrend(data.weightHistory || []);
-    const calorieTrend = FitQuestBrain.calculateTrend(data.calorieHistory || []);
-
-    const tone = FitQuestBrain.toneEngine({
-        bmi: data.bmi,
-        trend: weightTrend,
-        goal: data.goal,
-        pace: data.goalPace
-    });
-
-    document.getElementById("brainMessage").innerText =
-        `${tone.headline} — ${tone.subline}`;
-
-    const hydration = data.waterToday || 0;
-
-    const insights = FitQuestBrain.generateInsights({
-        weightTrend,
-        calorieTrend,
-        hydration
-    });
-
-    if (insights && insights.length > 0) {
-        const insightsBox = document.getElementById("insightsBox");
-        const list = document.getElementById("insightsList");
-        insightsBox.style.display = "block";
-        list.innerHTML = "";
-        insights.forEach(text => {
-            const li = document.createElement("li");
-            li.innerText = text;
-            list.appendChild(li);
-        });
-    }
-
-    const adherence = data.adherence || 0.5;
-
-    const adaptive = FitQuestBrain.adaptiveGoalCheck({
-        weightTrend,
-        adherence,
-        targetCalories: targets?.targetCalories
-    });
-
-    if (adaptive) {
-        const box = document.getElementById("adaptiveBox");
-        box.style.display = "block";
-        document.getElementById("adaptiveText").innerText = adaptive.suggestion;
-
-        document.getElementById("adaptiveYes").onclick = async () => {
-            await userRef.set({
-                targetCalories: adaptive.newTarget
-            }, { merge: true });
-
-            document.getElementById("brainMessage").innerText =
-                `Target updated to ${adaptive.newTarget} kcal`;
-
-            box.style.display = "none";
-            FitQuestBrain.awardXp(userRef, 20, "adaptive_goal");
+    function getGoalLabel(goal) {
+        const goals = {
+            lose: "Lose weight",
+            maintain: "Maintain health",
+            gain: "Gain weight",
+            muscle: "Build muscle",
+            fitness: "Improve fitness",
+            mobility: "Improve mobility",
+            return_to_fitness: "Return to fitness",
+            habits: "Build healthier habits"
         };
-
-        document.getElementById("adaptiveNo").onclick = () => {
-            box.style.display = "none";
-        };
+        return goals[goal] || "Build healthier habits";
     }
 
-    // Neon interactive hover burst (uses sparkBurst from chart.js)
-    document.querySelectorAll(".neon-interactive").forEach(el => {
-        el.addEventListener("mouseenter", () => sparkBurst(el));
+    function getBMIContext(bmi) {
+        if (!Number.isFinite(bmi)) return "Add your height and weight for context";
+        if (bmi < 18.5) return "Below the usual adult reference range";
+        if (bmi < 25) return "Within the usual adult reference range";
+        if (bmi < 30) return "Above the usual adult reference range";
+        return "BMI is one measure—your wider health picture matters";
+    }
+
+    function getTimeGreeting() {
+        const hour = new Date().getHours();
+        if (hour < 12) return "Good morning";
+        if (hour < 18) return "Good afternoon";
+        return "Good evening";
+    }
+
+    function updateProgressBar(name, value) {
+        const safeValue = clamp(Math.round(safeNumber(value)));
+        document.getElementById(`${name}Fill`).style.width = `${safeValue}%`;
+        document.getElementById(`${name}Value`).textContent = `${safeValue}%`;
+        return safeValue;
+    }
+
+    function calculateJourneyScore({ caloriesEaten, targetCalories, steps, water, streak }) {
+        const calorieTarget = Math.max(1, safeNumber(targetCalories, 2000));
+        const calorieDifference = Math.abs(caloriesEaten - calorieTarget);
+
+        const nutritionScore = caloriesEaten <= 0
+            ? 0
+            : clamp(100 - (calorieDifference / calorieTarget) * 100);
+
+        const movementScore = clamp((steps / 10000) * 100);
+        const hydrationScore = clamp((water / 2000) * 100);
+        const consistencyScore = clamp(streak <= 0 ? 0 : 35 + streak * 8);
+
+        const score = Math.round(
+            nutritionScore * 0.30 +
+            movementScore * 0.30 +
+            hydrationScore * 0.20 +
+            consistencyScore * 0.20
+        );
+
+        return { score, nutritionScore, movementScore, hydrationScore, consistencyScore };
+    }
+
+    function buildCoachMessage({ data, caloriesEaten, caloriesBurned, targetCalories, steps, water, weightTrend }) {
+        if (steps > 0 && steps < 5000) {
+            return "You have already started moving today. A short, comfortable walk later could build momentum without turning the day into a punishment.";
+        }
+
+        if (water > 0 && water < 1000) {
+            return "Your hydration appears to be behind your usual daily target. Keep it gradual rather than trying to catch up all at once.";
+        }
+
+        if (caloriesEaten > 0 && targetCalories > 0 && caloriesEaten < targetCalories * 0.65) {
+            return "Your recorded intake is currently well below today's estimate. Make sure incomplete logging is not making the number look lower than reality.";
+        }
+
+        if (caloriesEaten > targetCalories && caloriesEaten < targetCalories * 1.15) {
+            return "You are slightly above today's calorie estimate, but one day does not define your progress. Look at the full week before changing course.";
+        }
+
+        if (weightTrend === "up") {
+            return "A short-term rise on the scale can reflect water, sodium, recovery or meal timing. FitQuest will focus on the wider trend rather than treating one reading as failure.";
+        }
+
+        if (caloriesBurned > 0) {
+            return "You have already invested in your health today. Keep the rest of the day achievable and let consistency do the heavy lifting.";
+        }
+
+        if (data.goal === "return_to_fitness") {
+            return "Today does not need to be intense to count. A gradual session that leaves you feeling capable of returning tomorrow is real progress.";
+        }
+
+        return "Keep building today's picture. The more complete your food, movement and hydration logs become, the more useful FitQuest's guidance can be.";
+    }
+
+    auth.onAuthStateChanged(async user => {
+        if (!user) {
+            window.location.href = "index.html";
+            return;
+        }
+
+        try {
+            if (typeof applyUserTheme === "function") {
+                await applyUserTheme();
+            }
+        } catch (themeError) {
+            console.warn("FitQuest theme could not be applied:", themeError);
+        }
+
+        const userRef = db.collection("users").doc(user.uid);
+
+        try {
+            const userDocument = await userRef.get();
+
+            if (!userDocument.exists) {
+                document.getElementById("brainMessage").textContent =
+                    "Your FitQuest profile needs completing before personalised guidance can begin.";
+                return;
+            }
+
+            const data = userDocument.data();
+
+            membership = data.membershipTier || data.membership || "free";
+
+            const displayName = data.nickname || data.name || user.displayName || "Adventurer";
+            document.getElementById("userName").textContent = displayName.split(" ")[0];
+
+            document.getElementById("todayLabel").textContent =
+                `${getTimeGreeting()} · ${new Intl.DateTimeFormat("en-GB", {
+                    weekday: "long",
+                    day: "numeric",
+                    month: "long"
+                }).format(new Date())}`;
+
+            if (data.avatarUrl) {
+                document.getElementById("dashboardAvatar").src =
+                    `${data.avatarUrl}${data.avatarUrl.includes("?") ? "&" : "?"}t=${Date.now()}`;
+            }
+
+            const xp = safeNumber(data.xp);
+            const level = safeNumber(data.level, Math.floor(xp / 100) + 1);
+            const xpProgress = xp % 100;
+
+            document.getElementById("heroLevelBadge").textContent = `Lv ${level}`;
+            document.getElementById("xpFill").style.width = `${xpProgress}%`;
+            document.getElementById("xpText").textContent = `${xpProgress} / 100 XP`;
+
+            const streak = safeNumber(data.streak);
+
+            document.getElementById("goalPill").textContent = `◎ Goal: ${getGoalLabel(data.goal)}`;
+            document.getElementById("streakPill").textContent =
+                `✦ ${formatNumber(streak)} day${streak === 1 ? "" : "s"} streak`;
+            document.getElementById("membershipPill").textContent =
+                `◇ ${membership.charAt(0).toUpperCase()}${membership.slice(1)} member`;
+
+            const caloriesEaten = safeNumber(data.caloriesEaten ?? data.calEaten ?? data.todayCalories);
+            const caloriesBurned = safeNumber(data.caloriesBurned ?? data.calBurned ?? data.burnedToday);
+            const steps = safeNumber(data.stepsToday);
+            const water = safeNumber(data.waterToday);
+
+            document.getElementById("calEaten").textContent = `${formatNumber(caloriesEaten)} kcal`;
+            document.getElementById("calBurned").textContent = `${formatNumber(caloriesBurned)} kcal`;
+            document.getElementById("stepsToday").textContent = formatNumber(steps);
+            document.getElementById("stepTrackerLabel").textContent =
+                `${formatNumber(steps)} / 10,000 steps`;
+
+            document.getElementById("burnCard").onclick = () => {
+                window.location.href = "exercise.html";
+            };
+
+            const profile = {
+                sex: data.sex,
+                weightKg: safeNumber(data.weightKg),
+                heightCm: safeNumber(data.heightCm),
+                age: safeNumber(data.age),
+                activityLevel: data.activityLevel,
+                goal: data.goal,
+                goalPace: data.goalPace
+            };
+
+            let targets = null;
+
+            try {
+                if (window.FitQuestBrain && typeof FitQuestBrain.calculateTargets === "function") {
+                    targets = FitQuestBrain.calculateTargets(profile);
+                }
+            } catch (brainError) {
+                console.warn("FitQuest target calculation failed:", brainError);
+            }
+
+            const targetCalories = safeNumber(targets?.targetCalories ?? data.targetCalories);
+
+            if (targets) {
+                await userRef.set({
+                    tdee: targets.tdee,
+                    targetCalories: targets.targetCalories
+                }, { merge: true });
+            }
+
+            if (targetCalories > 0) {
+                const remaining = Math.round(targetCalories - caloriesEaten);
+
+                document.getElementById("calorieRemainingText").textContent =
+                    remaining >= 0
+                        ? `${formatNumber(remaining)} kcal remaining from today's estimate`
+                        : `${formatNumber(Math.abs(remaining))} kcal above today's estimate`;
+            }
+
+            const bmi = safeNumber(data.bmi, NaN);
+
+            if (Number.isFinite(bmi)) {
+                document.getElementById("currentBMI").textContent = bmi.toFixed(1);
+            }
+
+            document.getElementById("bmiContext").textContent = getBMIContext(bmi);
+
+            let weightTrend = "stable";
+            let calorieTrend = "stable";
+
+            try {
+                if (window.FitQuestBrain && typeof FitQuestBrain.calculateTrend === "function") {
+                    weightTrend = FitQuestBrain.calculateTrend(data.weightHistory || []);
+                    calorieTrend = FitQuestBrain.calculateTrend(data.calorieHistory || []);
+                }
+            } catch (trendError) {
+                console.warn("FitQuest trend calculation failed:", trendError);
+            }
+
+            try {
+                if (window.FitQuestBrain && typeof FitQuestBrain.toneEngine === "function") {
+                    const tone = FitQuestBrain.toneEngine({
+                        bmi: data.bmi,
+                        trend: weightTrend,
+                        goal: data.goal,
+                        pace: data.goalPace
+                    });
+
+                    if (tone) {
+                        document.getElementById("brainMessage").textContent =
+                            `${tone.headline} — ${tone.subline}`;
+                    }
+                }
+            } catch (toneError) {
+                console.warn("FitQuest tone engine failed:", toneError);
+            }
+
+            const journey = calculateJourneyScore({
+                caloriesEaten,
+                targetCalories,
+                steps,
+                water,
+                streak
+            });
+
+            document.getElementById("journeyScore").textContent = `${journey.score}%`;
+            document.getElementById("journeyScoreRing").style.setProperty("--score", journey.score);
+
+            updateProgressBar("nutrition", journey.nutritionScore);
+            updateProgressBar("movement", journey.movementScore);
+            updateProgressBar("hydration", journey.hydrationScore);
+            updateProgressBar("consistency", journey.consistencyScore);
+
+            document.getElementById("coachMessage").textContent = buildCoachMessage({
+                data,
+                caloriesEaten,
+                caloriesBurned,
+                targetCalories,
+                steps,
+                water,
+                weightTrend
+            });
+
+            try {
+                if (window.FitQuestBrain && typeof FitQuestBrain.generateInsights === "function") {
+                    const insights = FitQuestBrain.generateInsights({
+                        weightTrend,
+                        calorieTrend,
+                        hydration: water
+                    });
+
+                    if (Array.isArray(insights) && insights.length > 0) {
+                        const insightsBox = document.getElementById("insightsBox");
+                        const list = document.getElementById("insightsList");
+
+                        insightsBox.style.display = "block";
+                        list.innerHTML = "";
+
+                        insights.forEach(text => {
+                            const item = document.createElement("li");
+                            item.textContent = text;
+                            list.appendChild(item);
+                        });
+                    }
+                }
+            } catch (insightsError) {
+                console.warn("FitQuest insights failed:", insightsError);
+            }
+
+            try {
+                if (targets && window.FitQuestBrain && typeof FitQuestBrain.adaptiveGoalCheck === "function") {
+                    const adaptive = FitQuestBrain.adaptiveGoalCheck({
+                        weightTrend,
+                        adherence: safeNumber(data.adherence, 0.5),
+                        targetCalories
+                    });
+
+                    if (adaptive) {
+                        const box = document.getElementById("adaptiveBox");
+                        box.style.display = "block";
+
+                        document.getElementById("adaptiveText").textContent = adaptive.suggestion;
+
+                        document.getElementById("adaptiveYes").onclick = async () => {
+                            await userRef.set({
+                                targetCalories: adaptive.newTarget
+                            }, { merge: true });
+
+                            document.getElementById("brainMessage").textContent =
+                                `Your estimated target has been updated to ${adaptive.newTarget} kcal.`;
+
+                            box.style.display = "none";
+
+                            if (typeof FitQuestBrain.awardXp === "function") {
+                                FitQuestBrain.awardXp(userRef, 20, "adaptive_goal");
+                            }
+                        };
+
+                        document.getElementById("adaptiveNo").onclick = () => {
+                            box.style.display = "none";
+                        };
+                    }
+                }
+            } catch (adaptiveError) {
+                console.warn("FitQuest adaptive check failed:", adaptiveError);
+            }
+
+            document.querySelectorAll(".neon-interactive").forEach(element => {
+                element.addEventListener("mouseenter", () => {
+                    if (typeof window.sparkBurst === "function") {
+                        sparkBurst(element);
+                    }
+                });
+            });
+        } catch (error) {
+            console.error("FitQuest dashboard failed to load:", error);
+            document.getElementById("brainMessage").textContent =
+                "FitQuest could not load your latest information. Refresh the page or check your connection.";
+        }
     });
-});
 
-// Membership + panels
-let membership = "free";
+    function openAnalyticsPanel(panelId) {
+        if (membership === "free") {
+            openUpgradeModal();
+            return;
+        }
 
-function openAnalyticsPanel(panelId) {
-    if (membership === "free") {
-        openUpgradeModal();
-        return;
+        const panel = document.getElementById(panelId);
+        if (panel) panel.classList.add("open");
     }
-    document.getElementById(panelId).classList.add("open");
-}
 
-function closePanel(panelId) {
-    document.getElementById(panelId).classList.remove("open");
-}
-
-function openClassesMobile() {
-    document.getElementById("mobileClassesPanel").classList.add("open");
-}
-
-function closeClassesMobile() {
-    document.getElementById("mobileClassesPanel").classList.remove("open");
-}
-
-function openUpgradeModal() {
-    alert("FitQuest Pro required to view detailed analytics.");
-}
-
-/* Range toggles – hooks for chart.js (we'll wire these in updated chart.js) */
-function setIntakeRange(range) {
-    document.getElementById("intakeDayBtn").classList.toggle("active", range === "day");
-    document.getElementById("intakeWeekBtn").classList.toggle("active", range === "week");
-    document.getElementById("intakeMonthBtn").classList.toggle("active", range === "month");
-    if (window.updateIntakeChartRange) {
-        window.updateIntakeChartRange(range);
+    function closePanel(panelId) {
+        const panel = document.getElementById(panelId);
+        if (panel) panel.classList.remove("open");
     }
-}
 
-function setWorkoutRange(range) {
-    document.getElementById("workoutDayBtn").classList.toggle("active", range === "day");
-    document.getElementById("workoutWeekBtn").classList.toggle("active", range === "week");
-    document.getElementById("workoutMonthBtn").classList.toggle("active", range === "month");
-    if (window.updateWorkoutChartRange) {
-        window.updateWorkoutChartRange(range);
+    function openClassesMobile() {
+        document.getElementById("mobileClassesPanel").classList.add("open");
     }
-}
+
+    function closeClassesMobile() {
+        document.getElementById("mobileClassesPanel").classList.remove("open");
+    }
+
+    function openUpgradeModal() {
+        alert("FitQuest Plus preview: advanced analytics and personalised insights will be introduced during the next development stage.");
+    }
+
+    function setIntakeRange(range) {
+        document.getElementById("intakeDayBtn").classList.toggle("active", range === "day");
+        document.getElementById("intakeWeekBtn").classList.toggle("active", range === "week");
+        document.getElementById("intakeMonthBtn").classList.toggle("active", range === "month");
+
+        if (window.updateIntakeChartRange) {
+            window.updateIntakeChartRange(range);
+        }
+    }
+
+    function setWorkoutRange(range) {
+        document.getElementById("workoutDayBtn").classList.toggle("active", range === "day");
+        document.getElementById("workoutWeekBtn").classList.toggle("active", range === "week");
+        document.getElementById("workoutMonthBtn").classList.toggle("active", range === "month");
+
+        if (window.updateWorkoutChartRange) {
+            window.updateWorkoutChartRange(range);
+        }
+    }
+
+    document.getElementById("heroAvatarRing").addEventListener("keydown", event => {
+        if (event.key === "Enter" || event.key === " ") {
+            window.location.href = "profile.html";
+        }
+    });
 </script>
 
-<!-- CHARTS + NEON INTERACTIONS -->
 <script src="chart.js"></script>
-
 </body>
 </html>
