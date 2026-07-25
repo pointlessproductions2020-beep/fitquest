@@ -2,923 +2,3670 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1, viewport-fit=cover"
+    >
+
+    <meta
+        name="description"
+        content="Review your FitQuest progress, trends and recent achievements."
+    >
+
+    <meta
+        name="theme-color"
+        content="#050816"
+    >
+
     <title>FitQuest — Progress</title>
 
-    <link rel="stylesheet" href="styles.css">
-
-    <!-- Firebase -->
+    <!-- Firebase v8 -->
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-storage.js"></script>
 
-
-    <script src="firebase.js"></script>
-    <script src="fitquestbrain.js"></script>
+    <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <!-- FitQuest shared files -->
+    <script src="firebase.js"></script>
+    <script src="theme.js"></script>
+    <script src="fitquestbrain.js"></script>
 
     <style>
         :root {
-            --neon: #00eaff;
-            --neon2: #ff00ff;
-            --neon3: #4ade80;
-            --bg-dark: #050814;
-            --bg-card: #0b1020;
-            --text-main: #e5e7eb;
-            --text-muted: #9ca3af;
+            --fq-bg: #050816;
+            --fq-bg-deep: #02040d;
+            --fq-panel: rgba(10, 17, 38, 0.88);
+
+            --fq-primary: #00eaff;
+            --fq-secondary: #8b5cf6;
+            --fq-accent: #ff2bd6;
+
+            --fq-success: #35f0a1;
+            --fq-warning: #ffcc66;
+            --fq-danger: #ff6685;
+
+            --fq-text: #f8fbff;
+            --fq-muted: #aab6ce;
+            --fq-subtle: #74809a;
+
+            --fq-border: rgba(132, 167, 255, 0.16);
+            --fq-border-bright: rgba(0, 234, 255, 0.35);
+
+            --fq-radius-sm: 12px;
+            --fq-radius-md: 18px;
+            --fq-radius-lg: 28px;
+
+            --fq-sidebar-width: 238px;
+            --fq-transition: 180ms ease;
+
+            --neon: var(--fq-primary);
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        html {
+            min-height: 100%;
+            background: var(--fq-bg-deep);
         }
 
         body {
-            background: radial-gradient(circle at top, #111827 0, #020617 55%);
-            color: var(--text-main);
-            font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+            min-height: 100vh;
             margin: 0;
-            display: flex;
+            overflow-x: hidden;
+
+            color: var(--fq-text);
+
+            background:
+                radial-gradient(
+                    circle at 8% 8%,
+                    color-mix(
+                        in srgb,
+                        var(--fq-primary) 11%,
+                        transparent
+                    ),
+                    transparent 28rem
+                ),
+
+                radial-gradient(
+                    circle at 88% 82%,
+                    color-mix(
+                        in srgb,
+                        var(--fq-secondary) 12%,
+                        transparent
+                    ),
+                    transparent 32rem
+                ),
+
+                linear-gradient(
+                    145deg,
+                    var(--fq-bg-deep),
+                    var(--fq-bg) 52%,
+                    #09051a
+                );
+
+            font-family:
+                Inter,
+                ui-sans-serif,
+                system-ui,
+                -apple-system,
+                BlinkMacSystemFont,
+                "Segoe UI",
+                sans-serif;
+
+            -webkit-font-smoothing: antialiased;
         }
 
+        button,
+        input,
+        select {
+            font: inherit;
+        }
+
+        button,
+        a,
+        [role="button"] {
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        a {
+            color: inherit;
+            text-decoration: none;
+        }
+
+        .ambient-grid {
+            position: fixed;
+            inset: 0;
+            z-index: -1;
+
+            pointer-events: none;
+            opacity: 0.18;
+
+            background-image:
+                linear-gradient(
+                    rgba(83, 122, 189, 0.08) 1px,
+                    transparent 1px
+                ),
+
+                linear-gradient(
+                    90deg,
+                    rgba(83, 122, 189, 0.08) 1px,
+                    transparent 1px
+                );
+
+            background-size: 42px 42px;
+
+            mask-image:
+                linear-gradient(
+                    to bottom,
+                    rgba(0, 0, 0, 0.85),
+                    transparent 94%
+                );
+        }
+
+        .app {
+            display: grid;
+
+            grid-template-columns:
+                var(--fq-sidebar-width)
+                minmax(0, 1fr);
+
+            min-height: 100vh;
+        }
+
+        /* =====================================================
+           SIDEBAR
+        ===================================================== */
+
         .sidebar {
-            background: #020617;
+            position: sticky;
+            top: 0;
+
+            display: flex;
+            flex-direction: column;
+
+            min-height: 100vh;
+            padding: 22px 16px;
+
+            border-right: 1px solid var(--fq-border);
+
+            background:
+                rgba(3, 7, 19, 0.84);
+
+            backdrop-filter: blur(22px);
+        }
+
+        .sidebar-brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+
+            padding: 6px 8px 24px;
+        }
+
+        .sidebar-logo {
+            display: grid;
+            place-items: center;
+
+            width: 48px;
+            height: 48px;
+
+            border: 1px solid
+                color-mix(
+                    in srgb,
+                    var(--fq-primary) 28%,
+                    transparent
+                );
+
+            border-radius: 50%;
+
+            background:
+                linear-gradient(
+                    145deg,
+                    color-mix(
+                        in srgb,
+                        var(--fq-primary) 13%,
+                        transparent
+                    ),
+
+                    color-mix(
+                        in srgb,
+                        var(--fq-secondary) 10%,
+                        transparent
+                    )
+                );
+
+            box-shadow:
+                0 0 calc(
+                    24px * var(--glow-strength, 1)
+                )
+                color-mix(
+                    in srgb,
+                    var(--fq-primary) 14%,
+                    transparent
+                );
         }
 
         .sidebar-logo img {
-            max-width: 140px;
+            width: 37px;
+            height: 37px;
+            object-fit: contain;
+
+            filter:
+                drop-shadow(
+                    0 0
+                    calc(
+                        9px *
+                        var(--glow-strength, 1)
+                    )
+                    color-mix(
+                        in srgb,
+                        var(--fq-primary) 42%,
+                        transparent
+                    )
+                );
+        }
+
+        .sidebar-brand-text strong {
+            display: block;
+
+            font-size: 1.15rem;
+            letter-spacing: -0.035em;
+        }
+
+        .sidebar-brand-text span {
+            display: block;
+
+            margin-top: 3px;
+
+            color: var(--fq-subtle);
+
+            font-size: 0.66rem;
+            font-weight: 800;
+
+            letter-spacing: 0.11em;
+            text-transform: uppercase;
+        }
+
+        .nav-caption {
+            margin: 5px 11px 9px;
+
+            color: #56637c;
+
+            font-size: 0.64rem;
+            font-weight: 850;
+
+            letter-spacing: 0.13em;
+            text-transform: uppercase;
         }
 
         .sidebar-links {
-            list-style: none;
-            padding: 0 0 60px 0;
+            display: grid;
+            gap: 5px;
+
             margin: 0;
+            padding: 0;
+
+            list-style: none;
         }
 
-        .sidebar-links li {
-            padding: 12px 18px;
-            cursor: pointer;
-            border-left: 3px solid transparent;
-            transition: 0.2s;
-            color: var(--text-muted);
-            font-size: 0.95rem;
+        .nav-link {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+
+            min-height: 45px;
+            padding: 10px 12px;
+
+            border: 1px solid transparent;
+            border-radius: 13px;
+
+            color: var(--fq-muted);
+
+            font-size: 0.84rem;
+            font-weight: 720;
+
+            transition:
+                color var(--fq-transition),
+                background var(--fq-transition),
+                border-color var(--fq-transition),
+                transform var(--fq-transition);
         }
 
-        .sidebar-links li:hover {
-            border-left: 3px solid var(--neon);
-            background: rgba(0, 234, 255, 0.08);
-            color: var(--text-main);
+        .nav-link:hover {
+            color: var(--fq-text);
+
+            border-color:
+                color-mix(
+                    in srgb,
+                    var(--fq-primary) 16%,
+                    transparent
+                );
+
+            background:
+                color-mix(
+                    in srgb,
+                    var(--fq-primary) 5%,
+                    transparent
+                );
+
+            transform: translateX(2px);
         }
 
-        .sidebar-links .active {
-            border-left: 3px solid var(--neon);
-            background: rgba(0, 234, 255, 0.14);
-            color: var(--text-main);
-            font-weight: 600;
+        .nav-link.active {
+            color: var(--fq-text);
+
+            border-color:
+                color-mix(
+                    in srgb,
+                    var(--fq-primary) 25%,
+                    transparent
+                );
+
+            background:
+                linear-gradient(
+                    90deg,
+                    color-mix(
+                        in srgb,
+                        var(--fq-primary) 12%,
+                        transparent
+                    ),
+
+                    color-mix(
+                        in srgb,
+                        var(--fq-secondary) 5%,
+                        transparent
+                    )
+                );
+
+            box-shadow:
+                inset 3px 0 0
+                var(--fq-primary);
+        }
+
+        .nav-icon {
+            display: grid;
+            place-items: center;
+
+            width: 22px;
+
+            color: var(--fq-primary);
+            font-size: 1rem;
+        }
+
+        .sidebar-spacer {
+            flex: 1;
+        }
+
+        .sidebar-foot {
+            display: grid;
+            gap: 10px;
+
+            padding-top: 18px;
+        }
+
+        .privacy-mini {
+            padding: 12px;
+
+            border: 1px solid var(--fq-border);
+            border-radius: 13px;
+
+            color: var(--fq-subtle);
+            background: rgba(255, 255, 255, 0.025);
+
+            font-size: 0.69rem;
+            line-height: 1.5;
         }
 
         .logout-btn {
-            margin: 0 18px 18px;
+            min-height: 43px;
+
+            border: 1px solid
+                rgba(255, 102, 133, 0.20);
+
+            border-radius: 12px;
+
+            color: #ffdce4;
+            background:
+                rgba(255, 102, 133, 0.06);
+
+            font-weight: 800;
+            cursor: pointer;
         }
+
+        /* =====================================================
+           MAIN CONTENT
+        ===================================================== */
 
         .main-content {
-            padding: 24px 32px 40px;
+            min-width: 0;
+
+            padding:
+                24px
+                clamp(18px, 3vw, 42px)
+                90px;
         }
 
-        .page-title {
-            margin: 0 0 4px;
-        }
-
-        .subtitle {
-            margin: 0 0 20px;
-            color: var(--text-muted);
-        }
-
-        /* PROFILE HEADER */
-        .profile-header {
+        .topbar {
             display: flex;
             align-items: center;
-            gap: 20px;
-            padding: 18px 20px;
-            background: radial-gradient(circle at top left, rgba(0,234,255,0.18), transparent 55%);
-            border-radius: 18px;
-            border: 1px solid rgba(0,234,255,0.5);
-            box-shadow: 0 0 18px rgba(0,234,255,0.35);
+            justify-content: space-between;
+            gap: 16px;
+
             margin-bottom: 22px;
         }
 
-        .profile-header img {
-            width: 88px;
-            height: 88px;
+        .today-label {
+            color: var(--fq-subtle);
+
+            font-size: 0.72rem;
+            font-weight: 850;
+
+            letter-spacing: 0.11em;
+            text-transform: uppercase;
+        }
+
+        .topbar-actions {
+            display: flex;
+            gap: 9px;
+        }
+
+        .topbar-button {
+            min-height: 40px;
+            padding: 9px 13px;
+
+            border: 1px solid var(--fq-border);
+            border-radius: 12px;
+
+            color: var(--fq-primary);
+            background: rgba(255, 255, 255, 0.03);
+
+            font-size: 0.74rem;
+            font-weight: 850;
+
+            cursor: pointer;
+        }
+
+        /* =====================================================
+           HERO
+        ===================================================== */
+
+        .hero {
+            position: relative;
+
+            display: grid;
+
+            grid-template-columns:
+                minmax(0, 1fr)
+                auto;
+
+            align-items: center;
+            gap: 28px;
+
+            overflow: hidden;
+
+            padding:
+                clamp(24px, 3.5vw, 38px);
+
+            border: 1px solid var(--fq-border);
+            border-radius: var(--fq-radius-lg);
+
+            background:
+                radial-gradient(
+                    circle at 86% 15%,
+                    color-mix(
+                        in srgb,
+                        var(--fq-primary) 12%,
+                        transparent
+                    ),
+                    transparent 18rem
+                ),
+
+                linear-gradient(
+                    145deg,
+                    rgba(14, 25, 53, 0.94),
+                    rgba(7, 12, 29, 0.88)
+                );
+
+            box-shadow:
+                0 24px 70px rgba(0, 0, 0, 0.34),
+
+                0 0
+                calc(
+                    45px *
+                    var(--glow-strength, 1)
+                )
+                color-mix(
+                    in srgb,
+                    var(--fq-primary) 5%,
+                    transparent
+                );
+        }
+
+        .hero-copy {
+            position: relative;
+            z-index: 1;
+        }
+
+        .hero-kicker {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+
+            margin-bottom: 13px;
+            padding: 7px 10px;
+
+            border: 1px solid
+                rgba(53, 240, 161, 0.17);
+
+            border-radius: 999px;
+
+            color: #d8ffef;
+            background:
+                rgba(53, 240, 161, 0.065);
+
+            font-size: 0.69rem;
+            font-weight: 850;
+
+            letter-spacing: 0.09em;
+            text-transform: uppercase;
+        }
+
+        .hero-kicker-dot {
+            width: 7px;
+            height: 7px;
+
             border-radius: 50%;
-            border: 3px solid var(--neon);
+
+            background: var(--fq-success);
+
+            box-shadow:
+                0 0 12px
+                rgba(53, 240, 161, 0.8);
+        }
+
+        .hero-title {
+            margin: 0;
+
+            font-size:
+                clamp(
+                    2.1rem,
+                    4.8vw,
+                    4.35rem
+                );
+
+            line-height: 1;
+            letter-spacing: -0.065em;
+        }
+
+        .hero-title span {
+            background:
+                linear-gradient(
+                    95deg,
+                    var(--fq-primary),
+                    var(--fq-secondary),
+                    var(--fq-accent)
+                );
+
+            -webkit-background-clip: text;
+            background-clip: text;
+
+            color: transparent;
+        }
+
+        .hero-message {
+            max-width: 720px;
+
+            margin: 17px 0 0;
+
+            color: var(--fq-muted);
+
+            font-size:
+                clamp(
+                    0.95rem,
+                    1.4vw,
+                    1.08rem
+                );
+
+            line-height: 1.7;
+        }
+
+        .hero-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+
+            margin-top: 21px;
+        }
+
+        .meta-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+
+            min-height: 36px;
+            padding: 8px 11px;
+
+            border: 1px solid var(--fq-border);
+            border-radius: 999px;
+
+            color: #dbe8f8;
+            background: rgba(255, 255, 255, 0.035);
+
+            font-size: 0.74rem;
+            font-weight: 750;
+        }
+
+        /* =====================================================
+           PROFILE HEADER
+        ===================================================== */
+
+        .hero-profile {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+
+            min-width: 175px;
+        }
+
+        .avatar-wrap {
+            position: relative;
+        }
+
+        .avatar-ring {
+            display: grid;
+            place-items: center;
+
+            width: 118px;
+            height: 118px;
+
+            overflow: hidden;
+
+            border: 3px solid var(--fq-primary);
+            border-radius: 50%;
+
+            background:
+                rgba(255, 255, 255, 0.035);
+
+            box-shadow:
+                0 0
+                calc(
+                    24px *
+                    var(--glow-strength, 1)
+                )
+                color-mix(
+                    in srgb,
+                    var(--fq-primary) 30%,
+                    transparent
+                ),
+
+                0 0
+                calc(
+                    48px *
+                    var(--glow-strength, 1)
+                )
+                color-mix(
+                    in srgb,
+                    var(--fq-secondary) 12%,
+                    transparent
+                );
+
+            cursor: pointer;
+
+            transition:
+                transform var(--fq-transition);
+        }
+
+        .avatar-ring:hover {
+            transform: scale(1.04);
+        }
+
+        .avatar-ring img {
+            width: 100%;
+            height: 100%;
+
             object-fit: cover;
         }
 
-        .profile-header h2 {
-            margin: 0 0 4px;
+        .level-badge {
+            position: absolute;
+            right: -7px;
+            bottom: 5px;
+
+            padding: 5px 9px;
+
+            border: 1px solid var(--fq-primary);
+            border-radius: 999px;
+
+            color: var(--fq-text);
+            background: #07101f;
+
+            box-shadow:
+                0 0
+                calc(
+                    11px *
+                    var(--glow-strength, 1)
+                )
+                color-mix(
+                    in srgb,
+                    var(--fq-primary) 32%,
+                    transparent
+                );
+
+            font-size: 0.7rem;
+            font-weight: 900;
         }
 
-        .profile-header small {
-            color: var(--text-muted);
+        .profile-name {
+            margin: 13px 0 2px;
+
+            text-align: center;
+            font-size: 1rem;
+        }
+
+        .profile-xp-text {
+            margin: 0;
+
+            color: var(--fq-subtle);
+
+            font-size: 0.68rem;
+            font-weight: 800;
+
+            text-transform: uppercase;
         }
 
         .xp-bar-container {
-            width: 100%;
-            background: #020617;
-            border-radius: 999px;
-            height: 14px;
+            width: 155px;
+            height: 8px;
+
+            margin-top: 9px;
+
             overflow: hidden;
-            border: 1px solid rgba(0,234,255,0.6);
-            margin-top: 8px;
+
+            border: 1px solid
+                color-mix(
+                    in srgb,
+                    var(--fq-primary) 24%,
+                    transparent
+                );
+
+            border-radius: 999px;
+
+            background:
+                rgba(2, 6, 18, 0.9);
         }
 
         .xp-bar {
+            width: 0;
             height: 100%;
-            background: linear-gradient(90deg, var(--neon), var(--neon2));
-            width: 0%;
-            transition: width 0.6s ease;
-            box-shadow: 0 0 12px rgba(0,234,255,0.8);
+
+            border-radius: inherit;
+
+            background:
+                linear-gradient(
+                    90deg,
+                    var(--fq-success),
+                    var(--fq-primary),
+                    var(--fq-secondary)
+                );
+
+            transition:
+                width 600ms ease-out;
         }
 
-        .streak-pill {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            padding: 4px 10px;
-            border-radius: 999px;
-            background: rgba(74,222,128,0.12);
-            border: 1px solid rgba(74,222,128,0.6);
-            color: #bbf7d0;
-            font-size: 0.8rem;
-            margin-top: 6px;
+        /* =====================================================
+           SECTION HEADINGS
+        ===================================================== */
+
+        .section-heading {
+            display: flex;
+            align-items: flex-end;
+            justify-content: space-between;
+            gap: 16px;
+
+            margin: 28px 0 13px;
         }
 
-        /* SUMMARY GRID */
+        .section-heading h2 {
+            margin: 0;
+
+            font-size: 1.15rem;
+            letter-spacing: -0.025em;
+        }
+
+        .section-heading p {
+            margin: 5px 0 0;
+
+            color: var(--fq-subtle);
+            font-size: 0.76rem;
+        }
+
+        /* =====================================================
+           SUMMARY CARDS
+        ===================================================== */
+
         .summary-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-            gap: 18px;
-            margin-bottom: 22px;
+
+            grid-template-columns:
+                repeat(
+                    4,
+                    minmax(0, 1fr)
+                );
+
+            gap: 13px;
         }
 
         .summary-card {
-            background: var(--bg-card);
-            padding: 14px 16px;
-            border-radius: 16px;
-            border: 1px solid rgba(148,163,184,0.6);
-            box-shadow: 0 0 14px rgba(15,23,42,0.9);
+            position: relative;
+
+            overflow: hidden;
+            min-height: 145px;
+
+            padding: 18px;
+
+            border: 1px solid var(--fq-border);
+            border-radius: var(--fq-radius-md);
+
+            background:
+                linear-gradient(
+                    150deg,
+                    rgba(14, 24, 50, 0.89),
+                    rgba(7, 12, 29, 0.83)
+                );
+
+            transition:
+                transform var(--fq-transition),
+                border-color var(--fq-transition);
+        }
+
+        .summary-card:hover {
+            transform: translateY(-3px);
+
+            border-color:
+                color-mix(
+                    in srgb,
+                    var(--fq-primary) 30%,
+                    transparent
+                );
+        }
+
+        .summary-icon {
+            display: grid;
+            place-items: center;
+
+            width: 38px;
+            height: 38px;
+
+            border-radius: 12px;
+
+            color: var(--fq-primary);
+
+            background:
+                color-mix(
+                    in srgb,
+                    var(--fq-primary) 8%,
+                    transparent
+                );
+
+            font-size: 1rem;
         }
 
         .summary-card h3 {
-            margin: 0 0 6px;
-            font-size: 0.9rem;
-            color: var(--text-muted);
+            margin: 15px 0 6px;
+
+            color: var(--fq-muted);
+
+            font-size: 0.72rem;
+            font-weight: 800;
+
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
         }
 
-        .summary-card p {
+        .summary-value {
             margin: 0;
-            font-size: 1.2rem;
+
+            font-size:
+                clamp(
+                    1.45rem,
+                    3vw,
+                    2.1rem
+                );
+
+            font-weight: 900;
+            letter-spacing: -0.045em;
         }
 
-        .summary-card span {
+        .summary-note {
             display: block;
-            margin-top: 4px;
-            font-size: 0.8rem;
-            color: var(--text-muted);
+
+            margin-top: 7px;
+
+            color: var(--fq-subtle);
+            font-size: 0.69rem;
         }
 
-        /* PROGRESS GRID */
-        .progress-grid {
+        /* =====================================================
+           CHART CARDS
+        ===================================================== */
+
+        .chart-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
-            gap: 20px;
-            margin-top: 10px;
+
+            grid-template-columns:
+                repeat(
+                    2,
+                    minmax(0, 1fr)
+                );
+
+            gap: 14px;
         }
 
-        .progress-card {
-            padding: 14px 16px 18px;
-            border-radius: 18px;
-            background: var(--bg-card);
-            border: 1px solid rgba(30,64,175,0.9);
-            box-shadow:
-                0 0 18px rgba(15,23,42,0.9),
-                0 0 18px rgba(56,189,248,0.25);
+        .chart-card {
+            min-width: 0;
+            padding: 19px;
+
+            border: 1px solid var(--fq-border);
+            border-radius: var(--fq-radius-md);
+
+            background:
+                linear-gradient(
+                    150deg,
+                    rgba(13, 23, 48, 0.88),
+                    rgba(6, 11, 27, 0.82)
+                );
         }
 
-        .progress-card h2 {
-            margin: 0 0 8px;
+        .chart-card-header {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 14px;
+
+            margin-bottom: 15px;
+        }
+
+        .chart-card-header h3 {
+            margin: 0;
+
             font-size: 1rem;
+            letter-spacing: -0.02em;
         }
 
-        .chart-container {
-            width: 100%;
+        .chart-card-header p {
+            margin: 5px 0 0;
+
+            color: var(--fq-subtle);
+
+            font-size: 0.72rem;
+            line-height: 1.45;
+        }
+
+        .chart-badge {
+            flex: 0 0 auto;
+
+            padding: 6px 9px;
+
+            border: 1px solid
+                color-mix(
+                    in srgb,
+                    var(--fq-primary) 19%,
+                    transparent
+                );
+
+            border-radius: 999px;
+
+            color: var(--fq-primary);
+
+            background:
+                color-mix(
+                    in srgb,
+                    var(--fq-primary) 6%,
+                    transparent
+                );
+
+            font-size: 0.63rem;
+            font-weight: 850;
+
+            text-transform: uppercase;
+        }
+
+        .chart-body {
+            position: relative;
             height: 260px;
         }
 
-        canvas {
-            width: 100% !important;
-            height: 260px !important;
+        .chart-empty {
+            display: none;
+            place-items: center;
+
+            height: 260px;
+
+            color: var(--fq-subtle);
+
+            text-align: center;
+            font-size: 0.75rem;
+            line-height: 1.5;
         }
 
-        /* INSIGHTS */
-        .insights-section {
-            margin-top: 28px;
+        /* =====================================================
+           INSIGHTS
+        ===================================================== */
+
+        .insight-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-            gap: 20px;
+
+            grid-template-columns:
+                repeat(
+                    2,
+                    minmax(0, 1fr)
+                );
+
+            gap: 14px;
         }
 
         .insight-card {
-            background: var(--bg-card);
-            padding: 16px 18px;
-            border-radius: 18px;
-            border: 1px solid rgba(148,163,184,0.7);
-            box-shadow: 0 0 16px rgba(15,23,42,0.9);
+            padding: 19px;
+
+            border: 1px solid var(--fq-border);
+            border-radius: var(--fq-radius-md);
+
+            background:
+                linear-gradient(
+                    150deg,
+                    rgba(13, 23, 48, 0.88),
+                    rgba(6, 11, 27, 0.82)
+                );
         }
 
-        .insight-card h2 {
-            margin: 0 0 10px;
+        .insight-card h3 {
+            margin: 0 0 13px;
+
             font-size: 1rem;
         }
 
-        .insight-card ul {
+        .insight-list {
+            display: grid;
+            gap: 9px;
+
             margin: 0;
-            padding-left: 18px;
-            font-size: 0.9rem;
-            color: var(--text-muted);
+            padding: 0;
+
+            list-style: none;
         }
 
-        .insight-card li + li {
-            margin-top: 4px;
+        .insight-list li {
+            display: flex;
+            gap: 9px;
+
+            padding: 10px 11px;
+
+            border: 1px solid
+                color-mix(
+                    in srgb,
+                    var(--fq-primary) 11%,
+                    transparent
+                );
+
+            border-radius: 11px;
+
+            color: var(--fq-muted);
+
+            background:
+                color-mix(
+                    in srgb,
+                    var(--fq-primary) 4%,
+                    transparent
+                );
+
+            font-size: 0.76rem;
+            line-height: 1.5;
         }
 
-        .calendar-link {
-            margin-top: 10px;
-            font-size: 0.85rem;
-            color: var(--neon);
-            cursor: pointer;
-            text-decoration: underline;
+        .insight-list li::before {
+            content: "✦";
+
+            flex: 0 0 auto;
+
+            color: var(--fq-primary);
+        }
+
+        /* =====================================================
+           ERROR MESSAGE
+        ===================================================== */
+
+        .page-message {
+            display: none;
+
+            margin-bottom: 16px;
+            padding: 13px 14px;
+
+            border: 1px solid
+                rgba(255, 102, 133, 0.28);
+
+            border-radius: 12px;
+
+            color: #ffdce4;
+
+            background:
+                rgba(255, 102, 133, 0.09);
+
+            font-size: 0.78rem;
+            line-height: 1.5;
+        }
+
+        .page-message.show {
+            display: block;
+        }
+
+        /* =====================================================
+           MOBILE NAVIGATION
+        ===================================================== */
+
+        .mobile-nav {
+            position: fixed;
+            right: 0;
+            bottom: 0;
+            left: 0;
+            z-index: 50;
+
+            display: none;
+
+            grid-template-columns:
+                repeat(5, 1fr);
+
+            padding:
+                8px 7px
+                calc(
+                    8px +
+                    env(safe-area-inset-bottom)
+                );
+
+            border-top: 1px solid var(--fq-border);
+
+            background:
+                rgba(3, 7, 19, 0.95);
+
+            backdrop-filter: blur(20px);
+        }
+
+        .mobile-nav a {
+            display: grid;
+            place-items: center;
+            gap: 3px;
+
+            min-height: 48px;
+
+            border-radius: 11px;
+
+            color: var(--fq-subtle);
+
+            font-size: 0.61rem;
+            font-weight: 750;
+        }
+
+        .mobile-nav a span {
+            color: var(--fq-primary);
+            font-size: 1rem;
+        }
+
+        .mobile-nav a.active {
+            color: var(--fq-text);
+
+            background:
+                color-mix(
+                    in srgb,
+                    var(--fq-primary) 6%,
+                    transparent
+                );
+        }
+
+        /* =====================================================
+           RESPONSIVE
+        ===================================================== */
+
+        @media (max-width: 1180px) {
+            .summary-grid {
+                grid-template-columns:
+                    repeat(
+                        2,
+                        minmax(0, 1fr)
+                    );
+            }
+        }
+
+        @media (max-width: 920px) {
+            .app {
+                display: block;
+            }
+
+            .sidebar {
+                display: none;
+            }
+
+            .main-content {
+                padding:
+                    18px
+                    16px
+                    96px;
+            }
+
+            .mobile-nav {
+                display: grid;
+            }
+        }
+
+        @media (max-width: 680px) {
+            .hero {
+                grid-template-columns: 1fr;
+
+                padding: 23px 19px;
+            }
+
+            .hero-profile {
+                align-items: flex-start;
+                flex-direction: row;
+                gap: 14px;
+
+                min-width: 0;
+            }
+
+            .avatar-ring {
+                width: 82px;
+                height: 82px;
+            }
+
+            .profile-details-mobile {
+                align-self: center;
+            }
+
+            .profile-name {
+                margin-top: 0;
+                text-align: left;
+            }
+
+            .xp-bar-container {
+                width:
+                    min(
+                        185px,
+                        calc(
+                            100vw -
+                            150px
+                        )
+                    );
+            }
+
+            .summary-grid,
+            .chart-grid,
+            .insight-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .topbar-button.hide-mobile {
+                display: none;
+            }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            *,
+            *::before,
+            *::after {
+                animation-duration:
+                    0.01ms !important;
+
+                animation-iteration-count:
+                    1 !important;
+
+                transition-duration:
+                    0.01ms !important;
+            }
         }
     </style>
 </head>
 
-<body class="dashboard-body">
+<body>
+<div
+    class="ambient-grid"
+    aria-hidden="true"
+></div>
 
-<!-- SIDEBAR -->
-<aside class="sidebar">
-    <div class="sidebar-logo">
-        <img src="assets/logo.png" alt="FitQuest Logo">
-    </div>
+<div class="app">
 
-    <ul class="sidebar-links">
-        <li onclick="window.location.href='dashboard.html'">Dashboard</li>
-        <li onclick="window.location.href='exercise.html'">Workout Entry</li>
-        <li onclick="window.location.href='exercise-history.html'">Workout History</li>
-        <li onclick="window.location.href='food.html'">Food Intake</li>
-        <li onclick="window.location.href='meals.html'">Meals</li>
-        <li onclick="window.location.href='barcode.html'">Barcode Scanner</li>
-        <li onclick="window.location.href='bmi.html'">BMI Calculator</li>
-        <li class="active">Progress</li>
-        <li onclick="window.location.href='calendar.html'">Calendar</li>
-        <li onclick="window.location.href='profile.html'">Profile</li>
-        <li onclick="window.location.href='settings.html'">Settings</li>
-    </ul>
+    <!-- =====================================================
+         SIDEBAR
+    ====================================================== -->
 
-    <button class="logout-btn neon-interactive" onclick="logoutUser()">Logout</button>
-</aside>
-
-<!-- MAIN -->
-<main class="main-content">
-    <h1 class="page-title">Progress Overview</h1>
-    <p class="subtitle">Your long‑term journey, visualised like a neon command center.</p>
-
-    <!-- PROFILE HEADER -->
-    <div class="profile-header">
-        <img id="profilePhoto" src="assets/default-avatar.png" alt="Profile">
-        <div style="flex:1">
-            <h2 id="profileName">Loading...</h2>
-            <small id="profileLevel">Level 1 • 0 XP</small>
-            <div class="xp-bar-container">
-                <div class="xp-bar" id="xpBar"></div>
+    <aside class="sidebar">
+        <div class="sidebar-brand">
+            <div class="sidebar-logo">
+                <img
+                    src="assets/logo.png"
+                    alt="FitQuest"
+                >
             </div>
-            <div class="streak-pill" id="streakPill" style="display:none;">
-                <span>🔥</span>
-                <span id="streakText">0‑day streak</span>
-            </div>
-        </div>
-    </div>
 
-    <!-- WEEKLY SUMMARY -->
-    <section class="summary-grid">
-        <div class="summary-card">
-            <h3>Workouts This Week</h3>
-            <p id="sumWorkouts">0</p>
-            <span>Sessions logged</span>
-        </div>
-        <div class="summary-card">
-            <h3>Calories Eaten</h3>
-            <p id="sumCaloriesIn">0 kcal</p>
-            <span>From food logs</span>
-        </div>
-        <div class="summary-card">
-            <h3>Calories Burned</h3>
-            <p id="sumCaloriesOut">0 kcal</p>
-            <span>From workouts</span>
-        </div>
-        <div class="summary-card">
-            <h3>Steps</h3>
-            <p id="sumSteps">0</p>
-            <span>Movement this week</span>
-        </div>
-        <div class="summary-card">
-            <h3>Weight Change</h3>
-            <p id="sumWeight">0 kg</p>
-            <span>From first to latest entry</span>
-        </div>
-        <div class="summary-card">
-            <h3>Hydration Quality</h3>
-            <p id="sumHydration">0 HQS</p>
-            <span>Electric water score</span>
-        </div>
-        <div class="summary-card">
-            <h3>XP Earned</h3>
-            <p id="sumXP">0 XP</p>
-            <span>From workouts & quests</span>
-        </div>
-    </section>
-
-    <!-- ANALYTICS GRID -->
-    <section class="progress-grid">
-
-        <div class="progress-card">
-            <h2>Calories Intake (Weekly)</h2>
-            <canvas id="caloriesWeekly"></canvas>
-        </div>
-
-        <div class="progress-card">
-            <h2>Calories Intake (Monthly)</h2>
-            <canvas id="caloriesMonthly"></canvas>
-        </div>
-
-        <div class="progress-card">
-            <h2>Calories Burned (Weekly)</h2>
-            <canvas id="burnWeekly"></canvas>
-        </div>
-
-        <div class="progress-card">
-            <h2>Calories Burned (Monthly)</h2>
-            <canvas id="burnMonthly"></canvas>
-        </div>
-
-        <div class="progress-card">
-            <h2>Workout Sessions (Weekly)</h2>
-            <canvas id="workoutSessionsWeekly"></canvas>
-        </div>
-
-        <div class="progress-card">
-            <h2>Workout Minutes (Weekly)</h2>
-            <canvas id="workoutMinutesWeekly"></canvas>
-        </div>
-
-        <div class="progress-card">
-            <h2>Workout Calories (Weekly)</h2>
-            <canvas id="workoutCaloriesWeekly"></canvas>
-        </div>
-
-        <div class="progress-card">
-            <h2>Weight Trend</h2>
-            <canvas id="weightTrendChart"></canvas>
-        </div>
-
-        <div class="progress-card">
-            <h2>BMI Trend</h2>
-            <canvas id="bmiTrendChart"></canvas>
-        </div>
-
-        <div class="progress-card">
-            <h2>XP Trend</h2>
-            <canvas id="xpTrendChart"></canvas>
-        </div>
-
-    </section>
-
-    <!-- INSIGHTS -->
-    <section class="insights-section">
-        <div class="insight-card">
-            <h2>This Week’s Wins</h2>
-            <ul id="winsList"></ul>
-            <div class="calendar-link" onclick="window.location.href='calendar.html'">
-                View this week in calendar →
+            <div class="sidebar-brand-text">
+                <strong>FitQuest</strong>
+                <span>Understand your journey</span>
             </div>
         </div>
 
-        <div class="insight-card">
-            <h2>Areas to Improve</h2>
-            <ul id="weakList"></ul>
-        </div>
-    </section>
+        <p class="nav-caption">
+            Your journey
+        </p>
 
-</main>
+        <ul class="sidebar-links">
+            <li>
+                <a
+                    class="nav-link"
+                    href="dashboard.html"
+                >
+                    <span class="nav-icon">⌂</span>
+                    Dashboard
+                </a>
+            </li>
+
+            <li>
+                <a
+                    class="nav-link"
+                    href="exercise.html"
+                >
+                    <span class="nav-icon">◈</span>
+                    Track exercise
+                </a>
+            </li>
+
+            <li>
+                <a
+                    class="nav-link"
+                    href="exercise-history.html"
+                >
+                    <span class="nav-icon">↗</span>
+                    Exercise history
+                </a>
+            </li>
+
+            <li>
+                <a
+                    class="nav-link"
+                    href="food.html"
+                >
+                    <span class="nav-icon">◉</span>
+                    Food intake
+                </a>
+            </li>
+
+            <li>
+                <a
+                    class="nav-link"
+                    href="meals.html"
+                >
+                    <span class="nav-icon">◇</span>
+                    Meals
+                </a>
+            </li>
+
+            <li>
+                <a
+                    class="nav-link active"
+                    href="progress.html"
+                >
+                    <span class="nav-icon">▣</span>
+                    Progress
+                </a>
+            </li>
+
+            <li>
+                <a
+                    class="nav-link"
+                    href="quests.html"
+                >
+                    <span class="nav-icon">✦</span>
+                    Quests
+                </a>
+            </li>
+        </ul>
+
+        <p
+            class="nav-caption"
+            style="margin-top: 20px;"
+        >
+            Account
+        </p>
+
+        <ul class="sidebar-links">
+            <li>
+                <a
+                    class="nav-link"
+                    href="profile.html"
+                >
+                    <span class="nav-icon">◎</span>
+                    Profile
+                </a>
+            </li>
+
+            <li>
+                <a
+                    class="nav-link"
+                    href="settings.html"
+                >
+                    <span class="nav-icon">⚙</span>
+                    Settings
+                </a>
+            </li>
+        </ul>
+
+        <div class="sidebar-spacer"></div>
+
+        <div class="sidebar-foot">
+            <div class="privacy-mini">
+                Trends explain more than one isolated reading. FitQuest looks for patterns over time.
+            </div>
+
+            <button
+                class="logout-btn"
+                type="button"
+                onclick="logoutUser()"
+            >
+                Log out
+            </button>
+        </div>
+    </aside>
+
+    <!-- =====================================================
+         MAIN
+    ====================================================== -->
+
+    <main class="main-content">
+
+        <div class="topbar">
+            <div
+                class="today-label"
+                id="todayLabel"
+            >
+                Your progress story
+            </div>
+
+            <div class="topbar-actions">
+                <button
+                    class="topbar-button hide-mobile"
+                    type="button"
+                    onclick="window.location.href='exercise-history.html'"
+                >
+                    Exercise history
+                </button>
+
+                <button
+                    class="topbar-button"
+                    type="button"
+                    onclick="window.location.href='profile.html'"
+                >
+                    Profile
+                </button>
+            </div>
+        </div>
+
+        <div
+            id="pageMessage"
+            class="page-message"
+            role="status"
+            aria-live="polite"
+        ></div>
+
+        <!-- =================================================
+             HERO
+        ================================================== -->
+
+        <section class="hero">
+            <div class="hero-copy">
+                <div class="hero-kicker">
+                    <span class="hero-kicker-dot"></span>
+                    Your progress is building
+                </div>
+
+                <h1 class="hero-title">
+                    Your journey,
+                    <span>seen clearly.</span>
+                </h1>
+
+                <p class="hero-message">
+                    Look beyond one weigh-in or one difficult day. This page brings your movement, nutrition, weight and consistency together so you can see the direction of travel.
+                </p>
+
+                <div class="hero-meta">
+                    <span
+                        class="meta-pill"
+                        id="streakPill"
+                    >
+                        ✦ 0-day streak
+                    </span>
+
+                    <span
+                        class="meta-pill"
+                        id="goalPill"
+                    >
+                        ◎ Building healthier habits
+                    </span>
+
+                    <span
+                        class="meta-pill"
+                        id="memberPill"
+                    >
+                        ◇ Free member
+                    </span>
+                </div>
+            </div>
+
+            <div class="hero-profile">
+                <div class="avatar-wrap">
+                    <div
+                        class="avatar-ring"
+                        onclick="window.location.href='profile.html'"
+                        role="button"
+                        tabindex="0"
+                        aria-label="Open your profile"
+                    >
+                        <img
+                            id="profilePhoto"
+                            src="assets/avatar-placeholder.png"
+                            alt="Your FitQuest profile picture"
+                        >
+                    </div>
+
+                    <span
+                        class="level-badge"
+                        id="profileLevelBadge"
+                    >
+                        Lv 1
+                    </span>
+                </div>
+
+                <div class="profile-details-mobile">
+                    <h2
+                        class="profile-name"
+                        id="profileName"
+                    >
+                        FitQuest Explorer
+                    </h2>
+
+                    <p
+                        class="profile-xp-text"
+                        id="profileLevel"
+                    >
+                        Level 1 · 0 XP
+                    </p>
+
+                    <div class="xp-bar-container">
+                        <div
+                            class="xp-bar"
+                            id="xpBar"
+                        ></div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- =================================================
+             WEEKLY SUMMARY
+        ================================================== -->
+
+        <div class="section-heading">
+            <div>
+                <h2>This week at a glance</h2>
+
+                <p>
+                    A summary of the data currently recorded in FitQuest.
+                </p>
+            </div>
+        </div>
+
+        <section class="summary-grid">
+
+            <article class="summary-card">
+                <span class="summary-icon">◈</span>
+
+                <h3>Workouts</h3>
+
+                <p
+                    class="summary-value"
+                    id="sumWorkouts"
+                >
+                    0
+                </p>
+
+                <span class="summary-note">
+                    Sessions logged this week
+                </span>
+            </article>
+
+            <article class="summary-card">
+                <span class="summary-icon">◉</span>
+
+                <h3>Calories eaten</h3>
+
+                <p
+                    class="summary-value"
+                    id="sumCaloriesIn"
+                >
+                    0 kcal
+                </p>
+
+                <span class="summary-note">
+                    From food and daily logs
+                </span>
+            </article>
+
+            <article class="summary-card">
+                <span class="summary-icon">↗</span>
+
+                <h3>Calories burned</h3>
+
+                <p
+                    class="summary-value"
+                    id="sumCaloriesOut"
+                >
+                    0 kcal
+                </p>
+
+                <span class="summary-note">
+                    Estimated from workouts
+                </span>
+            </article>
+
+            <article class="summary-card">
+                <span class="summary-icon">◎</span>
+
+                <h3>Steps</h3>
+
+                <p
+                    class="summary-value"
+                    id="sumSteps"
+                >
+                    0
+                </p>
+
+                <span class="summary-note">
+                    Recorded movement this week
+                </span>
+            </article>
+
+            <article class="summary-card">
+                <span class="summary-icon">◇</span>
+
+                <h3>Weight change</h3>
+
+                <p
+                    class="summary-value"
+                    id="sumWeight"
+                >
+                    —
+                </p>
+
+                <span class="summary-note">
+                    From first to latest entry
+                </span>
+            </article>
+
+            <article class="summary-card">
+                <span class="summary-icon">≈</span>
+
+                <h3>Hydration</h3>
+
+                <p
+                    class="summary-value"
+                    id="sumHydration"
+                >
+                    0
+                </p>
+
+                <span class="summary-note">
+                    Recorded hydration entries
+                </span>
+            </article>
+
+            <article class="summary-card">
+                <span class="summary-icon">✦</span>
+
+                <h3>Current XP</h3>
+
+                <p
+                    class="summary-value"
+                    id="sumXP"
+                >
+                    0 XP
+                </p>
+
+                <span class="summary-note">
+                    Progress towards your next level
+                </span>
+            </article>
+
+            <article class="summary-card">
+                <span class="summary-icon">▣</span>
+
+                <h3>Training time</h3>
+
+                <p
+                    class="summary-value"
+                    id="sumMinutes"
+                >
+                    0 min
+                </p>
+
+                <span class="summary-note">
+                    Total workout time this week
+                </span>
+            </article>
+
+        </section>
+
+        <!-- =================================================
+             CHARTS
+        ================================================== -->
+
+        <div class="section-heading">
+            <div>
+                <h2>Your progress story</h2>
+
+                <p>
+                    Trends are more useful than judging one day in isolation.
+                </p>
+            </div>
+        </div>
+
+        <section class="chart-grid">
+
+            <article class="chart-card">
+                <div class="chart-card-header">
+                    <div>
+                        <h3>Weekly food intake</h3>
+
+                        <p>
+                            Recorded calories across the current week.
+                        </p>
+                    </div>
+
+                    <span class="chart-badge">
+                        Nutrition
+                    </span>
+                </div>
+
+                <div class="chart-body">
+                    <canvas id="caloriesWeekly"></canvas>
+                </div>
+            </article>
+
+            <article class="chart-card">
+                <div class="chart-card-header">
+                    <div>
+                        <h3>Weekly calorie burn</h3>
+
+                        <p>
+                            Estimated energy used during logged workouts.
+                        </p>
+                    </div>
+
+                    <span class="chart-badge">
+                        Movement
+                    </span>
+                </div>
+
+                <div class="chart-body">
+                    <canvas id="burnWeekly"></canvas>
+                </div>
+            </article>
+
+            <article class="chart-card">
+                <div class="chart-card-header">
+                    <div>
+                        <h3>Workout frequency</h3>
+
+                        <p>
+                            The number of sessions completed each day.
+                        </p>
+                    </div>
+
+                    <span class="chart-badge">
+                        Sessions
+                    </span>
+                </div>
+
+                <div class="chart-body">
+                    <canvas id="workoutSessionsWeekly"></canvas>
+                </div>
+            </article>
+
+            <article class="chart-card">
+                <div class="chart-card-header">
+                    <div>
+                        <h3>Training minutes</h3>
+
+                        <p>
+                            How your workout time is distributed across the week.
+                        </p>
+                    </div>
+
+                    <span class="chart-badge">
+                        Duration
+                    </span>
+                </div>
+
+                <div class="chart-body">
+                    <canvas id="workoutMinutesWeekly"></canvas>
+                </div>
+            </article>
+
+            <article class="chart-card">
+                <div class="chart-card-header">
+                    <div>
+                        <h3>Weight trend</h3>
+
+                        <p>
+                            Daily changes may include water, food and recovery.
+                        </p>
+                    </div>
+
+                    <span class="chart-badge">
+                        Long term
+                    </span>
+                </div>
+
+                <div
+                    class="chart-empty"
+                    id="weightEmpty"
+                >
+                    Add more weight entries to begin seeing a trend.
+                </div>
+
+                <div
+                    class="chart-body"
+                    id="weightChartBody"
+                >
+                    <canvas id="weightTrendChart"></canvas>
+                </div>
+            </article>
+
+            <article class="chart-card">
+                <div class="chart-card-header">
+                    <div>
+                        <h3>BMI trend</h3>
+
+                        <p>
+                            One contextual measure—not a complete judgement of health.
+                        </p>
+                    </div>
+
+                    <span class="chart-badge">
+                        Context
+                    </span>
+                </div>
+
+                <div
+                    class="chart-empty"
+                    id="bmiEmpty"
+                >
+                    More BMI entries are needed before a trend can be shown.
+                </div>
+
+                <div
+                    class="chart-body"
+                    id="bmiChartBody"
+                >
+                    <canvas id="bmiTrendChart"></canvas>
+                </div>
+            </article>
+
+        </section>
+
+        <!-- =================================================
+             INSIGHTS
+        ================================================== -->
+
+        <div class="section-heading">
+            <div>
+                <h2>What FitQuest noticed</h2>
+
+                <p>
+                    Simple observations from the information currently available.
+                </p>
+            </div>
+        </div>
+
+        <section class="insight-grid">
+
+            <article class="insight-card">
+                <h3>This week’s wins</h3>
+
+                <ul
+                    class="insight-list"
+                    id="winsList"
+                ></ul>
+            </article>
+
+            <article class="insight-card">
+                <h3>Useful next steps</h3>
+
+                <ul
+                    class="insight-list"
+                    id="weakList"
+                ></ul>
+            </article>
+
+        </section>
+
+    </main>
+</div>
+
+<!-- =========================================================
+     MOBILE NAVIGATION
+========================================================== -->
+
+<nav
+    class="mobile-nav"
+    aria-label="Main navigation"
+>
+    <a href="dashboard.html">
+        <span>⌂</span>
+        Home
+    </a>
+
+    <a href="exercise.html">
+        <span>◈</span>
+        Track
+    </a>
+
+    <a
+        class="active"
+        href="progress.html"
+    >
+        <span>▣</span>
+        Progress
+    </a>
+
+    <a href="quests.html">
+        <span>✦</span>
+        Quests
+    </a>
+
+    <a href="profile.html">
+        <span>◎</span>
+        Profile
+    </a>
+</nav>
 
 <script>
-let userRef = null;
+    "use strict";
 
-Chart.defaults.color = "#e5e7eb";
-Chart.defaults.font.family = "'Inter', system-ui, -apple-system, BlinkMacSystemFont, sans-serif";
-Chart.defaults.plugins.legend.display = false;
-Chart.defaults.plugins.tooltip.backgroundColor = "rgba(15,23,42,0.95)";
-Chart.defaults.plugins.tooltip.borderColor = "#38bdf8";
-Chart.defaults.plugins.tooltip.borderWidth = 1;
+    let userRef = null;
 
-/* -----------------------------------------------------------
-   AUTH + LOAD
------------------------------------------------------------ */
-auth.onAuthStateChanged(async user => {
-    if (!user) return window.location.href = "index.html";
+    const chartInstances = [];
 
-    await applyUserTheme();
-    
-    userRef = db.collection("users").doc(user.uid);
-    loadProgressPage();
-});
+    /* =========================================================
+       CHART DEFAULTS
+    ========================================================== */
 
-/* -----------------------------------------------------------
-   LOAD EVERYTHING
------------------------------------------------------------ */
-async function loadProgressPage() {
-    const userDoc = await userRef.get();
-    const user = userDoc.data() || {};
+    Chart.defaults.color = "#aab6ce";
 
-    // PROFILE HEADER
-    document.getElementById("profileName").textContent = user.fullName || "FitQuest Explorer";
-    document.getElementById("profilePhoto").src = user.photoURL || "assets/default-avatar.png";
+    Chart.defaults.font.family =
+        "Inter, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
 
-    const level = user.level || 1;
-    const xp = user.xp || 0;
-    const xpNeeded = level * 100;
+    Chart.defaults.plugins.legend.display =
+        false;
 
-    document.getElementById("profileLevel").textContent = `Level ${level} • ${xp} XP`;
-    document.getElementById("xpBar").style.width = Math.min((xp / xpNeeded) * 100, 100) + "%";
+    Chart.defaults.plugins.tooltip.backgroundColor =
+        "rgba(6, 11, 27, 0.96)";
 
-    // Optional streak
-    if (user.streak && user.streak > 0) {
-        document.getElementById("streakPill").style.display = "inline-flex";
-        document.getElementById("streakText").textContent = `${user.streak}-day streak`;
+    Chart.defaults.plugins.tooltip.borderWidth =
+        1;
+
+    /* =========================================================
+       AUTHENTICATION
+    ========================================================== */
+
+    auth.onAuthStateChanged(async user => {
+        if (!user) {
+            window.location.href =
+                "index.html";
+
+            return;
+        }
+
+        /*
+         * This runs through theme.js.
+         * Do not add another theme listener.
+         */
+        if (
+            typeof applyUserTheme ===
+            "function"
+        ) {
+            await applyUserTheme();
+        }
+
+        userRef =
+            db.collection("users")
+                .doc(user.uid);
+
+        await loadProgressPage();
+    });
+
+    /* =========================================================
+       GENERAL HELPERS
+    ========================================================== */
+
+    function showPageError(message) {
+        const box =
+            document.getElementById(
+                "pageMessage"
+            );
+
+        box.textContent = message;
+        box.classList.add("show");
     }
 
-    // LOAD SUBCOLLECTIONS
-    const [foodSnap, workoutsSnap, logsSnap] = await Promise.all([
-        userRef.collection("food").get(),
-        userRef.collection("workouts").get(),
-        userRef.collection("dailyLogs").get()
-    ]);
+    function safeNumber(
+        value,
+        fallback = 0
+    ) {
+        const number =
+            Number(value);
 
-    const food = foodSnap.docs.map(d => d.data());
-    const workouts = workoutsSnap.docs.map(d => d.data());
-    const logs = logsSnap.docs.map(d => d.data());
-
-    // WEEKLY SUMMARY
-    calculateWeeklySummary(food, workouts, logs, user);
-
-    // INSIGHTS
-    generateInsights(food, workouts, logs, user);
-
-    // CHARTS
-    renderCaloriesIntake(food);
-    renderCaloriesBurned(workouts);
-    renderWorkoutAnalytics(workouts);
-    renderWeightTrend(user.weightHistory || []);
-    renderBMITrend(user.bmiHistory || []);
-    renderXPTrend(user.xpHistory || []);
-}
-
-/* -----------------------------------------------------------
-   WEEKLY SUMMARY
------------------------------------------------------------ */
-function calculateWeeklySummary(food, workouts, logs, user) {
-    const now = new Date();
-    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    const weekStart = new Date(today);
-    // Monday as start
-    const day = weekStart.getDay();
-    const diff = (day === 0 ? -6 : 1 - day);
-    weekStart.setDate(weekStart.getDate() + diff);
-
-    let caloriesIn = 0;
-    let caloriesOut = 0;
-    let steps = 0;
-    let workoutsCount = 0;
-    let hydrationScore = 0;
-    let xpEarned = 0;
-
-    logs.forEach(l => {
-        if (!l.date) return;
-        const d = new Date(l.date);
-        const dOnly = new Date(d.getFullYear(), d.getMonth(), d.getDate());
-        if (dOnly >= weekStart && dOnly <= today) {
-            caloriesIn += l.totalCalories || 0;
-            caloriesOut += l.totalBurn || 0;
-            steps += l.steps || 0;
-            workoutsCount += (l.workouts || []).length;
-            hydrationScore += (l.hydration || []).reduce((a, b) => a + (b.hqs || 0), 0);
-            xpEarned += l.xpEarned || 0;
-        }
-    });
-
-    // Weight change (overall, not just this week)
-    let weightChange = 0;
-    if (user.weightHistory && user.weightHistory.length >= 2) {
-        const sorted = [...user.weightHistory].sort((a,b) => a.timestamp - b.timestamp);
-        const first = sorted[0].value;
-        const last = sorted[sorted.length - 1].value;
-        weightChange = +(last - first).toFixed(1);
+        return Number.isFinite(number)
+            ? number
+            : fallback;
     }
 
-    document.getElementById("sumWorkouts").textContent = workoutsCount;
-    document.getElementById("sumCaloriesIn").textContent = caloriesIn + " kcal";
-    document.getElementById("sumCaloriesOut").textContent = caloriesOut + " kcal";
-    document.getElementById("sumSteps").textContent = steps;
-    document.getElementById("sumHydration").textContent = hydrationScore + " HQS";
-    document.getElementById("sumXP").textContent = xpEarned + " XP";
-    document.getElementById("sumWeight").textContent = weightChange + " kg";
-}
+    function formatLabel(value) {
+        if (
+            value === null ||
+            value === undefined ||
+            value === ""
+        ) {
+            return "";
+        }
 
-/* -----------------------------------------------------------
-   INSIGHTS
------------------------------------------------------------ */
-function generateInsights(food, workouts, logs, user) {
-    const wins = [];
-    const weak = [];
+        return String(value)
+            .replace(/_/g, " ")
+            .replace(
+                /\b\w/g,
+                letter =>
+                    letter.toUpperCase()
+            );
+    }
 
-    const now = new Date();
-    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    const weekStart = new Date(today);
-    const day = weekStart.getDay();
-    const diff = (day === 0 ? -6 : 1 - day);
-    weekStart.setDate(weekStart.getDate() + diff);
+    function firstName(name) {
+        return String(name || "")
+            .trim()
+            .split(/\s+/)[0] ||
+            "Explorer";
+    }
 
-    const weekLogs = logs.filter(l => {
-        if (!l.date) return false;
-        const d = new Date(l.date);
-        const dOnly = new Date(d.getFullYear(), d.getMonth(), d.getDate());
-        return dOnly >= weekStart && dOnly <= today;
-    });
+    function getCssVariable(
+        name,
+        fallback
+    ) {
+        const value =
+            getComputedStyle(
+                document.documentElement
+            )
+                .getPropertyValue(name)
+                .trim();
 
-    const workoutsThisWeek = weekLogs.reduce((acc, l) => acc + (l.workouts || []).length, 0);
-    const hydrationEntries = weekLogs.reduce((acc, l) => acc + (l.hydration || []).length, 0);
-    const missingHydrationDays = weekLogs.filter(l => (l.hydration || []).length === 0).length;
+        return value || fallback;
+    }
 
-    // Wins
-    if (workoutsThisWeek >= 3) wins.push(`Great consistency — ${workoutsThisWeek} workouts logged this week.`);
-    if (food.length >= 7) wins.push("You’ve been logging food regularly — that’s real discipline.");
-    if (user.weightHistory && user.weightHistory.length >= 2) wins.push("Weight trend updated — you’re tracking the long game.");
-    if (hydrationEntries >= 5) wins.push("Hydration quality logged on most days — your water has electricity.");
+    function createTransparentColour(
+        hex,
+        alpha
+    ) {
+        if (
+            !hex ||
+            !hex.startsWith("#")
+        ) {
+            return `rgba(0, 234, 255, ${alpha})`;
+        }
 
-    // Weak Spots
-    if (workoutsThisWeek < 2) weak.push("Try to hit at least 2 workouts this week to keep momentum.");
-    if (food.length < 5) weak.push("Food logging is a bit low — aim for daily entries, even if imperfect.");
-    if (missingHydrationDays > 0) weak.push("Some days have no hydration logged — aim for at least +2 HQS water daily.");
-    if (!user.xpHistory || user.xpHistory.length === 0) weak.push("XP history is empty — quests and workouts will start filling this soon.");
+        let clean =
+            hex.slice(1);
 
-    document.getElementById("winsList").innerHTML =
-        wins.length ? wins.map(w => `<li>${w}</li>`).join("") : "<li>Keep going — your future wins are loading.</li>";
+        if (clean.length === 3) {
+            clean =
+                clean
+                    .split("")
+                    .map(character =>
+                        character + character
+                    )
+                    .join("");
+        }
 
-    document.getElementById("weakList").innerHTML =
-        weak.length ? weak.map(w => `<li>${w}</li>`).join("") : "<li>No obvious weak spots — stay consistent.</li>";
-}
+        const red =
+            parseInt(
+                clean.slice(0, 2),
+                16
+            );
 
-/* -----------------------------------------------------------
-   CALORIES INTAKE (HYBRID NEON)
------------------------------------------------------------ */
-function renderCaloriesIntake(food) {
-    const weekly = [0,0,0,0,0,0,0];
-    const monthly = [0,0,0,0];
+        const green =
+            parseInt(
+                clean.slice(2, 4),
+                16
+            );
 
-    food.forEach(f => {
-        if (!f.timestamp) return;
-        const ts = new Date(f.timestamp);
-        const day = ts.getDay();
-        const week = Math.floor((ts.getDate() - 1) / 7);
+        const blue =
+            parseInt(
+                clean.slice(4, 6),
+                16
+            );
 
-        const idx = day === 0 ? 6 : day - 1;
-        weekly[idx] += f.totalCalories || f.calories || 0;
-        if (week >= 0 && week < 4) monthly[week] += f.totalCalories || f.calories || 0;
-    });
+        return `rgba(${red}, ${green}, ${blue}, ${alpha})`;
+    }
 
-    new Chart(document.getElementById("caloriesWeekly"), {
-        type: "bar",
-        data: {
-            labels: ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"],
-            datasets: [{
-                data: weekly,
-                backgroundColor: "rgba(56,189,248,0.7)",
-                borderColor: "#38bdf8",
-                borderWidth: 2,
-                borderRadius: 6
-            }]
-        },
-        options: {
-            scales: {
-                x: {
-                    grid: { display: false },
-                    ticks: { color: "#9ca3af" }
-                },
-                y: {
-                    grid: { color: "rgba(31,41,55,0.8)" },
-                    ticks: { color: "#9ca3af" }
+    function toDate(value) {
+        if (!value) {
+            return null;
+        }
+
+        if (
+            value &&
+            typeof value.toDate ===
+                "function"
+        ) {
+            return value.toDate();
+        }
+
+        if (
+            typeof value === "number"
+        ) {
+            const numericDate =
+                new Date(value);
+
+            return Number.isNaN(
+                numericDate.getTime()
+            )
+                ? null
+                : numericDate;
+        }
+
+        if (
+            typeof value === "string"
+        ) {
+            const stringDate =
+                new Date(value);
+
+            return Number.isNaN(
+                stringDate.getTime()
+            )
+                ? null
+                : stringDate;
+        }
+
+        if (
+            value.seconds
+        ) {
+            return new Date(
+                value.seconds * 1000
+            );
+        }
+
+        return null;
+    }
+
+    function getItemDate(item) {
+        return (
+            toDate(item.timestamp) ||
+            toDate(item.loggedAt) ||
+            toDate(item.date) ||
+            toDate(item.createdAt)
+        );
+    }
+
+    function getWeekStart() {
+        const now =
+            new Date();
+
+        const start =
+            new Date(
+                now.getFullYear(),
+                now.getMonth(),
+                now.getDate()
+            );
+
+        const day =
+            start.getDay();
+
+        const difference =
+            day === 0
+                ? -6
+                : 1 - day;
+
+        start.setDate(
+            start.getDate() +
+            difference
+        );
+
+        start.setHours(
+            0,
+            0,
+            0,
+            0
+        );
+
+        return start;
+    }
+
+    function isThisWeek(date) {
+        if (!date) {
+            return false;
+        }
+
+        const start =
+            getWeekStart();
+
+        const end =
+            new Date(start);
+
+        end.setDate(
+            start.getDate() + 7
+        );
+
+        return (
+            date >= start &&
+            date < end
+        );
+    }
+
+    function getMondayIndex(date) {
+        const day =
+            date.getDay();
+
+        return day === 0
+            ? 6
+            : day - 1;
+    }
+
+    function destroyCharts() {
+        chartInstances.forEach(
+            chart => {
+                try {
+                    chart.destroy();
+                } catch (error) {
+                    console.warn(
+                        "Chart cleanup failed:",
+                        error
+                    );
                 }
             }
-        }
-    });
+        );
 
-    new Chart(document.getElementById("caloriesMonthly"), {
-        type: "line",
-        data: {
-            labels: ["Week 1","Week 2","Week 3","Week 4"],
-            datasets: [{
-                data: monthly,
-                borderColor: "#38bdf8",
-                borderWidth: 3,
-                fill: true,
-                backgroundColor: "rgba(56,189,248,0.18)",
-                tension: 0.35,
-                pointRadius: 3,
-                pointBackgroundColor: "#38bdf8"
-            }]
-        },
-        options: {
+        chartInstances.length = 0;
+    }
+
+    /* =========================================================
+       LOAD PROGRESS DATA
+    ========================================================== */
+
+    async function loadProgressPage() {
+        try {
+            destroyCharts();
+
+            const userDocument =
+                await userRef.get();
+
+            const user =
+                userDocument.exists
+                    ? userDocument.data()
+                    : {};
+
+            /*
+             * These are the actual fields used by Profile:
+             *
+             * name
+             * avatarUrl
+             *
+             * The previous page incorrectly used fullName
+             * and photoURL.
+             */
+            loadProfileHeader(user);
+
+            const [
+                foodSnapshot,
+                workoutsSnapshot,
+                logsSnapshot
+            ] = await Promise.all([
+                userRef
+                    .collection("food")
+                    .get(),
+
+                userRef
+                    .collection("workouts")
+                    .get(),
+
+                userRef
+                    .collection("dailyLogs")
+                    .get()
+            ]);
+
+            const food =
+                foodSnapshot.docs.map(
+                    document => ({
+                        id: document.id,
+                        ...document.data()
+                    })
+                );
+
+            const workouts =
+                workoutsSnapshot.docs.map(
+                    document => ({
+                        id: document.id,
+                        ...document.data()
+                    })
+                );
+
+            const logs =
+                logsSnapshot.docs.map(
+                    document => ({
+                        id: document.id,
+                        ...document.data()
+                    })
+                );
+
+            calculateWeeklySummary(
+                food,
+                workouts,
+                logs,
+                user
+            );
+
+            generateInsights(
+                food,
+                workouts,
+                logs,
+                user
+            );
+
+            renderCaloriesIntake(
+                food,
+                logs
+            );
+
+            renderCaloriesBurned(
+                workouts,
+                logs
+            );
+
+            renderWorkoutAnalytics(
+                workouts
+            );
+
+            renderWeightTrend(
+                user.weightHistory || []
+            );
+
+            renderBMITrend(
+                user.bmiHistory || [],
+                user
+            );
+        } catch (error) {
+            console.error(
+                "Progress page failed:",
+                error
+            );
+
+            showPageError(
+                "FitQuest could not load your progress. Check your connection and refresh the page."
+            );
+        }
+    }
+
+    /* =========================================================
+       PROFILE HEADER
+    ========================================================== */
+
+    function loadProfileHeader(user) {
+        const name =
+            user.name ||
+            "FitQuest Explorer";
+
+        const avatar =
+            user.avatarUrl ||
+            "assets/avatar-placeholder.png";
+
+        const level =
+            Math.max(
+                1,
+                safeNumber(
+                    user.level,
+                    1
+                )
+            );
+
+        const xp =
+            Math.max(
+                0,
+                safeNumber(
+                    user.xp,
+                    0
+                )
+            );
+
+        /*
+         * XP is stored as progress within the current level.
+         * Therefore the bar is xp / 100 rather than xp /
+         * level × 100.
+         */
+        const xpProgress =
+            Math.min(
+                100,
+                xp
+            );
+
+        document.getElementById(
+            "profileName"
+        ).textContent =
+            name;
+
+        const profilePhoto =
+            document.getElementById(
+                "profilePhoto"
+            );
+
+        profilePhoto.src =
+            avatar.includes("?")
+                ? `${avatar}&t=${Date.now()}`
+                : `${avatar}?t=${Date.now()}`;
+
+        profilePhoto.onerror = () => {
+            profilePhoto.onerror = null;
+
+            profilePhoto.src =
+                "assets/avatar-placeholder.png";
+        };
+
+        document.getElementById(
+            "profileLevel"
+        ).textContent =
+            `Level ${level} · ${xp} / 100 XP`;
+
+        document.getElementById(
+            "profileLevelBadge"
+        ).textContent =
+            `Lv ${level}`;
+
+        document.getElementById(
+            "xpBar"
+        ).style.width =
+            `${xpProgress}%`;
+
+        const streak =
+            Math.max(
+                0,
+                safeNumber(
+                    user.streak,
+                    0
+                )
+            );
+
+        document.getElementById(
+            "streakPill"
+        ).textContent =
+            `✦ ${streak}-day streak`;
+
+        document.getElementById(
+            "goalPill"
+        ).textContent =
+            `◎ ${
+                user.goal
+                    ? formatLabel(
+                        user.goal
+                    )
+                    : "Building healthier habits"
+            }`;
+
+        document.getElementById(
+            "memberPill"
+        ).textContent =
+            `◇ ${
+                formatLabel(
+                    user.membershipTier ||
+                    "free"
+                )
+            } member`;
+
+        document.getElementById(
+            "sumXP"
+        ).textContent =
+            `${xp} XP`;
+
+        document.getElementById(
+            "todayLabel"
+        ).textContent =
+            new Intl.DateTimeFormat(
+                "en-GB",
+                {
+                    weekday: "long",
+                    day: "numeric",
+                    month: "long"
+                }
+            ).format(new Date());
+    }
+
+    /* =========================================================
+       WEEKLY SUMMARY
+    ========================================================== */
+
+    function calculateWeeklySummary(
+        food,
+        workouts,
+        logs,
+        user
+    ) {
+        const weekFood =
+            food.filter(item =>
+                isThisWeek(
+                    getItemDate(item)
+                )
+            );
+
+        const weekWorkouts =
+            workouts.filter(item =>
+                isThisWeek(
+                    getItemDate(item)
+                )
+            );
+
+        const weekLogs =
+            logs.filter(item =>
+                isThisWeek(
+                    getItemDate(item)
+                )
+            );
+
+        let caloriesIn = 0;
+        let caloriesOut = 0;
+        let steps = 0;
+        let hydrationEntries = 0;
+        let workoutMinutes = 0;
+
+        weekFood.forEach(item => {
+            caloriesIn +=
+                safeNumber(
+                    item.totalCalories ??
+                    item.calories
+                );
+        });
+
+        weekWorkouts.forEach(item => {
+            caloriesOut +=
+                safeNumber(
+                    item.caloriesBurned ??
+                    item.calories
+                );
+
+            workoutMinutes +=
+                safeNumber(
+                    item.durationMinutes ??
+                    item.duration
+                );
+        });
+
+        weekLogs.forEach(log => {
+            caloriesIn +=
+                safeNumber(
+                    log.totalCalories
+                );
+
+            /*
+             * Only use daily-log burn when workouts are not
+             * already represented in the workout collection.
+             */
+            if (
+                weekWorkouts.length === 0
+            ) {
+                caloriesOut +=
+                    safeNumber(
+                        log.totalBurn
+                    );
+            }
+
+            steps +=
+                safeNumber(
+                    log.steps
+                );
+
+            if (
+                Array.isArray(
+                    log.hydration
+                )
+            ) {
+                hydrationEntries +=
+                    log.hydration.length;
+            } else if (
+                safeNumber(
+                    log.waterMl
+                ) > 0
+            ) {
+                hydrationEntries += 1;
+            }
+        });
+
+        /*
+         * Some treadmill workouts include estimated steps.
+         */
+        weekWorkouts.forEach(item => {
+            steps +=
+                safeNumber(
+                    item.steps
+                );
+        });
+
+        const weightChange =
+            calculateWeightChange(
+                user.weightHistory || []
+            );
+
+        document.getElementById(
+            "sumWorkouts"
+        ).textContent =
+            weekWorkouts.length;
+
+        document.getElementById(
+            "sumCaloriesIn"
+        ).textContent =
+            `${Math.round(
+                caloriesIn
+            ).toLocaleString("en-GB")} kcal`;
+
+        document.getElementById(
+            "sumCaloriesOut"
+        ).textContent =
+            `${Math.round(
+                caloriesOut
+            ).toLocaleString("en-GB")} kcal`;
+
+        document.getElementById(
+            "sumSteps"
+        ).textContent =
+            Math.round(steps)
+                .toLocaleString("en-GB");
+
+        document.getElementById(
+            "sumHydration"
+        ).textContent =
+            hydrationEntries;
+
+        document.getElementById(
+            "sumMinutes"
+        ).textContent =
+            `${Math.round(
+                workoutMinutes
+            )} min`;
+
+        document.getElementById(
+            "sumWeight"
+        ).textContent =
+            weightChange === null
+                ? "—"
+                : `${
+                    weightChange > 0
+                        ? "+"
+                        : ""
+                }${weightChange.toFixed(1)} kg`;
+    }
+
+    function calculateWeightChange(
+        history
+    ) {
+        const entries =
+            normaliseHistory(
+                history,
+                [
+                    "weightKg",
+                    "weight",
+                    "value"
+                ]
+            );
+
+        if (
+            entries.length < 2
+        ) {
+            return null;
+        }
+
+        return (
+            entries[
+                entries.length - 1
+            ].value -
+            entries[0].value
+        );
+    }
+
+    /* =========================================================
+       INSIGHTS
+    ========================================================== */
+
+    function generateInsights(
+        food,
+        workouts,
+        logs,
+        user
+    ) {
+        const wins = [];
+        const nextSteps = [];
+
+        const weekWorkouts =
+            workouts.filter(item =>
+                isThisWeek(
+                    getItemDate(item)
+                )
+            );
+
+        const weekFood =
+            food.filter(item =>
+                isThisWeek(
+                    getItemDate(item)
+                )
+            );
+
+        const weekLogs =
+            logs.filter(item =>
+                isThisWeek(
+                    getItemDate(item)
+                )
+            );
+
+        const workoutMinutes =
+            weekWorkouts.reduce(
+                (total, item) =>
+                    total +
+                    safeNumber(
+                        item.durationMinutes ??
+                        item.duration
+                    ),
+                0
+            );
+
+        const hydrationDays =
+            weekLogs.filter(log =>
+                (
+                    Array.isArray(
+                        log.hydration
+                    ) &&
+                    log.hydration.length > 0
+                ) ||
+                safeNumber(
+                    log.waterMl
+                ) > 0
+            ).length;
+
+        if (
+            weekWorkouts.length >= 3
+        ) {
+            wins.push(
+                `You logged ${weekWorkouts.length} workouts this week. That is strong consistency.`
+            );
+        } else if (
+            weekWorkouts.length > 0
+        ) {
+            wins.push(
+                `You have already logged ${weekWorkouts.length} workout${weekWorkouts.length === 1 ? "" : "s"} this week.`
+            );
+        }
+
+        if (
+            workoutMinutes >= 60
+        ) {
+            wins.push(
+                `You completed ${Math.round(workoutMinutes)} minutes of training this week.`
+            );
+        }
+
+        if (
+            weekFood.length >= 5
+        ) {
+            wins.push(
+                "You have been recording food regularly, which gives FitQuest a clearer picture."
+            );
+        }
+
+        if (
+            Array.isArray(
+                user.weightHistory
+            ) &&
+            user.weightHistory.length >= 2
+        ) {
+            wins.push(
+                "Your weight history is beginning to show a longer-term trend."
+            );
+        }
+
+        if (
+            hydrationDays >= 4
+        ) {
+            wins.push(
+                "Hydration has been recorded on several days this week."
+            );
+        }
+
+        if (
+            weekWorkouts.length < 2
+        ) {
+            nextSteps.push(
+                "One additional movement session could help build this week’s consistency."
+            );
+        }
+
+        if (
+            weekFood.length < 4
+        ) {
+            nextSteps.push(
+                "A few more food entries would make your nutrition pattern easier to understand."
+            );
+        }
+
+        if (
+            hydrationDays < 3
+        ) {
+            const fluidRestriction =
+                user.healthProfile &&
+                user.healthProfile
+                    .fluidRestriction;
+
+            if (
+                fluidRestriction ===
+                "yes"
+            ) {
+                nextSteps.push(
+                    "Follow your clinician’s fluid guidance rather than general hydration targets."
+                );
+            } else {
+                nextSteps.push(
+                    "Recording hydration on more days could provide useful context."
+                );
+            }
+        }
+
+        if (
+            !Array.isArray(
+                user.weightHistory
+            ) ||
+            user.weightHistory.length < 2
+        ) {
+            nextSteps.push(
+                "Another future weight entry will allow FitQuest to begin showing a trend."
+            );
+        }
+
+        if (
+            wins.length === 0
+        ) {
+            wins.push(
+                "Your progress story is just beginning. Every accurate entry gives FitQuest more useful context."
+            );
+        }
+
+        if (
+            nextSteps.length === 0
+        ) {
+            nextSteps.push(
+                "No obvious gap stands out right now. Keep building steadily rather than forcing intensity."
+            );
+        }
+
+        document.getElementById(
+            "winsList"
+        ).innerHTML =
+            wins
+                .map(
+                    item =>
+                        `<li>${escapeHtml(item)}</li>`
+                )
+                .join("");
+
+        document.getElementById(
+            "weakList"
+        ).innerHTML =
+            nextSteps
+                .map(
+                    item =>
+                        `<li>${escapeHtml(item)}</li>`
+                )
+                .join("");
+    }
+
+    function escapeHtml(value) {
+        const element =
+            document.createElement("div");
+
+        element.textContent =
+            String(value);
+
+        return element.innerHTML;
+    }
+
+    /* =========================================================
+       CHART HELPERS
+    ========================================================== */
+
+    function chartColours() {
+        const primary =
+            getCssVariable(
+                "--fq-primary",
+                "#00eaff"
+            );
+
+        const secondary =
+            getCssVariable(
+                "--fq-secondary",
+                "#8b5cf6"
+            );
+
+        const accent =
+            getCssVariable(
+                "--fq-accent",
+                "#ff2bd6"
+            );
+
+        Chart.defaults.plugins
+            .tooltip.borderColor =
+                primary;
+
+        return {
+            primary,
+            secondary,
+            accent,
+
+            primarySoft:
+                createTransparentColour(
+                    primary,
+                    0.18
+                ),
+
+            secondarySoft:
+                createTransparentColour(
+                    secondary,
+                    0.18
+                ),
+
+            accentSoft:
+                createTransparentColour(
+                    accent,
+                    0.18
+                )
+        };
+    }
+
+    function commonScaleOptions() {
+        return {
+            responsive: true,
+            maintainAspectRatio: false,
+
+            interaction: {
+                mode: "index",
+                intersect: false
+            },
+
             scales: {
                 x: {
-                    grid: { display: false },
-                    ticks: { color: "#9ca3af" }
+                    grid: {
+                        display: false
+                    },
+
+                    ticks: {
+                        color: "#74809a"
+                    }
                 },
+
                 y: {
-                    grid: { color: "rgba(31,41,55,0.8)" },
-                    ticks: { color: "#9ca3af" }
+                    beginAtZero: true,
+
+                    grid: {
+                        color:
+                            "rgba(116, 128, 154, 0.14)"
+                    },
+
+                    ticks: {
+                        color: "#74809a",
+                        precision: 0
+                    }
                 }
             }
-        }
-    });
-}
+        };
+    }
 
-/* -----------------------------------------------------------
-   CALORIES BURNED (MAGENTA NEON)
------------------------------------------------------------ */
-function renderCaloriesBurned(workouts) {
-    const weekly = [0,0,0,0,0,0,0];
-    const monthly = [0,0,0,0];
+    /* =========================================================
+       FOOD CHART
+    ========================================================== */
 
-    workouts.forEach(w => {
-        if (!w.timestamp) return;
-        const ts = new Date(w.timestamp);
-        const day = ts.getDay();
-        const week = Math.floor((ts.getDate() - 1) / 7);
+    function renderCaloriesIntake(
+        food,
+        logs
+    ) {
+        const colours =
+            chartColours();
 
-        const idx = day === 0 ? 6 : day - 1;
-        weekly[idx] += w.caloriesBurned || 0;
-        if (week >= 0 && week < 4) monthly[week] += w.caloriesBurned || 0;
-    });
+        const weekly =
+            [0, 0, 0, 0, 0, 0, 0];
 
-    new Chart(document.getElementById("burnWeekly"), {
-        type: "bar",
-        data: {
-            labels: ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"],
-            datasets: [{
-                data: weekly,
-                backgroundColor: "rgba(236,72,153,0.7)",
-                borderColor: "#ec4899",
-                borderWidth: 2,
-                borderRadius: 6
-            }]
-        },
-        options: {
-            scales: {
-                x: {
-                    grid: { display: false },
-                    ticks: { color: "#9ca3af" }
-                },
-                y: {
-                    grid: { color: "rgba(31,41,55,0.8)" },
-                    ticks: { color: "#9ca3af" }
+        food.forEach(item => {
+            const date =
+                getItemDate(item);
+
+            if (
+                !date ||
+                !isThisWeek(date)
+            ) {
+                return;
+            }
+
+            const index =
+                getMondayIndex(date);
+
+            weekly[index] +=
+                safeNumber(
+                    item.totalCalories ??
+                    item.calories
+                );
+        });
+
+        /*
+         * Use daily-log calories only when no separate food
+         * entries exist for the week.
+         */
+        if (
+            weekly.every(
+                value => value === 0
+            )
+        ) {
+            logs.forEach(log => {
+                const date =
+                    getItemDate(log);
+
+                if (
+                    !date ||
+                    !isThisWeek(date)
+                ) {
+                    return;
                 }
-            }
-        }
-    });
 
-    new Chart(document.getElementById("burnMonthly"), {
-        type: "line",
-        data: {
-            labels: ["Week 1","Week 2","Week 3","Week 4"],
-            datasets: [{
-                data: monthly,
-                borderColor: "#ec4899",
-                borderWidth: 3,
-                fill: true,
-                backgroundColor: "rgba(236,72,153,0.18)",
-                tension: 0.35,
-                pointRadius: 3,
-                pointBackgroundColor: "#ec4899"
-            }]
-        },
-        options: {
-            scales: {
-                x: {
-                    grid: { display: false },
-                    ticks: { color: "#9ca3af" }
-                },
-                y: {
-                    grid: { color: "rgba(31,41,55,0.8)" },
-                    ticks: { color: "#9ca3af" }
+                weekly[
+                    getMondayIndex(date)
+                ] +=
+                    safeNumber(
+                        log.totalCalories
+                    );
+            });
+        }
+
+        const chart =
+            new Chart(
+                document.getElementById(
+                    "caloriesWeekly"
+                ),
+
+                {
+                    type: "bar",
+
+                    data: {
+                        labels: [
+                            "Mon",
+                            "Tue",
+                            "Wed",
+                            "Thu",
+                            "Fri",
+                            "Sat",
+                            "Sun"
+                        ],
+
+                        datasets: [{
+                            data: weekly,
+
+                            backgroundColor:
+                                colours.primarySoft,
+
+                            borderColor:
+                                colours.primary,
+
+                            borderWidth: 2,
+                            borderRadius: 7
+                        }]
+                    },
+
+                    options:
+                        commonScaleOptions()
                 }
+            );
+
+        chartInstances.push(chart);
+    }
+
+    /* =========================================================
+       CALORIE BURN CHART
+    ========================================================== */
+
+    function renderCaloriesBurned(
+        workouts,
+        logs
+    ) {
+        const colours =
+            chartColours();
+
+        const weekly =
+            [0, 0, 0, 0, 0, 0, 0];
+
+        workouts.forEach(item => {
+            const date =
+                getItemDate(item);
+
+            if (
+                !date ||
+                !isThisWeek(date)
+            ) {
+                return;
             }
+
+            weekly[
+                getMondayIndex(date)
+            ] +=
+                safeNumber(
+                    item.caloriesBurned ??
+                    item.calories
+                );
+        });
+
+        if (
+            weekly.every(
+                value => value === 0
+            )
+        ) {
+            logs.forEach(log => {
+                const date =
+                    getItemDate(log);
+
+                if (
+                    !date ||
+                    !isThisWeek(date)
+                ) {
+                    return;
+                }
+
+                weekly[
+                    getMondayIndex(date)
+                ] +=
+                    safeNumber(
+                        log.totalBurn
+                    );
+            });
         }
-    });
-}
 
-/* -----------------------------------------------------------
-   WORKOUT ANALYTICS (GREEN / HYBRID)
------------------------------------------------------------ */
-function renderWorkoutAnalytics(workouts) {
-    const sessions = [0,0,0,0,0,0,0];
-    const minutes = [0,0,0,0,0,0,0];
-    const calories = [0,0,0,0,0,0,0];
+        const chart =
+            new Chart(
+                document.getElementById(
+                    "burnWeekly"
+                ),
 
-    workouts.forEach(w => {
-        if (!w.timestamp) return;
-        const ts = new Date(w.timestamp);
-        const day = ts.getDay();
-        const index = day === 0 ? 6 : day - 1;
+                {
+                    type: "line",
 
-        sessions[index] += 1;
-        minutes[index] += w.durationMinutes || 0;
-        calories[index] += w.caloriesBurned || 0;
-    });
+                    data: {
+                        labels: [
+                            "Mon",
+                            "Tue",
+                            "Wed",
+                            "Thu",
+                            "Fri",
+                            "Sat",
+                            "Sun"
+                        ],
 
-    new Chart(document.getElementById("workoutSessionsWeekly"), {
-        type: "bar",
-        data: {
-            labels: ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"],
-            datasets: [{
-                data: sessions,
-                backgroundColor: "rgba(129,140,248,0.8)",
-                borderColor: "#818cf8",
-                borderWidth: 2,
-                borderRadius: 6
-            }]
-        },
-        options: {
-            scales: {
-                x: { grid: { display: false }, ticks: { color: "#9ca3af" } },
-                y: { grid: { color: "rgba(31,41,55,0.8)" }, ticks: { color: "#9ca3af" } }
+                        datasets: [{
+                            data: weekly,
+
+                            borderColor:
+                                colours.accent,
+
+                            backgroundColor:
+                                colours.accentSoft,
+
+                            borderWidth: 3,
+                            fill: true,
+                            tension: 0.35,
+                            pointRadius: 3,
+
+                            pointBackgroundColor:
+                                colours.accent
+                        }]
+                    },
+
+                    options:
+                        commonScaleOptions()
+                }
+            );
+
+        chartInstances.push(chart);
+    }
+
+    /* =========================================================
+       WORKOUT CHARTS
+    ========================================================== */
+
+    function renderWorkoutAnalytics(
+        workouts
+    ) {
+        const colours =
+            chartColours();
+
+        const sessions =
+            [0, 0, 0, 0, 0, 0, 0];
+
+        const minutes =
+            [0, 0, 0, 0, 0, 0, 0];
+
+        workouts.forEach(item => {
+            const date =
+                getItemDate(item);
+
+            if (
+                !date ||
+                !isThisWeek(date)
+            ) {
+                return;
             }
+
+            const index =
+                getMondayIndex(date);
+
+            sessions[index] += 1;
+
+            minutes[index] +=
+                safeNumber(
+                    item.durationMinutes ??
+                    item.duration
+                );
+        });
+
+        const sessionChart =
+            new Chart(
+                document.getElementById(
+                    "workoutSessionsWeekly"
+                ),
+
+                {
+                    type: "bar",
+
+                    data: {
+                        labels: [
+                            "Mon",
+                            "Tue",
+                            "Wed",
+                            "Thu",
+                            "Fri",
+                            "Sat",
+                            "Sun"
+                        ],
+
+                        datasets: [{
+                            data: sessions,
+
+                            backgroundColor:
+                                colours.secondarySoft,
+
+                            borderColor:
+                                colours.secondary,
+
+                            borderWidth: 2,
+                            borderRadius: 7
+                        }]
+                    },
+
+                    options:
+                        commonScaleOptions()
+                }
+            );
+
+        const minuteChart =
+            new Chart(
+                document.getElementById(
+                    "workoutMinutesWeekly"
+                ),
+
+                {
+                    type: "line",
+
+                    data: {
+                        labels: [
+                            "Mon",
+                            "Tue",
+                            "Wed",
+                            "Thu",
+                            "Fri",
+                            "Sat",
+                            "Sun"
+                        ],
+
+                        datasets: [{
+                            data: minutes,
+
+                            borderColor:
+                                colours.primary,
+
+                            backgroundColor:
+                                colours.primarySoft,
+
+                            borderWidth: 3,
+                            fill: true,
+                            tension: 0.35,
+                            pointRadius: 3,
+
+                            pointBackgroundColor:
+                                colours.primary
+                        }]
+                    },
+
+                    options:
+                        commonScaleOptions()
+                }
+            );
+
+        chartInstances.push(
+            sessionChart,
+            minuteChart
+        );
+    }
+
+    /* =========================================================
+       HISTORY NORMALISATION
+    ========================================================== */
+
+    function normaliseHistory(
+        history,
+        valueFields
+    ) {
+        if (
+            !Array.isArray(history)
+        ) {
+            return [];
         }
-    });
 
-    new Chart(document.getElementById("workoutMinutesWeekly"), {
-        type: "line",
-        data: {
-            labels: ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"],
-            datasets: [{
-                data: minutes,
-                borderColor: "#4ade80",
-                borderWidth: 3,
-                fill: true,
-                backgroundColor: "rgba(74,222,128,0.18)",
-                tension: 0.35,
-                pointRadius: 3,
-                pointBackgroundColor: "#4ade80"
-            }]
-        },
-        options: {
-            scales: {
-                x: { grid: { display: false }, ticks: { color: "#9ca3af" } },
-                y: { grid: { color: "rgba(31,41,55,0.8)" }, ticks: { color: "#9ca3af" } }
-            }
+        return history
+            .map(entry => {
+                let value = null;
+
+                for (
+                    const field of
+                    valueFields
+                ) {
+                    const candidate =
+                        Number(entry[field]);
+
+                    if (
+                        Number.isFinite(
+                            candidate
+                        )
+                    ) {
+                        value = candidate;
+                        break;
+                    }
+                }
+
+                const date =
+                    toDate(
+                        entry.timestamp
+                    ) ||
+                    toDate(
+                        entry.date
+                    ) ||
+                    toDate(
+                        entry.createdAt
+                    );
+
+                if (
+                    value === null ||
+                    !date
+                ) {
+                    return null;
+                }
+
+                return {
+                    value,
+                    date
+                };
+            })
+            .filter(Boolean)
+            .sort(
+                (a, b) =>
+                    a.date - b.date
+            );
+    }
+
+    /* =========================================================
+       WEIGHT CHART
+    ========================================================== */
+
+    function renderWeightTrend(
+        history
+    ) {
+        const entries =
+            normaliseHistory(
+                history,
+                [
+                    "weightKg",
+                    "weight",
+                    "value"
+                ]
+            );
+
+        if (
+            entries.length === 0
+        ) {
+            document.getElementById(
+                "weightChartBody"
+            ).style.display =
+                "none";
+
+            document.getElementById(
+                "weightEmpty"
+            ).style.display =
+                "grid";
+
+            return;
         }
-    });
 
-    new Chart(document.getElementById("workoutCaloriesWeekly"), {
-        type: "line",
-        data: {
-            labels: ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"],
-            datasets: [{
-                data: calories,
-                borderColor: "#f97316",
-                borderWidth: 3,
-                fill: true,
-                backgroundColor: "rgba(249,115,22,0.18)",
-                tension: 0.35,
-                pointRadius: 3,
-                pointBackgroundColor: "#f97316"
-            }]
-        },
-        options: {
-            scales: {
-                x: { grid: { display: false }, ticks: { color: "#9ca3af" } },
-                y: { grid: { color: "rgba(31,41,55,0.8)" }, ticks: { color: "#9ca3af" } }
-            }
+        const colours =
+            chartColours();
+
+        const chart =
+            new Chart(
+                document.getElementById(
+                    "weightTrendChart"
+                ),
+
+                {
+                    type: "line",
+
+                    data: {
+                        labels:
+                            entries.map(
+                                entry =>
+                                    entry.date
+                                        .toLocaleDateString(
+                                            "en-GB",
+                                            {
+                                                day:
+                                                    "numeric",
+                                                month:
+                                                    "short"
+                                            }
+                                        )
+                            ),
+
+                        datasets: [{
+                            data:
+                                entries.map(
+                                    entry =>
+                                        entry.value
+                                ),
+
+                            borderColor:
+                                colours.primary,
+
+                            backgroundColor:
+                                colours.primarySoft,
+
+                            borderWidth: 3,
+                            fill: true,
+                            tension: 0.35,
+                            pointRadius: 3,
+
+                            pointBackgroundColor:
+                                colours.primary
+                        }]
+                    },
+
+                    options: {
+                        ...commonScaleOptions(),
+
+                        scales: {
+                            ...commonScaleOptions()
+                                .scales,
+
+                            y: {
+                                ...commonScaleOptions()
+                                    .scales.y,
+
+                                beginAtZero: false
+                            }
+                        }
+                    }
+                }
+            );
+
+        chartInstances.push(chart);
+    }
+
+    /* =========================================================
+       BMI CHART
+    ========================================================== */
+
+    function renderBMITrend(
+        history,
+        user
+    ) {
+        let entries =
+            normaliseHistory(
+                history,
+                ["value", "bmi"]
+            );
+
+        /*
+         * Existing accounts may only have the current BMI
+         * rather than a history array.
+         */
+        if (
+            entries.length === 0 &&
+            Number.isFinite(
+                Number(user.bmi)
+            )
+        ) {
+            entries = [{
+                value:
+                    Number(user.bmi),
+
+                date:
+                    new Date()
+            }];
         }
-    });
-}
 
-/* -----------------------------------------------------------
-   WEIGHT TREND (CYAN)
------------------------------------------------------------ */
-function renderWeightTrend(history) {
-    if (!history || history.length === 0) return;
+        if (
+            entries.length === 0
+        ) {
+            document.getElementById(
+                "bmiChartBody"
+            ).style.display =
+                "none";
 
-    const sorted = [...history].sort((a,b) => a.timestamp - b.timestamp);
-    const labels = sorted.map(h => new Date(h.timestamp).toLocaleDateString());
-    const values = sorted.map(h => h.value);
+            document.getElementById(
+                "bmiEmpty"
+            ).style.display =
+                "grid";
 
-    new Chart(document.getElementById("weightTrendChart"), {
-        type: "line",
-        data: {
-            labels,
-            datasets: [{
-                data: values,
-                borderColor: "#38bdf8",
-                borderWidth: 3,
-                fill: true,
-                backgroundColor: "rgba(56,189,248,0.18)",
-                tension: 0.35,
-                pointRadius: 3,
-                pointBackgroundColor: "#38bdf8"
-            }]
-        },
-        options: {
-            scales: {
-                x: { grid: { display: false }, ticks: { color: "#9ca3af" } },
-                y: { grid: { color: "rgba(31,41,55,0.8)" }, ticks: { color: "#9ca3af" } }
-            }
+            return;
         }
-    });
-}
 
-/* -----------------------------------------------------------
-   BMI TREND (BLUE)
------------------------------------------------------------ */
-function renderBMITrend(history) {
-    if (!history || history.length === 0) return;
+        const colours =
+            chartColours();
 
-    const sorted = [...history].sort((a,b) => a.timestamp - b.timestamp);
-    const labels = sorted.map(h => new Date(h.timestamp).toLocaleDateString());
-    const values = sorted.map(h => h.value);
+        const chart =
+            new Chart(
+                document.getElementById(
+                    "bmiTrendChart"
+                ),
 
-    new Chart(document.getElementById("bmiTrendChart"), {
-        type: "line",
-        data: {
-            labels,
-            datasets: [{
-                data: values,
-                borderColor: "#4da3ff",
-                borderWidth: 3,
-                fill: true,
-                backgroundColor: "rgba(77,163,255,0.18)",
-                tension: 0.35,
-                pointRadius: 3,
-                pointBackgroundColor: "#4da3ff"
-            }]
-        },
-        options: {
-            scales: {
-                x: { grid: { display: false }, ticks: { color: "#9ca3af" } },
-                y: { grid: { color: "rgba(31,41,55,0.8)" }, ticks: { color: "#9ca3af" } }
-            }
-        }
-    });
-}
+                {
+                    type: "line",
 
-/* -----------------------------------------------------------
-   XP TREND (PURPLE / MAGENTA)
------------------------------------------------------------ */
-function renderXPTrend(history) {
-    if (!history || history.length === 0) return;
+                    data: {
+                        labels:
+                            entries.map(
+                                entry =>
+                                    entry.date
+                                        .toLocaleDateString(
+                                            "en-GB",
+                                            {
+                                                day:
+                                                    "numeric",
+                                                month:
+                                                    "short"
+                                            }
+                                        )
+                            ),
 
-    const sorted = [...history].sort((a,b) => a.timestamp - b.timestamp);
-    const labels = sorted.map(h => new Date(h.timestamp).toLocaleDateString());
-    const values = sorted.map(h => h.value);
+                        datasets: [{
+                            data:
+                                entries.map(
+                                    entry =>
+                                        entry.value
+                                ),
 
-    new Chart(document.getElementById("xpTrendChart"), {
-        type: "line",
-        data: {
-            labels,
-            datasets: [{
-                data: values,
-                borderColor: "#a855f7",
-                borderWidth: 3,
-                fill: true,
-                backgroundColor: "rgba(168,85,247,0.18)",
-                tension: 0.35,
-                pointRadius: 3,
-                pointBackgroundColor: "#a855f7"
-            }]
-        },
-        options: {
-            scales: {
-                x: { grid: { display: false }, ticks: { color: "#9ca3af" } },
-                y: { grid: { color: "rgba(31,41,55,0.8)" }, ticks: { color: "#9ca3af" } }
-            }
-        }
-    });
-}
+                            borderColor:
+                                colours.secondary,
+
+                            backgroundColor:
+                                colours.secondarySoft,
+
+                            borderWidth: 3,
+                            fill: true,
+                            tension: 0.35,
+                            pointRadius: 3,
+
+                            pointBackgroundColor:
+                                colours.secondary
+                        }]
+                    },
+
+                    options: {
+                        ...commonScaleOptions(),
+
+                        scales: {
+                            ...commonScaleOptions()
+                                .scales,
+
+                            y: {
+                                ...commonScaleOptions()
+                                    .scales.y,
+
+                                beginAtZero: false
+                            }
+                        }
+                    }
+                }
+            );
+
+        chartInstances.push(chart);
+    }
 </script>
 
 </body>
