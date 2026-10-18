@@ -262,3 +262,57 @@ async function applyUserTheme() {
 
 window.FitQuestBrain = FitQuestBrain;
 window.applyUserTheme = applyUserTheme;
+
+
+// Shared workout dates and totals. Read saved sessions rather than stale profile counters.
+window.FitQuestActivity = (() => {
+    const number = value => Number.isFinite(Number(value)) ? Math.max(0, Number(value)) : 0;
+    function dateKey(date) {
+        return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+    }
+    function dateOf(workout) {
+        if (/^\d{4}-\d{2}-\d{2}$/.test(workout.logDateKey || "")) {
+            const [y, m, d] = workout.logDateKey.split("-").map(Number);
+            const date = new Date(y, m - 1, d, 12);
+            return dateKey(date) === workout.logDateKey ? date : null;
+        }
+        const value = workout.timestamp;
+        if (value == null) return null;
+        const date = typeof value.toDate === "function" ? value.toDate()
+            : new Date(typeof value === "object" && "seconds" in value ? value.seconds * 1000 : value);
+        return Number.isNaN(date.getTime()) ? null : date;
+    }
+    function inRange(workout, range, now = new Date()) {
+        const date = dateOf(workout);
+        if (!date) return false;
+        if (range === "day") return dateKey(date) === dateKey(now);
+        if (range === "month") return date.getFullYear() === now.getFullYear() && date.getMonth() === now.getMonth();
+        const start = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        start.setDate(start.getDate() - (start.getDay() + 6) % 7);
+        const end = new Date(start);
+        end.setDate(end.getDate() + 7);
+        return date >= start && date < end;
+    }
+    function totals(workouts, range = "day", now = new Date()) {
+        return workouts.filter(w => inRange(w, range, now)).reduce((sum, w) => ({
+            sessions: sum.sessions + 1,
+            steps: sum.steps + number(w.steps),
+            calories: sum.calories + number(w.caloriesBurned),
+            minutes: sum.minutes + number(w.durationMinutes)
+        }), { sessions: 0, steps: 0, calories: 0, minutes: 0 });
+    }
+    function series(workouts, range, metric = "steps", now = new Date()) {
+        const labels = range === "day" ? Array.from({length: 24}, (_, h) => `${h}:00`)
+            : range === "week" ? ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+            : Array.from({length: new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate()}, (_, d) => String(d + 1));
+        const data = labels.map(() => 0);
+        workouts.filter(w => inRange(w, range, now)).forEach(w => {
+            const date = dateOf(w);
+            const index = range === "day" ? date.getHours() : range === "week" ? (date.getDay() + 6) % 7 : date.getDate() - 1;
+            const field = {steps: "steps", calories: "caloriesBurned", minutes: "durationMinutes"}[metric];
+            data[index] += metric === "sessions" ? 1 : number(w[field]);
+        });
+        return {labels, data};
+    }
+    return {dateKey, dateOf, inRange, totals, series};
+})();
