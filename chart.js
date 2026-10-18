@@ -7,7 +7,7 @@ Chart.defaults.font.family = "Inter, system-ui, sans-serif";
 Chart.defaults.borderColor = "rgba(148,163,184,0.25)";
 Chart.defaults.plugins.legend.labels.color = "#e2e8f0";
 Chart.defaults.scale.grid.color = "rgba(56,189,248,0.18)";
-Chart.defaults.scale.grid.borderColor = "rgba(56,189,248,0.4)";
+
 Chart.defaults.scale.ticks.color = "#38bdf8";
 Chart.defaults.scale.ticks.font = {
     size: 11,
@@ -220,76 +220,22 @@ window.updateIntakeChartRange = (range) => renderIntakeChart(range);
 ----------------------------------------------------------- */
 
 let workoutChart = null;
-let workoutMode = "sessions"; // sessions | calories | minutes
+let workoutMode = "steps"; // sessions | calories | minutes
 
+let workoutRange = "day";
+let savedWorkouts = null;
 async function loadWorkoutData(range) {
-    const userRef = await getUserRef();
-    if (!userRef) return { labels: [], data: [] };
-
-    const snap = await userRef.collection("workouts").get();
-    const workouts = snap.docs.map(d => d.data());
-
-    const now = new Date();
-    const today = now.toISOString().split("T")[0];
-
-    const extractValue = (w) => {
-        if (workoutMode === "sessions") return 1;
-        if (workoutMode === "calories") return w.caloriesBurned || 0;
-        if (workoutMode === "minutes") return w.durationMinutes || 0;
-        return 0;
-    };
-
-    if (range === "day") {
-        const hours = Array.from({ length: 14 }, (_, i) => i + 7);
-        const totals = hours.map(() => 0);
-
-        workouts.forEach(w => {
-            const ts = new Date(w.timestamp);
-            const date = ts.toISOString().split("T")[0];
-            if (date === today) {
-                const hour = ts.getHours();
-                const index = hours.indexOf(hour);
-                if (index !== -1) totals[index] += extractValue(w);
-            }
-        });
-
-        return {
-            labels: hours.map(h => `${h}:00`),
-            data: totals
-        };
-    }
-
-    if (range === "week") {
-        const labels = ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
-        const totals = Array(7).fill(0);
-
-        workouts.forEach(w => {
-            const ts = new Date(w.timestamp);
-            const day = ts.getDay();
-            const index = day === 0 ? 6 : day - 1;
-            totals[index] += extractValue(w);
-        });
-
-        return { labels, data: totals };
-    }
-
-    if (range === "month") {
-        const labels = ["Week 1","Week 2","Week 3","Week 4"];
-        const totals = [0,0,0,0];
-
-        workouts.forEach(w => {
-            const ts = new Date(w.timestamp);
-            const week = Math.floor((ts.getDate() - 1) / 7);
-            totals[week] += extractValue(w);
-        });
-
-        return { labels, data: totals };
-    }
-
-    return { labels: [], data: [] };
+    if (savedWorkouts === null) return { labels: [], data: [] };
+    return FitQuestActivity.series(savedWorkouts, range, workoutMode);
 }
 
+window.refreshWorkoutCharts = workouts => {
+    savedWorkouts = workouts;
+    renderWorkoutChart(workoutRange);
+};
+
 async function renderWorkoutChart(range = "day") {
+    workoutRange = range;
     const canvas = document.getElementById("stepTracker");
     if (!canvas) return;
 
