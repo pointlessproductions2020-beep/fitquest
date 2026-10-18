@@ -1013,7 +1013,9 @@
     const storedDate = localStorage.getItem("fitquest_selected_date");
 
     if (storedDate) {
-        selectedLogDate = new Date(storedDate);
+        selectedLogDate = /^\d{4}-\d{2}-\d{2}$/.test(storedDate)
+            ? new Date(`${storedDate}T12:00:00`) : new Date(storedDate);
+        if (Number.isNaN(selectedLogDate.getTime())) selectedLogDate = new Date();
         selectedLogDate.setHours(12, 0, 0, 0);
     } else {
         selectedLogDate = new Date();
@@ -1268,7 +1270,7 @@
                 ...latestEstimate,
                 timestamp: selectedLogDate.getTime(),
                 loggedAt: firebase.firestore.FieldValue.serverTimestamp(),
-                logDateKey: selectedLogDate.toISOString().slice(0, 10),
+                logDateKey: FitQuestActivity.dateKey(selectedLogDate),
                 userWeightKgAtLog: userWeight,
                 estimateMethod:
                     latestEstimate.type === "treadmill"
@@ -1280,19 +1282,20 @@
 
             await userRef.collection("workouts").add(record);
 
-            if (
-                window.FitQuestBrain &&
-                typeof FitQuestBrain.awardXp === "function"
-            ) {
-                await FitQuestBrain.awardXp(
-                    userRef,
-                    15,
-                    "workout_logged"
-                );
+            // The workout is already saved. An XP failure must not invite a duplicate save.
+            const savedEstimate = latestEstimate;
+            latestEstimate = null;
+            let xpEarned = false;
+            try {
+                if (window.FitQuestBrain && typeof FitQuestBrain.awardXp === "function") {
+                    await FitQuestBrain.awardXp(userRef, 15, "workout_logged");
+                    xpEarned = true;
+                }
+            } catch (xpError) {
+                console.warn("Workout saved, but XP could not be awarded:", xpError);
             }
-
             showMessage(
-                `${latestEstimate.displayName} saved successfully. You earned 15 XP.`,
+                `${savedEstimate.displayName} saved for ${formatDate(selectedLogDate)}.${xpEarned ? " You earned 15 XP." : " Your session is saved, but XP could not be confirmed."}`,
                 "success"
             );
 
