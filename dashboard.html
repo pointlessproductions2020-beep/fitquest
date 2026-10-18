@@ -1126,7 +1126,17 @@
                 transition-duration: 0.01ms !important;
             }
         }
-    </style>
+        .activity-summary { display: grid; justify-items: center; gap: 8px; padding: 22px 12px; }
+    .activity-summary > strong { font-size: 64px; line-height: 1; color: #67e8f9; font-variant-numeric: tabular-nums; }
+    .activity-summary > span { color: #94a3b8; font-size: 13px; }
+    .activity-chips { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin-top: 12px; }
+    .activity-chips span { border: 1px solid rgba(103,232,249,.18); border-radius: 12px; padding: 8px 14px; background: rgba(103,232,249,.05); font-size: 13px; }
+    .activity-link { display: block; width: fit-content; margin: 16px auto 0; color: #67e8f9; padding: 10px 18px; border-radius: 12px; border: 1px solid rgba(103,232,249,.3); text-decoration: none; }
+    .activity-link:focus-visible { outline: 2px solid #67e8f9; outline-offset: 4px; }
+    .steps-track { height: 5px; background: rgba(148,163,184,.15); border-radius: 8px; margin: 14px 0 10px; overflow: hidden; }
+    .steps-track span { display: block; height: 100%; width: 0; background: linear-gradient(90deg,#22d3ee,#a78bfa); border-radius: inherit; }
+    #activityStatus { font-size: 11px; }
+</style>
 </head>
 
 <body>
@@ -1268,7 +1278,9 @@
                 </div>
                 <h3>Steps today</h3>
                 <p class="metric-value" id="stepsToday">0</p>
-                <span class="metric-sub" id="stepTrackerLabel">0 / 10,000 steps</span>
+                <span class="metric-sub" id="stepTrackerLabel">Loading saved workouts…</span>
+                <div class="steps-track" aria-hidden="true"><span id="stepsFill"></span></div>
+                <span class="metric-sub" id="activityStatus" role="status">Includes estimated treadmill steps</span>
             </article>
         </section>
 
@@ -1389,12 +1401,16 @@
                 <div class="card-header">
                     <div>
                         <h2>Workout progress</h2>
-                        <p>Sessions completed against your current plan.</p>
+                        <p>Every saved session counts. Keep building your week.</p>
                     </div>
                     <span class="card-badge">This week</span>
                 </div>
-                <div class="ring-card-body"><canvas id="workoutRing"></canvas></div>
-                <p class="ring-label" id="workoutRingLabel">4 / 5 workouts completed</p>
+                <div class="activity-summary" aria-live="polite">
+                    <strong id="weeklySessions">—</strong><span>sessions this week</span>
+                    <div class="activity-chips"><span id="weeklyMinutes">— min</span><span id="weeklyCalories">— kcal</span></div>
+                </div>
+                <p class="ring-label" id="workoutRingLabel">Loading your saved sessions…</p>
+                <a class="activity-link" href="exercise.html">+ Log a workout</a>
             </article>
 
             <article id="weightCard" class="card chart-card neon-interactive">
@@ -1427,7 +1443,7 @@
                 <div class="card-header">
                     <div>
                         <h2>Movement pattern</h2>
-                        <p>Your steps and activity across the selected period.</p>
+                        <p>Estimated steps from saved workouts across the selected period.</p>
                     </div>
                     <div class="chart-toggle">
                         <button id="workoutDayBtn" class="active" type="button" onclick="setWorkoutRange('day'); event.stopPropagation();">Day</button>
@@ -1569,6 +1585,8 @@
     "use strict";
 
     let membership = "free";
+    let stopWorkouts = null;
+    let activityTimer = null;
 
     function safeNumber(value, fallback = 0) {
         const number = Number(value);
@@ -1674,6 +1692,8 @@
     }
 
     auth.onAuthStateChanged(async user => {
+        if (stopWorkouts) stopWorkouts();
+        clearInterval(activityTimer);
         if (!user) {
             window.location.href = "index.html";
             return;
@@ -1734,8 +1754,8 @@
                 `◇ ${membership.charAt(0).toUpperCase()}${membership.slice(1)} member`;
 
             const caloriesEaten = safeNumber(data.caloriesEaten ?? data.calEaten ?? data.todayCalories);
-            const caloriesBurned = safeNumber(data.caloriesBurned ?? data.calBurned ?? data.burnedToday);
-            const steps = safeNumber(data.stepsToday);
+            const caloriesBurned = 0;
+            const steps = 0;
             const water = safeNumber(data.waterToday);
 
             document.getElementById("calEaten").textContent = `${formatNumber(caloriesEaten)} kcal`;
@@ -1913,6 +1933,45 @@
             } catch (adaptiveError) {
                 console.warn("FitQuest adaptive check failed:", adaptiveError);
             }
+
+            let workouts = [];
+            function renderActivity() {
+                const today = FitQuestActivity.totals(workouts);
+                const week = FitQuestActivity.totals(workouts, "week");
+                document.getElementById("stepsToday").textContent = formatNumber(today.steps);
+                document.getElementById("stepTrackerLabel").textContent = `${formatNumber(today.steps)} / 10,000 steps`;
+                document.getElementById("stepsFill").style.width = `${clamp(today.steps / 100)}%`;
+                document.getElementById("calBurned").textContent = `${formatNumber(today.calories)} kcal`;
+                document.getElementById("weeklySessions").textContent = formatNumber(week.sessions);
+                document.getElementById("weeklyMinutes").textContent = `${formatNumber(week.minutes)} min`;
+                document.getElementById("weeklyCalories").textContent = `${formatNumber(week.calories)} kcal`;
+                document.getElementById("workoutRingLabel").textContent = today.sessions
+                    ? `${today.sessions} session${today.sessions === 1 ? "" : "s"} logged today · ${formatNumber(today.minutes)} min`
+                    : "No sessions today yet. Your next one starts here.";
+                const score = calculateJourneyScore({caloriesEaten, targetCalories, steps: today.steps, water, streak});
+                document.getElementById("journeyScore").textContent = `${score.score}%`;
+                document.getElementById("journeyScoreRing").style.setProperty("--score", score.score);
+                updateProgressBar("movement", score.movementScore);
+                document.getElementById("coachMessage").textContent = buildCoachMessage({
+                    data, caloriesEaten, caloriesBurned: today.calories, targetCalories, steps: today.steps, water, weightTrend
+                });
+                if (window.refreshWorkoutCharts) window.refreshWorkoutCharts(workouts);
+            }
+            stopWorkouts = userRef.collection("workouts").onSnapshot(snapshot => {
+                workouts = snapshot.docs.map(doc => doc.data());
+                renderActivity();
+                document.getElementById("activityStatus").textContent = "Includes estimated treadmill steps";
+                clearInterval(activityTimer);
+                activityTimer = setInterval(renderActivity, 60000);
+            }, error => {
+                console.error("Workout totals could not load:", error);
+                clearInterval(activityTimer);
+                document.getElementById("stepsToday").textContent = "—";
+                document.getElementById("calBurned").textContent = "—";
+                document.getElementById("stepTrackerLabel").textContent = "Workout totals unavailable";
+                document.getElementById("activityStatus").textContent = "Refresh to retry loading your sessions.";
+                document.getElementById("workoutRingLabel").textContent = "Could not load saved sessions. Refresh to retry.";
+            });
 
             document.querySelectorAll(".neon-interactive").forEach(element => {
                 element.addEventListener("mouseenter", () => {
