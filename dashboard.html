@@ -15,7 +15,7 @@
 
     <script src="firebase.js"></script>
     <script src="theme.js"></script>
-    <script src="fitquestbrain.js"></script>
+    <script src="fitquestbrain.js?v=activity-2"></script>
 
     <style>
         :root {
@@ -1691,13 +1691,67 @@
         return "Keep building today's picture. The more complete your food, movement and hydration logs become, the more useful FitQuest's guidance can be.";
     }
 
+    let latestActivity = {steps: 0, calories: 0, sessions: 0, minutes: 0};
+    let updateActivityGuidance = () => {};
+    function startActivityTracking(userRef) {
+        document.getElementById("stepsToday").textContent = "—";
+        document.getElementById("calBurned").textContent = "—";
+        function showActivityError(error) {
+
+                console.error("Workout totals could not load:", error);
+                clearInterval(activityTimer);
+                document.getElementById("stepsToday").textContent = "—";
+                document.getElementById("calBurned").textContent = "—";
+                document.getElementById("stepTrackerLabel").textContent = "Workout totals unavailable";
+                document.getElementById("activityStatus").textContent = `Workout loading failed (${error.code || error.message || "unknown error"}). Refresh to retry.`;
+                document.getElementById("workoutRingLabel").textContent = "Could not load saved sessions. Refresh to retry.";
+        }
+            let workouts = [];
+            function renderActivity() {
+                const today = FitQuestActivity.totals(workouts);
+                const week = FitQuestActivity.totals(workouts, "week");
+                document.getElementById("stepsToday").textContent = formatNumber(today.steps);
+                document.getElementById("stepTrackerLabel").textContent = `${formatNumber(today.steps)} / 10,000 steps`;
+                document.getElementById("stepsFill").style.width = `${clamp(today.steps / 100)}%`;
+                document.getElementById("calBurned").textContent = `${formatNumber(today.calories)} kcal`;
+                document.getElementById("weeklySessions").textContent = formatNumber(week.sessions);
+                document.getElementById("weeklyMinutes").textContent = `${formatNumber(week.minutes)} min`;
+                document.getElementById("weeklyCalories").textContent = `${formatNumber(week.calories)} kcal`;
+                document.getElementById("workoutRingLabel").textContent = today.sessions
+                    ? `${today.sessions} session${today.sessions === 1 ? "" : "s"} logged today · ${formatNumber(today.minutes)} min`
+                    : "No sessions today yet. Your next one starts here.";
+                latestActivity = today;
+                updateActivityGuidance(today);
+                if (window.refreshWorkoutCharts) window.refreshWorkoutCharts(workouts);
+                const dated = workouts.map(FitQuestActivity.dateOf).filter(Boolean).sort((a, b) => b - a);
+                document.getElementById("activityStatus").textContent = today.sessions
+                    ? "Includes estimated treadmill steps"
+                    : workouts.length ? `No workouts dated today. Latest: ${dated.length ? FitQuestActivity.dateKey(dated[0]) : "date unavailable"}. Check Workout History.`
+                    : "No saved workouts yet. Log a session to begin.";
+            }
+            stopWorkouts = userRef.collection("workouts").onSnapshot(snapshot => {
+                workouts = snapshot.docs.map(doc => doc.data());
+                try { renderActivity(); }
+                catch (error) { showActivityError(error); return; }
+
+                clearInterval(activityTimer);
+                activityTimer = setInterval(renderActivity, 60000);
+            }, showActivityError);
+
+
+    }
+
     auth.onAuthStateChanged(async user => {
         if (stopWorkouts) stopWorkouts();
         clearInterval(activityTimer);
+        updateActivityGuidance = () => {};
         if (!user) {
             window.location.href = "index.html";
             return;
         }
+
+        const userRef = db.collection("users").doc(user.uid);
+        startActivityTracking(userRef);
 
         try {
             if (typeof applyUserTheme === "function") {
@@ -1706,8 +1760,6 @@
         } catch (themeError) {
             console.warn("FitQuest theme could not be applied:", themeError);
         }
-
-        const userRef = db.collection("users").doc(user.uid);
 
         try {
             const userDocument = await userRef.get();
@@ -1754,16 +1806,11 @@
                 `◇ ${membership.charAt(0).toUpperCase()}${membership.slice(1)} member`;
 
             const caloriesEaten = safeNumber(data.caloriesEaten ?? data.calEaten ?? data.todayCalories);
-            const caloriesBurned = 0;
-            const steps = 0;
+            const caloriesBurned = latestActivity.calories;
+            const steps = latestActivity.steps;
             const water = safeNumber(data.waterToday);
 
             document.getElementById("calEaten").textContent = `${formatNumber(caloriesEaten)} kcal`;
-            document.getElementById("calBurned").textContent = `${formatNumber(caloriesBurned)} kcal`;
-            document.getElementById("stepsToday").textContent = formatNumber(steps);
-            document.getElementById("stepTrackerLabel").textContent =
-                `${formatNumber(steps)} / 10,000 steps`;
-
             document.getElementById("burnCard").onclick = () => {
                 window.location.href = "exercise.html";
             };
@@ -1790,12 +1837,7 @@
 
             const targetCalories = safeNumber(targets?.targetCalories ?? data.targetCalories);
 
-            if (targets) {
-                await userRef.set({
-                    tdee: targets.tdee,
-                    targetCalories: targets.targetCalories
-                }, { merge: true });
-            }
+            // Display calculations do not require a profile write on page load.
 
             if (targetCalories > 0) {
                 const remaining = Math.round(targetCalories - caloriesEaten);
@@ -1934,20 +1976,7 @@
                 console.warn("FitQuest adaptive check failed:", adaptiveError);
             }
 
-            let workouts = [];
-            function renderActivity() {
-                const today = FitQuestActivity.totals(workouts);
-                const week = FitQuestActivity.totals(workouts, "week");
-                document.getElementById("stepsToday").textContent = formatNumber(today.steps);
-                document.getElementById("stepTrackerLabel").textContent = `${formatNumber(today.steps)} / 10,000 steps`;
-                document.getElementById("stepsFill").style.width = `${clamp(today.steps / 100)}%`;
-                document.getElementById("calBurned").textContent = `${formatNumber(today.calories)} kcal`;
-                document.getElementById("weeklySessions").textContent = formatNumber(week.sessions);
-                document.getElementById("weeklyMinutes").textContent = `${formatNumber(week.minutes)} min`;
-                document.getElementById("weeklyCalories").textContent = `${formatNumber(week.calories)} kcal`;
-                document.getElementById("workoutRingLabel").textContent = today.sessions
-                    ? `${today.sessions} session${today.sessions === 1 ? "" : "s"} logged today · ${formatNumber(today.minutes)} min`
-                    : "No sessions today yet. Your next one starts here.";
+            updateActivityGuidance = today => {
                 const score = calculateJourneyScore({caloriesEaten, targetCalories, steps: today.steps, water, streak});
                 document.getElementById("journeyScore").textContent = `${score.score}%`;
                 document.getElementById("journeyScoreRing").style.setProperty("--score", score.score);
@@ -1955,23 +1984,8 @@
                 document.getElementById("coachMessage").textContent = buildCoachMessage({
                     data, caloriesEaten, caloriesBurned: today.calories, targetCalories, steps: today.steps, water, weightTrend
                 });
-                if (window.refreshWorkoutCharts) window.refreshWorkoutCharts(workouts);
-            }
-            stopWorkouts = userRef.collection("workouts").onSnapshot(snapshot => {
-                workouts = snapshot.docs.map(doc => doc.data());
-                renderActivity();
-                document.getElementById("activityStatus").textContent = "Includes estimated treadmill steps";
-                clearInterval(activityTimer);
-                activityTimer = setInterval(renderActivity, 60000);
-            }, error => {
-                console.error("Workout totals could not load:", error);
-                clearInterval(activityTimer);
-                document.getElementById("stepsToday").textContent = "—";
-                document.getElementById("calBurned").textContent = "—";
-                document.getElementById("stepTrackerLabel").textContent = "Workout totals unavailable";
-                document.getElementById("activityStatus").textContent = "Refresh to retry loading your sessions.";
-                document.getElementById("workoutRingLabel").textContent = "Could not load saved sessions. Refresh to retry.";
-            });
+            };
+            updateActivityGuidance(latestActivity);
 
             document.querySelectorAll(".neon-interactive").forEach(element => {
                 element.addEventListener("mouseenter", () => {
@@ -2041,6 +2055,6 @@
     });
 </script>
 
-<script src="chart.js"></script>
+<script src="chart.js?v=activity-2"></script>
 </body>
 </html>
