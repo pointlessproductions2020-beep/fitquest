@@ -1394,7 +1394,7 @@ function renderDayDetail() {
     }
 
     actions.innerHTML = `
-        <button class="primary" onclick="window.location.href='exercise.html'">Add workout</button>
+        <button class="primary" onclick="window.location.href='exercise.html?date=' + formatDateKey(selectedDate)">Add workout</button>
         <button class="primary" onclick="window.location.href='food.html'">Add food</button>
         <button class="primary" onclick="openHydrationModal()">Add hydration</button>
         <button class="primary" onclick="openWeightModal()">Add weight/BMI</button>
