@@ -14,7 +14,7 @@
 
     <script src="firebase.js"></script>
     <script src="theme.js"></script>
-    <script src="fitquestbrain.js"></script>
+    <script src="fitquestbrain.js?v=activity-2"></script>
 
     <style>
         :root {
@@ -809,6 +809,8 @@
 
             <div class="selected-date-card">
                 ◇ Logging for <span id="selectedDateText">today</span>
+                <label for="workoutDate" style="display:block;margin-top:10px">Workout date</label>
+                <input id="workoutDate" type="date" required style="padding:8px;border-radius:8px;color:inherit;background:rgba(148,163,184,.12);border:1px solid #64748b">
             </div>
         </section>
 
@@ -1009,18 +1011,12 @@
     let latestEstimate = null;
     let isSaving = false;
 
-    let selectedLogDate = null;
-    const storedDate = localStorage.getItem("fitquest_selected_date");
-
-    if (storedDate) {
-        selectedLogDate = /^\d{4}-\d{2}-\d{2}$/.test(storedDate)
-            ? new Date(`${storedDate}T12:00:00`) : new Date(storedDate);
-        if (Number.isNaN(selectedLogDate.getTime())) selectedLogDate = new Date();
-        selectedLogDate.setHours(12, 0, 0, 0);
-    } else {
-        selectedLogDate = new Date();
-        selectedLogDate.setHours(12, 0, 0, 0);
-    }
+    // Normal visits start today. Calendar backdating is explicit in the URL.
+    const requestedDate = new URLSearchParams(window.location.search).get("date");
+    let selectedLogDate = requestedDate && /^\d{4}-\d{2}-\d{2}$/.test(requestedDate)
+        ? new Date(`${requestedDate}T12:00:00`) : new Date();
+    if (Number.isNaN(selectedLogDate.getTime())) selectedLogDate = new Date();
+    selectedLogDate.setHours(12, 0, 0, 0);
 
     const exerciseNames = {
         treadmill: "Treadmill",
@@ -1259,6 +1255,10 @@
 
     async function saveExercise() {
         if (!userRef || !latestEstimate || isSaving) return;
+        if (!workoutDateInput.value || !workoutDateInput.checkValidity()) {
+            showMessage("Choose a valid workout date before saving.");
+            return;
+        }
 
         isSaving = true;
         const saveButton = document.getElementById("saveButton");
@@ -1321,6 +1321,15 @@
 
     document.getElementById("selectedDateText").textContent =
         formatDate(selectedLogDate);
+    const workoutDateInput = document.getElementById("workoutDate");
+    workoutDateInput.value = FitQuestActivity.dateKey(selectedLogDate);
+    workoutDateInput.addEventListener("change", () => {
+        const date = new Date(`${workoutDateInput.value}T12:00:00`);
+        if (Number.isNaN(date.getTime())) return;
+        selectedLogDate = date;
+        document.getElementById("selectedDateText").textContent = formatDate(date);
+    });
+
 
     document.getElementById("todayLabel").textContent =
         new Intl.DateTimeFormat("en-GB", {
